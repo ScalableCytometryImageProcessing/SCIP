@@ -8,11 +8,11 @@ setuptools.setup(
     name="pipelineModules",
     version="0.0.1",
     package_dir={"": "src"},
-    requires=[
+    install_requires=[
 	'numpy',
 	'Pillow',
 	'dask',
-    'dask_jobqueue'
+	'dask_jobqueue'
     ],
     packages=setuptools.find_packages(where="src"),
     python_requires=">=3.7",
