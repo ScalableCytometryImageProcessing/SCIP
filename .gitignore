@@ -1,4 +1,5 @@
 dask-worker-space/
 *.ipynb_checkpoints
 __pycache__
-*.egg
+*.egg-info
+*.vscode

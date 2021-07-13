@@ -22,7 +22,7 @@ def from_directory(path: str) -> list[Delayed]:
     """
 
     ops = []
-    for p in Path(path).glob("*.tiff"):
+    for p in Path(path).glob("**/*.tiff"):
         ops.append(load_image(str(p)))
 
     return ops
