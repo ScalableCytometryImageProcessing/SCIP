@@ -1,6 +1,7 @@
 import dask
 from PIL import Image
 from dask.delayed import Delayed
+import dask.bag
 import numpy
 from pathlib import Path
 
@@ -21,9 +22,9 @@ def from_directory(path: str) -> list[Delayed]:
 
     """
 
-    ops = []
+    image_paths = []
     for p in Path(path).glob("**/*.tiff"):
-        ops.append(load_image(str(p)))
+        image_paths.append(load_image(str(p)))
 
-    return ops
+    return dask.bag.from_sequence(image_paths, partition_size=100).map(load_image)
 
