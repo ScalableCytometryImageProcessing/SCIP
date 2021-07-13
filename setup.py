@@ -12,8 +12,9 @@ setuptools.setup(
 	'numpy',
 	'Pillow',
 	'dask',
-	'git+https://github.com/ScalableImagingPipeline/dask-jobqueue.git#egg=dask_jobqueue'
-    ]
+    'dask_jobqueue'
+    ],
     packages=setuptools.find_packages(where="src"),
     python_requires=">=3.7",
 )
+    
