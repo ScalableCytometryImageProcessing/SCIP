@@ -15,7 +15,7 @@ def get_client(local=True, n_workers=2):
     if local:
         cluster = LocalCluster(n_workers=n_workers)
     else:
-        assert Path("~/logs/").exists(), "Make sure directory 'logs' exists in your home dir"
+        assert (Path.home() / "logs").exists(), "Make sure directory 'logs' exists in your home dir"
 
         cluster = PBSCluster(
             cores=24,
