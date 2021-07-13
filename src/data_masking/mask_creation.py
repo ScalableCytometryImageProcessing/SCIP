@@ -52,19 +52,8 @@ def update_dict(sample: np.ndarray, dict_sample: dict[np.ndarray, str]):
     return dict_sample
 
 
-def create_masks(imageList: list[Delayed]) -> list[Delayed]:
-    mask_samples = []
-
-    for img in imageList:
-        denoised = denoising(img)
-        segmented = felzenszwalb_segmentation(denoised)
-        thresholded = otsu_thresholding(segmented)
-        mask_samples.append(update_dict(thresholded, img))
-
-    return mask_samples
-
-
-
-
-    
-
+def create_mask(img: Delayed) -> Delayed:
+    denoised = denoising(img)
+    segmented = felzenszwalb_segmentation(denoised)
+    thresholded = otsu_thresholding(segmented)
+    return update_dict(thresholded, img)

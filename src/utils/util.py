@@ -1,31 +1,43 @@
 # Contains methods for administrative tasks
 
+from threading import local
 from dask.distributed import (Client, LocalCluster)
 from dask_jobqueue import PBSCluster
 from pathlib import Path
 
-def get_client(local=True, n_workers=2):
-    """
-    Sets up a cluster and client.
+class ClientClusterContext:
 
-    local (bool): If true, sets up a LocalCluster, otherwise a PBSCluster
-    n_workers (int): Defines the amount of workers the cluster will create
-    """
+    def __init__(self, local=True, n_workers=2):
+        """
+        Sets up a cluster and client.
 
-    if local:
-        cluster = LocalCluster(n_workers=n_workers)
-    else:
-        assert (Path.home() / "logs").exists(), "Make sure directory 'logs' exists in your home dir"
+        local (bool): If true, sets up a LocalCluster, otherwise a PBSCluster
+        n_workers (int): Defines the amount of workers the cluster will create
+        """
+        self.local=local
+        self.n_workers=n_workers
 
-        cluster = PBSCluster(
-            cores=24,
-            memory="10GB",
-            walltime=None,
-            resource_spec="h_vmem=10G,mem_free=240G",
-            processes=6,
-            project="SIP",
-            job_extra=("-pe serial 24", "-j y", "-o ~/logs/dask_workers.out")
-        )
-        cluster.scale(jobs=n_workers)
+    def __enter__(self):
+        if self.local:
+            self.cluster = LocalCluster(n_workers=self.n_workers)
+        else:
+            assert Path("~/logs/").exists(), "Make sure directory 'logs' exists in your home dir"
 
-    return Client(cluster)
+            self.cluster = PBSCluster(
+                cores=24,
+                memory="10GB",
+                walltime=None,
+                resource_spec="h_vmem=10G,mem_free=240G",
+                processes=6,
+                project="SIP",
+                job_extra=("-pe serial 24", "-j y", "-o ~/logs/dask_workers.out")
+            )
+            self.cluster.scale(jobs=self.n_workers)
+        
+        self.client = Client(self.cluster)
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        self.client.close()
+        self.cluster.close()
+
