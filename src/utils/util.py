@@ -21,7 +21,7 @@ class ClientClusterContext:
         if self.local:
             self.cluster = LocalCluster(n_workers=self.n_workers)
         else:
-            assert Path("~/logs/").exists(), "Make sure directory 'logs' exists in your home dir"
+            assert (Path.home() / "logs").exists(), "Make sure directory 'logs' exists in your home dir"
 
             self.cluster = PBSCluster(
                 cores=24,
