@@ -14,7 +14,7 @@ def load_image(p: str) -> dict[numpy.ndarray, str]:
         arr[i] = numpy.array(im)
     return dict(pixels=arr, path=p)
 
-def from_directory(path: str) -> list[Delayed]:
+def bag_from_directory(path: str) -> dask.bag.Bag:
     """
     Construct delayed ops for all tiffs in a directory
 

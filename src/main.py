@@ -4,14 +4,15 @@ from data_masking import mask_creation
 from utils import util
 
 def main():
-    # get_client creates local cluster
-    # and registers Client as default client for this session
-    util.get_client(local=True)
 
     path = "/home/maximl/shared_scratch/images"
-    images = multiframe_tiff.from_directory(path)
-    images = images.map(mask_creation)
-    images.compute()
+
+    # ClientClusterContext creates cluster
+    # and registers Client as default client for this session
+    with util.ClientClusterContext():
+        images = multiframe_tiff.bag_from_directory(path)
+        images = images.map(mask_creation.create_mask)
+        images.compute()
 
 if __name__ == "__main__":
     main()
