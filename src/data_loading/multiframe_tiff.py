@@ -5,7 +5,7 @@ import numpy
 from pathlib import Path
 
 @dask.delayed
-def load_image(p: str) -> tuple[numpy.ndarray, str]:
+def load_image(p: str) -> dict[numpy.ndarray, str]:
     im = Image.open(p)
     arr = numpy.empty(shape=(im.n_frames, im.height, im.width), dtype=float)
     for i in range(im.n_frames):
