@@ -5,7 +5,7 @@ from PIL import Image
 import numpy as np
 import dask
 
-@dask.delayed
+#@dask.delayed
 def denoising(sample: dict[np.ndarray, str]):
     img = sample.get('pixels')
     denoised_masks = np.empty(img.shape, dtype=float)
@@ -20,7 +20,7 @@ def denoising(sample: dict[np.ndarray, str]):
     return denoised_masks
 
 
-@dask.delayed
+#@dask.delayed
 def felzenszwalb_segmentation(sample: np.ndarray):
     segmented_masks = np.empty(sample.shape, dtype=float)
     channels = sample.shape[0]
@@ -31,7 +31,7 @@ def felzenszwalb_segmentation(sample: np.ndarray):
     return segmented_masks
 
 
-@dask.delayed
+#@dask.delayed
 def otsu_thresholding(sample: np.ndarray):
     thresholded_masks = np.empty(sample.shape, dtype=bool)
     channels = sample.shape[0]
@@ -45,14 +45,14 @@ def otsu_thresholding(sample: np.ndarray):
         
     return thresholded_masks
 
-@dask.delayed
+#@dask.delayed
 def update_dict(sample: np.ndarray, dict_sample: dict[np.ndarray, str]):
     dict_sample = dict_sample.copy()
     dict_sample.update(mask=sample)
     return dict_sample
 
 
-def create_mask(img: Delayed) -> Delayed:
+def create_mask(img):
     denoised = denoising(img)
     segmented = felzenszwalb_segmentation(denoised)
     thresholded = otsu_thresholding(segmented)
