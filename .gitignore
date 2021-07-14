@@ -3,3 +3,6 @@ dask-worker-space/
 __pycache__
 *.egg-info
 *.vscode
+*.pdf
+*.png
+*.html

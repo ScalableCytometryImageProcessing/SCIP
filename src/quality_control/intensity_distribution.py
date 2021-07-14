@@ -79,12 +79,21 @@ def get_counts(sample, bins, masked_bins):
 
 def get_distributed_counts(bag):
     
+    def min_max_partition(part, origin):
+        return [get_min_max(p, origin) for p in part]
+    
+    def masked_intensities_partition(part):
+        return [get_masked_intensities(p) for p in part]
+    
+    def counts_partition(part, bins, masked_bins):
+        return [get_counts(p, bins, masked_bins) for p in part]
+
     # Compute new key-value in dictionary with list of numpy's with flattened intensities per channel
-    bag = bag.map(get_masked_intensities)
+    bag = bag.map_partitions(masked_intensities_partition)
 
     # Get minima and maxima
-    min_max_masked = bag.map(get_min_max, 'masked_intensities').fold(reduced_minmax)
-    min_max = bag.map(get_min_max, 'pixels').fold(reduced_minmax)
+    min_max_masked = bag.map_partitions(min_max_partition, 'masked_intensities').fold(reduced_minmax)
+    min_max = bag.map_partitions(min_max_partition, 'pixels').fold(reduced_minmax)
 
     # Get bins from the extrema
     bins = min_max.apply(get_bins)
@@ -92,7 +101,7 @@ def get_distributed_counts(bag):
 
     # Compute the counts 
     intensity_count, masked_intensity_count,  bins, masked_bins = \
-        bag.map(get_counts, bins=bins, masked_bins=masked_bins).fold(reduced_counts).compute()
+        bag.map_partitions(counts_partition, bins=bins, masked_bins=masked_bins).fold(reduced_counts).compute()
 
     return intensity_count, masked_intensity_count, bins, masked_bins
 
