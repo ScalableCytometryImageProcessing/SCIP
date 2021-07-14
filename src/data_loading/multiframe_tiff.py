@@ -1,9 +1,9 @@
 import dask
 from PIL import Image
-from dask.delayed import Delayed
 import dask.bag
 import numpy
 from pathlib import Path
+
 
 @dask.delayed
 def load_image(p: str) -> dict[numpy.ndarray, str]:
@@ -13,6 +13,7 @@ def load_image(p: str) -> dict[numpy.ndarray, str]:
         im.seek(i)
         arr[i] = numpy.array(im)
     return dict(pixels=arr, path=p)
+
 
 def bag_from_directory(path: str) -> dask.bag.Bag:
     """
@@ -27,4 +28,3 @@ def bag_from_directory(path: str) -> dask.bag.Bag:
         image_paths.append(load_image(str(p)))
 
     return dask.bag.from_sequence(image_paths, partition_size=100).map(load_image)
-
