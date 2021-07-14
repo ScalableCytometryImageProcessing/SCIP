@@ -5,7 +5,6 @@ import numpy
 from pathlib import Path
 
 
-@dask.delayed
 def load_image(p: str) -> dict[numpy.ndarray, str]:
     im = Image.open(p)
     arr = numpy.empty(shape=(im.n_frames, im.height, im.width), dtype=float)
@@ -25,6 +24,9 @@ def bag_from_directory(path: str) -> dask.bag.Bag:
 
     image_paths = []
     for p in Path(path).glob("**/*.tiff"):
-        image_paths.append(load_image(str(p)))
+        image_paths.append(str(p))
 
-    return dask.bag.from_sequence(image_paths, partition_size=100).map(load_image)
+    bag = dask.bag.from_sequence(image_paths, npartitions=100)
+    return bag.map_partitions(
+        lambda paths: [load_image(path) for path in paths]
+    )

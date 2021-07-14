@@ -1,11 +1,9 @@
 from skimage import filters, segmentation
 from skimage.restoration import denoise_nl_means
-from dask.delayed import Delayed
 import numpy as np
 import dask
 
 
-@dask.delayed
 def denoising(sample: dict[np.ndarray, str]):
     img = sample.get('pixels')
     denoised_masks = np.empty(img.shape, dtype=float)
@@ -19,7 +17,6 @@ def denoising(sample: dict[np.ndarray, str]):
     return denoised_masks
 
 
-@dask.delayed
 def felzenszwalb_segmentation(sample: np.ndarray):
     segmented_masks = np.empty(sample.shape, dtype=float)
     channels = sample.shape[0]
@@ -30,7 +27,6 @@ def felzenszwalb_segmentation(sample: np.ndarray):
     return segmented_masks
 
 
-@dask.delayed
 def otsu_thresholding(sample: np.ndarray):
     thresholded_masks = np.empty(sample.shape, dtype=bool)
     channels = sample.shape[0]
@@ -45,15 +41,30 @@ def otsu_thresholding(sample: np.ndarray):
     return thresholded_masks
 
 
-@dask.delayed
 def update_dict(sample: np.ndarray, dict_sample: dict[np.ndarray, str]):
     dict_sample = dict_sample.copy()
     dict_sample.update(mask=sample)
     return dict_sample
 
 
-def create_mask(img: Delayed) -> Delayed:
-    denoised = denoising(img)
-    segmented = felzenszwalb_segmentation(denoised)
-    thresholded = otsu_thresholding(segmented)
-    return update_dict(thresholded, img)
+def create_masks_on_bag(images: dask.bag.Bag):
+
+    # we define the different steps as named functions
+    # so that Dask can differentiate between them in
+    # the dashboard
+
+    def denoise_partition(part):
+        return [denoising(p) for p in part]
+
+    def felzenswalb_segment_partition(part):
+        return [felzenszwalb_segmentation(p) for p in part]
+
+    def otsu_threshold_partition(part):
+        return [otsu_thresholding(p) for p in part]
+
+    return (
+        images
+        .map_partitions(denoise_partition)
+        .map_partitions(felzenswalb_segment_partition)
+        .map_partitions(otsu_threshold_partition)
+    )
