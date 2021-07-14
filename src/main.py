@@ -1,9 +1,11 @@
-import dask
 from data_loading import multiframe_tiff
+from data_masking import mask_creation
 from utils import util
 import click
 import logging
 from pathlib import Path
+import dask
+
 
 def main(*, paths, debug):
 
@@ -13,20 +15,24 @@ def main(*, paths, debug):
     logger = logging.getLogger(__name__)
     logger.info(f"Running pipeline for {','.join(paths)}")
 
-    # get_client creates local cluster
+    # ClientClusterContext creates cluster
     # and registers Client as default client for this session
-    client = util.get_client(local=True)
-    logger.debug(f"Client ({client}) created")
+    with util.ClientClusterContext() as client:
+        logger.debug(f"Client ({client}) created")
 
-    images = []
-    for path in paths:
-        assert Path(path).exists(), f"{path} does not exist."
-        assert Path(path).is_dir(), f"{path} is not a directory."
-        images.extend(multiframe_tiff.from_directory(path))
+        images = []
+        for path in paths:
+            assert Path(path).exists(), f"{path} does not exist."
+            assert Path(path).is_dir(), f"{path} is not a directory."
+            images.append(multiframe_tiff.bag_from_directory(path))
 
-    logger.debug(f"Loading {len(images)} images")
-    images = dask.compute(*images)
-    logger.debug(f"{len(images)} images loaded")
+        images = dask.bag.concat(images)
+        images = images.map(mask_creation.create_mask)
+        images.compute()
+
+        logger.debug(f"Loading {len(images)} images")
+        logger.debug(f"{len(images)} images loaded")
+
 
 @click.command(name="Scalable imaging pipeline")
 @click.argument("paths", nargs=-1, type=click.Path(exists=True, file_okay=False))
@@ -36,7 +42,7 @@ def cli(**kwargs):
     """
     main(**kwargs)
 
+
 if __name__ == "__main__":
-    path = "/group/irc/shared/vulcan_pbmc_debug"
-    
-    main(path=path, debug=True)
+    path = "/home/maximl/shared_scratch/images"
+    main(paths=(path,), debug=True)

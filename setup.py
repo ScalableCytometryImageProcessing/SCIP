@@ -12,10 +12,11 @@ setuptools.setup(
         'numpy',
         'Pillow',
         'dask',
-        'dask_jobqueue',
-        'click'
+        'click',
+        'dask_jobqueue @ git+https://github.com/ScalableImagingPipeline/dask-jobqueue.git',
+        'scikit-image'
     ],
-    entry_points = {
+    entry_points={
         'console_scripts': [
             'sip=main:cli'
         ]
