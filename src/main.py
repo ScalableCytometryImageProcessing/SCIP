@@ -1,7 +1,7 @@
-import dask
 from data_loading import multiframe_tiff
 from data_masking import mask_creation
 from utils import util
+
 
 def main():
 
@@ -13,6 +13,7 @@ def main():
         images = multiframe_tiff.bag_from_directory(path)
         images = images.map(mask_creation.create_mask)
         images.compute()
+
 
 if __name__ == "__main__":
     main()
