@@ -7,7 +7,7 @@ from pathlib import Path
 
 class ClientClusterContext:
 
-    def __init__(self, local=True, n_workers=2):
+    def __init__(self, local=True, n_workers=2, port=8787):
         """
         Sets up a cluster and client.
 
@@ -16,6 +16,7 @@ class ClientClusterContext:
         """
         self.local = local
         self.n_workers = n_workers
+        self.port = port
 
     def __enter__(self):
         if self.local:
@@ -26,12 +27,12 @@ class ClientClusterContext:
 
             self.cluster = PBSCluster(
                 cores=24,
-                memory="10GB",
-                walltime=None,
+                memory="240GiB",
                 resource_spec="h_vmem=10G,mem_free=240G",
-                processes=6,
+                processes=12,
                 project="SIP",
-                job_extra=("-pe serial 24", "-j y", "-o ~/logs/dask_workers.out")
+                job_extra=("-pe serial 24", "-j y", "-o ~/logs/dask_workers.out"),
+                scheduler_options={'dashboard_address': f':{self.port}'}
             )
             self.cluster.scale(jobs=self.n_workers)
 

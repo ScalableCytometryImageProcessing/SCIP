@@ -1,9 +1,5 @@
-from skimage import img_as_float, img_as_uint, filters, exposure, morphology, segmentation, measure
-from skimage.restoration import denoise_nl_means
 from dask.delayed import Delayed
-from PIL import Image
 import numpy as np
-import dask
 
 
 def apply_mask(dict_sample: dict[np.ndarray, str, np.ndarray]):
@@ -13,7 +9,7 @@ def apply_mask(dict_sample: dict[np.ndarray, str, np.ndarray]):
     masked_img = np.empty(img.shape, dtype=float)
 
     for i in range(img.shape[0]):
-        masked_img[i] = img[i]*mask[i]
+        masked_img[i] = img[i] * mask[i]
 
     dict_sample.update(masked_img=masked_img)
     return dict_sample

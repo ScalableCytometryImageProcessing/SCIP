@@ -4,3 +4,6 @@ __pycache__
 *.egg-info
 *.vscode
 .coverage
+*.pdf
+*.png
+*.html
