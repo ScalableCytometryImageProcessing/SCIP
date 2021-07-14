@@ -65,4 +65,4 @@ def cli(**kwargs):
 
 if __name__ == "__main__":
     path = "/home/maximl/shared_scratch/vulcan_pbmc_debug"
-    main(paths=(path,), debug=True)
+    main(paths=(path,), n_workers=2, debug=True)
