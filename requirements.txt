@@ -1,0 +1,6 @@
+# These are development requirements.
+# Other requirements can be found in setup.py
+flake8
+pytest-flake8
+wheel
+pytest
