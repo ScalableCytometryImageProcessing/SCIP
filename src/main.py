@@ -13,7 +13,7 @@ def main():
     # ClientClusterContext creates cluster
     # and registers Client as default client for this session
     with util.ClientClusterContext(n_workers=24) as context:
-        images = multiframe_tiff.bag_from_directory(path)
+        images = multiframe_tiff.bag_from_directory(path, npartitions=400)
         images = mask_creation.create_masks_on_bag(images)
 
         start = time.time()

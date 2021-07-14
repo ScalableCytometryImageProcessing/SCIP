@@ -2,6 +2,7 @@ from skimage import filters, segmentation
 from skimage.restoration import denoise_nl_means
 import numpy as np
 import dask
+import dask.bag
 
 
 def denoising(sample: dict[np.ndarray, str]):

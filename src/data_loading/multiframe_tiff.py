@@ -14,7 +14,7 @@ def load_image(p: str) -> dict[numpy.ndarray, str]:
     return dict(pixels=arr, path=p)
 
 
-def bag_from_directory(path: str) -> dask.bag.Bag:
+def bag_from_directory(path: str, npartitions: int) -> dask.bag.Bag:
     """
     Construct delayed ops for all tiffs in a directory
 
@@ -26,7 +26,7 @@ def bag_from_directory(path: str) -> dask.bag.Bag:
     for p in Path(path).glob("**/*.tiff"):
         image_paths.append(str(p))
 
-    bag = dask.bag.from_sequence(image_paths, npartitions=100)
+    bag = dask.bag.from_sequence(image_paths, npartitions=npartitions)
     return bag.map_partitions(
         lambda paths: [load_image(path) for path in paths]
     )
