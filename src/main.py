@@ -9,7 +9,7 @@ import dask.bag
 import matplotlib.pyplot as plt
 
 
-def main(*, paths, n_workers, debug, port):
+def main(*, paths, n_workers, debug, port, local):
 
     logging.basicConfig(
         level=logging.DEBUG if debug else logging.WARNING
@@ -22,7 +22,7 @@ def main(*, paths, n_workers, debug, port):
 
     # ClientClusterContext creates cluster
     # and registers Client as default client for this session
-    with util.ClientClusterContext(n_workers=n_workers, local=False, port=port) as context:
+    with util.ClientClusterContext(n_workers=n_workers, local=local, port=port) as context:
         logger.debug(f"Client ({context}) created")
 
         images = []
@@ -36,7 +36,7 @@ def main(*, paths, n_workers, debug, port):
         images = mask_creation.create_masks_on_bag(images)
 
         start = time.time()
-        images = images.take(5)
+        images = images.compute()
         logger.info(f"Compute runtime {(time.time() - start):.2f}")
 
         fig, grid = plt.subplots(5, 4)
@@ -55,8 +55,14 @@ def main(*, paths, n_workers, debug, port):
 
 @click.command(name="Scalable imaging pipeline")
 @click.argument("paths", nargs=-1, type=click.Path(exists=True, file_okay=False))
-@click.option("--n-workers", "-j", type=int, default=-1)
-@click.option("--debug", envvar="DEBUG", is_flag=True)
+@click.option(
+    "--n-workers", "-j", type=int, default=-1,
+    help="how many workers are started in the dask cluster")
+@click.option("--port", "-p", type=int, default=8787, help="dask dashboard port")
+@click.option("--debug", envvar="DEBUG", is_flag=True, help="sets logging level to debug")
+@click.option(
+    "--local", "-l", is_flag=True, default=True,
+    help="if true, deploy app to Dask LocalCluster, otherwise deploy to dask-jobqueue PBSCluster")
 def cli(**kwargs):
     """Intro documentation
     """
@@ -64,5 +70,9 @@ def cli(**kwargs):
 
 
 if __name__ == "__main__":
-    path = "/home/sanderth/images"
-    main(paths=(path,), debug=True, n_workers=2, port=8788)
+    import os
+
+    # add DEBUG_DATASET entry to terminal.integrated.env.linux in VS Code workspace settings
+    # should contain path to small debug dataset
+    path = os.environ["FULL_DATASET"]
+    main(paths=(path,), debug=True, n_workers=4, port=8989, local=False)
