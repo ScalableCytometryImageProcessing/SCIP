@@ -108,7 +108,7 @@ def get_distributed_counts(bag):
 
 
 def plot_before_after_distribution(
-        counts_before, bins_before, counts_after, bins_after, normalize=True, pdf=True):
+        counts_before, bins_before, counts_after, bins_after, output_dir, normalize=True, pdf=True):
 
     if normalize:
         # Normalize the counts so the sum of area is 1
@@ -135,6 +135,6 @@ def plot_before_after_distribution(
     # Create a pdf with unique
     now = datetime.now()
     dt_string = now.strftime("%d%m%Y_%H%M%S")
-    f.savefig(dt_string + "_intensity_distribution.pdf", bbox_inches='tight')
+    f.savefig(output_dir / (dt_string + "_intensity_distribution.pdf"), bbox_inches='tight')
 
     return f
