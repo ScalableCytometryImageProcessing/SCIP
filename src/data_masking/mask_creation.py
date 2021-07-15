@@ -5,15 +5,18 @@ import dask
 import dask.bag
 
 
-def denoising(sample: dict[np.ndarray, str]):
+def denoising(sample: dict[np.ndarray, str], noisy_channels=[]):
     img = sample.get('pixels')
     denoised = np.empty(img.shape, dtype=float)
     channels = img.shape[0]
     # TODO add list parameter with noisy channels + denoising parameter
     for i in range(channels):
-        denoised[i] = denoise_nl_means(
-            img[i], multichannel=False, patch_size=4,
-            patch_distance=17, fast_mode=True)
+        if i not in noisy_channels:
+            denoised[i] = denoise_nl_means(
+                img[i], multichannel=False, patch_size=4,
+                patch_distance=17, fast_mode=True)
+        else:
+            denoised[i] = img[i]
 
     return {**sample, **dict(denoised=denoised)}
 
@@ -41,14 +44,14 @@ def otsu_thresholding(sample: dict):
     return {**sample, **dict(mask=thresholded_masks)}
 
 
-def create_masks_on_bag(images: dask.bag.Bag):
+def create_masks_on_bag(images: dask.bag.Bag, noisy_channels):
 
     # we define the different steps as named functions
     # so that Dask can differentiate between them in
     # the dashboard
 
     def denoise_partition(part):
-        return [denoising(p) for p in part]
+        return [denoising(p, noisy_channels) for p in part]
 
     def felzenswalb_segment_partition(part):
         return [felzenszwalb_segmentation(p) for p in part]

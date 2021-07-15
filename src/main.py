@@ -34,21 +34,27 @@ def main(*, paths, n_workers, debug, port, local):
             images.append(multiframe_tiff.bag_from_directory(path, partition_size=50))
 
         images = dask.bag.concat(images)
-        images = mask_creation.create_masks_on_bag(images)
+        images = mask_creation.create_masks_on_bag(images, noisy_channels=[0])
         start = time.time()
+
+        # Quality control by counting intensities
         intensity_count, masked_intensity_count, bins, masked_bins = \
             intensity_distribution.get_distributed_counts(images)
+
+        # Plot and create PDF
         intensity_distribution.plot_before_after_distribution(
             intensity_count, bins, masked_intensity_count, masked_bins)
+
         logger.info(f"Compute runtime {(time.time() - start):.2f}")
 
         fig, grid = plt.subplots(5, 4)
+        channel = 1
         for im, axes in zip(images, grid):
-            axes[0].imshow(im["pixels"][1])
-            axes[1].imshow(im["denoised"][1])
-            axes[2].imshow(im["segmented"][1])
-            axes[3].imshow(im["mask"][1])
-        plt.savefig("output_images.png")
+            axes[0].imshow(im["pixels"][channel])
+            axes[1].imshow(im["denoised"][channel])
+            axes[2].imshow(im["segmented"][channel])
+            axes[3].imshow(im["mask"][channel])
+        plt.savefig(f"output_images_ch{channel}.png")
 
         if debug:
             context.client.profile(filename="profile.html")
