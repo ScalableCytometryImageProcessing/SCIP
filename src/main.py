@@ -41,7 +41,7 @@ def main(*, paths, n_workers, debug, port, local):
         intensity_count, masked_intensity_count, bins, masked_bins = \
             intensity_distribution.get_distributed_counts(images)
 
-        # Plot and create PDF
+        # Plot and create PDF file
         intensity_distribution.plot_before_after_distribution(
             intensity_count, bins, masked_intensity_count, masked_bins)
 
