@@ -5,7 +5,7 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "Operating System :: LInux",
     ],
-    name="pipelineModules",
+    name="sip",
     version="0.0.1",
     package_dir={"": "src"},
     install_requires=[
@@ -18,7 +18,7 @@ setuptools.setup(
     ],
     entry_points={
         'console_scripts': [
-            'sip=main:cli'
+            'sip=sip.main:cli'
         ]
     },
     packages=setuptools.find_packages(where="src"),

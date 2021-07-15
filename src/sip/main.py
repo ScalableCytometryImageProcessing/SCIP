@@ -1,7 +1,7 @@
-from data_loading import multiframe_tiff
-from data_masking import mask_creation
-from quality_control import intensity_distribution
-from utils import util
+from sip.data_loading import multiframe_tiff
+from sip.data_masking import mask_creation
+from sip.quality_control import intensity_distribution
+from sip.utils import util
 import time
 import click
 import logging

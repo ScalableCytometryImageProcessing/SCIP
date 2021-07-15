@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from data_masking.mask_apply import get_masked_intensities
+from sip.data_masking.mask_apply import get_masked_intensities
 from datetime import datetime
 
 
