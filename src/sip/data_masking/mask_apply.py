@@ -1,8 +1,7 @@
-from dask.delayed import Delayed
 import numpy as np
 
 
-def apply_mask(dict_sample: dict[np.ndarray, str, np.ndarray]):
+def apply_mask(dict_sample):
     dict_sample = dict_sample.copy()
     img = dict_sample.get("image")
     mask = dict_sample.get("mask")
@@ -15,7 +14,7 @@ def apply_mask(dict_sample: dict[np.ndarray, str, np.ndarray]):
     return dict_sample
 
 
-def get_masked_intensities(dict_sample: dict[np.ndarray, str, np.ndarray]):
+def get_masked_intensities(dict_sample):
 
     # Make a copy of the dict, input parameters in Dask shouldn't be changed
     dict_sample = dict_sample.copy()
@@ -36,7 +35,7 @@ def get_masked_intensities(dict_sample: dict[np.ndarray, str, np.ndarray]):
     return dict_sample
 
 
-def create_masks(imageList: list[Delayed]) -> list[Delayed]:
+def create_masks(imageList):
     mask_samples = []
 
     for img in imageList:

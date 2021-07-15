@@ -5,7 +5,7 @@ import numpy
 from pathlib import Path
 
 
-def load_image(p: str) -> dict[numpy.ndarray, str]:
+def load_image(p):
     im = Image.open(p)
     arr = numpy.empty(shape=(im.n_frames, im.height, im.width), dtype=float)
     for i in range(im.n_frames):
@@ -14,7 +14,7 @@ def load_image(p: str) -> dict[numpy.ndarray, str]:
     return dict(pixels=arr, path=p)
 
 
-def bag_from_directory(path: str, partition_size: int) -> dask.bag.Bag:
+def bag_from_directory(path, partition_size):
     """
     Construct delayed ops for all tiffs in a directory
 

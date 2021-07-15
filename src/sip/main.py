@@ -109,6 +109,6 @@ if __name__ == "__main__":
     path = os.environ["FULL_DATASET"]
     main(
         paths=(path,),
-        output_dir="tmp",
+        output_directory="tmp",
         headless=False,
         debug=True, n_workers=4, port=8990, local=False)
