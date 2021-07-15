@@ -1,5 +1,6 @@
 from data_loading import multiframe_tiff
 from data_masking import mask_creation
+from quality_control import intensity_distribution
 from utils import util
 import time
 import click
@@ -34,9 +35,11 @@ def main(*, paths, n_workers, debug, port, local):
 
         images = dask.bag.concat(images)
         images = mask_creation.create_masks_on_bag(images)
-
         start = time.time()
-        images = images.compute()
+        intensity_count, masked_intensity_count, bins, masked_bins = \
+            intensity_distribution.get_distributed_counts(images)
+        intensity_distribution.plot_before_after_distribution(
+            intensity_count, bins, masked_intensity_count, masked_bins)
         logger.info(f"Compute runtime {(time.time() - start):.2f}")
 
         fig, grid = plt.subplots(5, 4)
@@ -75,4 +78,4 @@ if __name__ == "__main__":
     # add DEBUG_DATASET entry to terminal.integrated.env.linux in VS Code workspace settings
     # should contain path to small debug dataset
     path = os.environ["FULL_DATASET"]
-    main(paths=(path,), debug=True, n_workers=4, port=8989, local=False)
+    main(paths=(path,), debug=True, n_workers=4, port=8990, local=False)
