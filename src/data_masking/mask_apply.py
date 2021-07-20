@@ -1,39 +1,43 @@
+import dask
+import dask.bag
 from dask.delayed import Delayed
 import numpy as np
 
 
 def apply_mask(dict_sample: dict[np.ndarray, str, np.ndarray]):
-    dict_sample = dict_sample.copy()
-    img = dict_sample.get("image")
+
+    img = dict_sample.get("pixels")
     mask = dict_sample.get("mask")
     masked_img = np.empty(img.shape, dtype=float)
 
+    # Multiply image with mask to set background to zero
     for i in range(img.shape[0]):
         masked_img[i] = img[i] * mask[i]
 
-    dict_sample.update(masked_img=masked_img)
-    return dict_sample
+    return {**dict_sample, **dict(masked_img=masked_img)}
+
+
+def create_masked_images_on_bag(images: dask.bag.Bag):
+
+    def apply_mask_partition(part):
+        return [apply_mask(p) for p in part]
+    
+    return images.map_partitions(apply_mask_partition)
 
 
 def get_masked_intensities(dict_sample: dict[np.ndarray, str, np.ndarray]):
-
-    # Make a copy of the dict, input parameters in Dask shouldn't be changed
-    dict_sample = dict_sample.copy()
 
     img = dict_sample.get("pixels")
     mask = dict_sample.get("mask")
 
     masked_intensities = list()
 
-    # Flatten and filter the intensities with the mask
+    # Filter the intensities with the mask
     for i in range(img.shape[0]):
-        img_flatten = img[i].flatten()
-        mask_flatten = mask[i].flatten()
-        masked_intensities.append(np.extract(mask_flatten, img_flatten))
+        masked_intensities.append(img[i][np.where(mask[i])])
 
-    # Update dictionary with new key-value
-    dict_sample.update(masked_intensities=masked_intensities)
-    return dict_sample
+    return {**dict_sample, **dict(masked_intensities=masked_intensities)}
+
 
 
 def create_masks(imageList: list[Delayed]) -> list[Delayed]:

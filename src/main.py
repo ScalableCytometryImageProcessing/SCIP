@@ -1,6 +1,8 @@
 from data_loading import multiframe_tiff
-from data_masking import mask_creation
+from data_masking import mask_creation, mask_apply
+from data_features import feature_extraction
 from quality_control import intensity_distribution
+from data_normalization import quantile_normalization
 from utils import util
 import time
 import click
@@ -35,15 +37,23 @@ def main(*, paths, n_workers, debug, port, local):
 
         images = dask.bag.concat(images)
         images = mask_creation.create_masks_on_bag(images, noisy_channels=[0])
+        images = mask_apply.create_masked_images_on_bag(images)
+        
+
+        new_quantiles, new_masked_quantiles = intensity_distribution.get_distributed_partitioned_quantile(images, 0.00, 1)
+        new_quantiles.compute()
+
+        normalized_bag = quantile_normalization.quantile_normalization(images, 0.05, 0.95)
+        shape_features = feature_extraction.extract_features(normalized_bag)
+        report_bag = intensity_distribution.segmentation_intensity_report(shape_features, 100)
+        normalized_img = report_bag.compute()
         start = time.time()
 
-        # Quality control by counting intensities
-        intensity_count, masked_intensity_count, bins, masked_bins = \
-            intensity_distribution.get_distributed_counts(images)
 
-        # Plot and create PDF file
-        intensity_distribution.plot_before_after_distribution(
-            intensity_count, bins, masked_intensity_count, masked_bins)
+
+        # # Plot and create PDF file
+        # intensity_distribution.plot_before_after_distribution(
+        #     intensity_count, bins, masked_intensity_count, masked_bins)
 
         logger.info(f"Compute runtime {(time.time() - start):.2f}")
 
@@ -83,5 +93,6 @@ if __name__ == "__main__":
 
     # add DEBUG_DATASET entry to terminal.integrated.env.linux in VS Code workspace settings
     # should contain path to small debug dataset
-    path = os.environ["FULL_DATASET"]
-    main(paths=(path,), debug=True, n_workers=4, port=8990, local=False)
+    path = os.environ["DEBUG_DATASET"]
+    path = "/home/sanderth/debug_images"
+    main(paths=(path,), debug=True, n_workers=2, port=8990, local=True)

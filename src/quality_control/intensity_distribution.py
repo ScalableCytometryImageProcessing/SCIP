@@ -1,7 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import dask
+from numpy.core.fromnumeric import partition
+from numpy.core.shape_base import vstack
 from data_masking.mask_apply import get_masked_intensities
+from matplotlib.backends.backend_pdf import PdfPages
 from datetime import datetime
+from functools import partial
 
 
 def get_min_max(sample, origin):
@@ -31,22 +36,33 @@ def reduced_minmax(L1, L2):
 
 
 def reduced_counts(L1, L2):
-    return ((np.array(L1[0]) + np.array(L2[0])), (np.array(L1[1]) + np.array(L2[1])), L1[2], L1[3])
+    return (np.array(L1[0]) + np.array(L2[0])), (np.array(L1[1]) + np.array(L2[1]))
 
 
+@dask.delayed
 def get_bins(min_max, bin_amount=50):
 
     # Rounding errors can result in making bins om n + 1, so we substract small float from n
     n = bin_amount - 0.01
-    bins = np.empty(shape=(len(min_max[0]), 50), dtype=float)
+    bins = np.empty(shape=(len(min_max[0]), bin_amount), dtype=float)
 
     for i in range(len(min_max[0])):
 
         if min_max[1][i] < min_max[0][i]:
             bins[i] = np.arange(min_max[1][i], min_max[0][i], (min_max[0][i] - min_max[1][i]) / n)
         else:
-            bins[i] = np.arange(0, 1, 0.02)
+            bins[i] = np.arange(0, 1, 1 / bin_amount)
     return bins
+
+
+@dask.delayed
+def get_median(stacked_quantiles):
+
+    # Rounding errors can result in making bins om n + 1, so we substract small float from n
+    lower = np.nanmedian(stacked_quantiles[0], axis = 0)
+    upper = np.nanmedian(stacked_quantiles[1], axis = 0)
+
+    return (lower, upper)
 
 
 def get_counts(sample, bins, masked_bins):
@@ -71,10 +87,51 @@ def get_counts(sample, bins, masked_bins):
         flat = masked_images[i].flatten()
         masked_intensity_count[i] = np.histogram(flat, masked_bins[i])[0]
 
-    return (intensity_count, masked_intensity_count, bins, masked_bins)
+    return (intensity_count, masked_intensity_count)
 
 
-def get_distributed_counts(bag):
+def get_sample_quantile(sample, lower_quantile, upper_quantile, origin):
+        image = sample.get(origin)
+
+        channels = image.shape[0] if origin == 'pixels' else len(image)
+
+        lower = np.empty(channels)
+        upper = np.empty(channels)
+
+        for i in range(channels):
+            if len(image[i] > 0):
+                lower[i] = np.quantile(image[i], lower_quantile)
+                upper[i] = np.quantile(image[i], upper_quantile)
+            else:
+                lower[i] = np.NaN
+                upper[i] = np.NaN
+
+
+        return (lower, upper)
+
+
+def stack_quantiles(L1, L2):
+    return (np.vstack((L1[0], L2[0])), np.vstack((L1[1], L2[1])))
+
+
+def stack_quantiles2(L1, L2):
+    temp = L1
+    return (np.vstack((L1[0], L2[0])), np.vstack((L1[1], L2[1])))                
+
+def return_input(L1, L2):
+    return (L1, L2)
+
+
+def get_blanks(sample):
+    flat_intensities = sample.get('masked_intensities')
+    return np.array([len(i) == 0 for i in flat_intensities], dtype=int)
+
+
+def reduced_empty_mask(L1, L2):
+    return L1 + L2
+
+            
+def segmentation_intensity_report(bag, bin_amount):
 
     def min_max_partition(part, origin):
         return [get_min_max(p, origin) for p in part]
@@ -85,56 +142,206 @@ def get_distributed_counts(bag):
     def counts_partition(part, bins, masked_bins):
         return [get_counts(p, bins, masked_bins) for p in part]
 
+    def blank_masks_partitions(part):
+        return [get_blanks(p) for p in part]
+
+    @dask.delayed
+    def get_percentage(counts, total):
+        return counts / total
+
     # Compute new key-value in dictionary with list of numpy's
     # with flattened intensities per channel
     bag = bag.map_partitions(masked_intensities_partition)
 
-    # Get minima and maxima
-    min_max_masked = bag.map_partitions(min_max_partition, 'masked_intensities') \
-                        .fold(reduced_minmax)
+    # Get amount of blank masks
+    blanks_sum = bag.map_partitions(blank_masks_partitions).fold(reduced_empty_mask)
 
-    min_max = bag.map_partitions(min_max_partition, 'pixels').fold(reduced_minmax)
+    # Calculate the percentage per channel of blank masks
+    total = bag.count()
+    percentage = get_percentage(blanks_sum, total)
+
+    # Get minima and maxima
+    min_max_masked = bag.map_partitions(min_max_partition,  origin='masked_img_norm').fold(reduced_minmax)
+
+    min_max = bag.map_partitions(min_max_partition,  origin='pixels_norm').fold(reduced_minmax)
 
     # Get bins from the extrema
-    bins = min_max.apply(get_bins)
-    masked_bins = min_max_masked.apply(get_bins)
+    bins = get_bins(min_max, bin_amount=bin_amount)
+    masked_bins = get_bins(min_max_masked, bin_amount=bin_amount)
 
     # Compute the counts
-    intensity_count, masked_intensity_count, bins, masked_bins = \
-        bag.map_partitions(counts_partition, bins=bins, masked_bins=masked_bins) \
-        .fold(reduced_counts).compute()
+    counts = bag.map_partitions(counts_partition, bins=bins, masked_bins=masked_bins) \
+        .fold(reduced_counts)
 
-    return intensity_count, masked_intensity_count, bins, masked_bins
+    # return intensity_count, masked_intensity_count, bins, masked_bins
+    return (counts, bins, masked_bins, percentage)
 
 
-def plot_before_after_distribution(
-        counts_before, bins_before, counts_after, bins_after, normalize=True, pdf=True):
+"""
+First method for quantile calculation:
+Based on the bins and bincount we find the bin in which the n% quantile should lie
 
+"""
+@dask.delayed
+def get_binned_quantile(counts_tuple, bins, masked_bins, lower_quantile, upper_quantile,):
+
+    def get_single_quantile_value(counts, quantile, bins):
+        cum_sum = np.cumsum(counts)
+        indices = np.argwhere(cum_sum < counts.sum()*quantile)
+        if len(indices) == 0:
+            return bins[0]
+        return bins[indices[-1][0]]
+
+    counts = counts_tuple[0]
+    masked_counts = counts_tuple[1]
+    
+    # Unmasked quantile calculation
+    lower_bin = [get_single_quantile_value(count, lower_quantile, bin) for count, bin in zip(counts, bins)]
+    upper_bin = [get_single_quantile_value(count, upper_quantile, bin) for count, bin in zip(counts, bins)]
+
+    # Masked quantile calculation
+    lower_m_bin = [get_single_quantile_value(count, lower_quantile, bin) for count, bin in zip(masked_counts, masked_bins)]
+    upper_m_bin = [get_single_quantile_value(count, upper_quantile, bin) for count, bin in zip(masked_counts, masked_bins)]
+
+    return lower_bin, upper_bin, lower_m_bin, upper_m_bin,
+#    return np.choose(upper_bin_index, bins.T), np.choose(lower_bin_index, bins.T), np.choose(upper_m_bin_index, masked_bins.T), np.choose(lower_m_bin_index, masked_bins.T)
+
+"""
+Second method for quantile calculation:
+For each sample the quantiles are calculated followed by a reduction over all
+the samples to find median of the quantiles
+"""
+def get_distributed_quantile(bag, lower_quantile, upper_quantile):
+
+    def quantile_partition(part, lower_quantile, upper_quantile, origin):
+
+        return [get_sample_quantile(p, lower_quantile, upper_quantile,  origin) for p in part]
+
+    def masked_intensities_partition(part):
+        return [get_masked_intensities(p) for p in part]
+
+    bag = bag.map_partitions(masked_intensities_partition)
+
+    stacked_quantiles_masked = bag.map_partitions(quantile_partition,lower_quantile,
+                                                 upper_quantile, origin="masked_intensities",).fold(stack_quantiles)
+
+    stacked_quantiles = bag.map_partitions(quantile_partition, lower_quantile, upper_quantile,  
+                                            origin="pixels",).fold(stack_quantiles)
+
+    quantiles = get_median(stacked_quantiles)
+    masked_quantiles = get_median(stacked_quantiles_masked)
+
+
+    return quantiles, masked_quantiles
+
+
+"""
+Third method for quantile calculation:
+In every partition intensities are grouped together per channel, on this grouping
+a quantile calculation is performed. The found quantiles per partition are then reduced
+with a median.
+"""
+def get_distributed_partitioned_quantile(bag, lower_quantile, upper_quantile):
+
+    def quantile_partition(part, lower_quantile, upper_quantile, origin):
+        
+        collection = []
+        if origin == 'pixels':
+            channels = part[0].get(origin).shape[0]
+        else: 
+            channels = len(part[0].get(origin))
+        channel_quantiles_lower = np.empty(channels)
+        channel_quantiles_upper = np.empty(channels)
+
+        if origin == 'pixels':
+            channels = part[0].get(origin).shape[0]
+
+            for p in part:
+                collection.append(np.vstack([i.flatten() for i in p.get(origin)]))
+
+            flattened_partition = np.hstack(collection)
+            
+            channel_quantiles_lower = np.quantile(flattened_partition, lower_quantile, axis=1)
+            channel_quantiles_upper = np.quantile(flattened_partition, upper_quantile, axis=1)
+
+        else:
+
+            for i in range(channels):
+                channel_collection = [p.get(origin)[i] for p in  part]
+                stacked_collection = np.hstack(channel_collection)
+                if stacked_collection.shape[0] > 0:
+                    channel_quantiles_lower[i] = np.quantile(stacked_collection, lower_quantile)
+                    channel_quantiles_upper[i] = np.quantile(stacked_collection, upper_quantile)
+                else:
+                    channel_quantiles_lower[i] = np.nan
+                    channel_quantiles_upper[i] = np.nan
+
+    
+        return (channel_quantiles_lower, channel_quantiles_upper)
+ 
+
+    def masked_intensities_partition(part):
+        return [get_masked_intensities(p) for p in part]
+
+
+    bag = bag.map_partitions(masked_intensities_partition)
+
+    stacked_quantiles_masked = bag.map_partitions(quantile_partition,lower_quantile,
+                                                 upper_quantile, origin="masked_intensities").fold(return_input, stack_quantiles2)
+
+    stacked_quantiles = bag.map_partitions(quantile_partition, lower_quantile, upper_quantile,  
+                                            origin="pixels").fold(return_input, stack_quantiles2)
+    
+    temp = stacked_quantiles.compute()
+
+    quantiles = get_median(stacked_quantiles)
+    masked_quantiles = get_median(stacked_quantiles_masked)
+
+
+    return quantiles, masked_quantiles
+
+
+def plot_before_after_distribution(counts, bins_before, bins_after, missing_masks, normalize=True, pdf=True):
+
+    counts_before = counts[0]
+    counts_after = counts[1]
     if normalize:
         # Normalize the counts so the sum of area is 1
         counts_before = (counts_before.T / (counts_before.sum(axis=1))).T
         counts_after = (counts_after.T / (counts_after.sum(axis=1))).T
 
+    
+    # Create a pdf with unique
+    now = datetime.now()
+    dt_string = now.strftime("%d%m%Y_%H%M%S")
+    pp = PdfPages(dt_string + "_intensity_distribution.pdf")
+
     rows = 8
     cols = 2
     f, axarr = plt.subplots(rows, cols, figsize=(20, 30))
-
+    bin_amount = bins_before[0].shape[0]
     for i in range(rows):
         # Plot intensities without mask
-        axarr[i, 0].bar(bins_before[i][0:49], counts_before[i],
+        axarr[i, 0].bar(bins_before[i][0:(bin_amount-1)], counts_before[i],
                         width=(0.01 * (bins_before[i].max() - bins_before[i].min())))
 
         axarr[i, 0].title.set_text('Before mask')
 
         # Plot intensities with mask
-        axarr[i, 1].bar(bins_after[i][0:49], counts_after[i],
+        axarr[i, 1].bar(bins_after[i][0:(bin_amount-1)], counts_after[i],
                         width=0.01 * (bins_after[i].max() - bins_after[i].min()))
 
         axarr[i, 1].title.set_text('After mask')
+    f.suptitle('Intensity distributions', fontsize=16, y=0.90)
+    pp.savefig(f, bbox_inches='tight')
 
-    # Create a pdf with unique
-    now = datetime.now()
-    dt_string = now.strftime("%d%m%Y_%H%M%S")
-    f.savefig(dt_string + "_intensity_distribution.pdf", bbox_inches='tight')
+    missing_masks_fg = plt.figure()
+    channels = ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8']
+    missing = missing_masks
+    plt.bar(channels,missing)
+    missing_masks_fg.suptitle('Missing masks', fontsize=16)
+    pp.savefig(missing_masks_fg)
 
-    return f
+    pp.close()
+
+

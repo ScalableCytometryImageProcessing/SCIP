@@ -9,7 +9,6 @@ def denoising(sample: dict[np.ndarray, str], noisy_channels=[]):
     img = sample.get('pixels')
     denoised = np.empty(img.shape, dtype=float)
     channels = img.shape[0]
-    # TODO add list parameter with noisy channels + denoising parameter
     for i in range(channels):
         if i not in noisy_channels:
             denoised[i] = denoise_nl_means(

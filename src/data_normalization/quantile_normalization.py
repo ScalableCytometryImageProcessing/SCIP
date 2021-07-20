@@ -1,0 +1,43 @@
+from skimage import filters, segmentation
+from skimage.restoration import denoise_nl_means
+from quality_control import intensity_distribution
+import numpy as np
+import dask
+import dask.bag
+
+def sample_normalization(sample, quantiles, masked_quantiles):
+
+    img = sample.get('pixels')
+    masked = sample.get('masked_img')
+
+    normalized = np.empty(img.shape, dtype=float)
+    normalized_masked = np.empty(img.shape, dtype=float)
+
+    channels = img.shape[0]
+
+    lower = quantiles[0]
+    upper = quantiles[1]
+
+    masked_lower = masked_quantiles[0]
+    masked_upper = masked_quantiles[1]
+    
+    for i in range(channels):
+        # Normalize
+        quantile_norm = (img[i] - lower[i]) / (upper[i] - lower[i])
+        quantile_norm_masked = (masked[i] - masked_lower[i]) / (masked_upper[i] - masked_lower[i])
+
+        # # Clip
+        normalized[i] = np.clip(quantile_norm, 0, 1)
+        normalized_masked[i] = np.clip(quantile_norm_masked, 0, 1)
+        
+    sample = sample.copy()    
+    sample.update({'pixels_norm': normalized, 'masked_img_norm': normalized_masked})
+    return sample
+
+def quantile_normalization(images: dask.bag.Bag, lower, upper):
+
+    def normalize_partition(part, quantiles, masked_quantiles):
+        return [sample_normalization(p, quantiles, masked_quantiles) for p in part]
+
+    quantiles, masked_quantiles = intensity_distribution.get_distributed_partitioned_quantile(images, lower, upper)
+    return images.map_partitions(normalize_partition, quantiles, masked_quantiles)
