@@ -1,5 +1,6 @@
 from skimage import filters, segmentation
 from skimage.restoration import denoise_nl_means
+from skimage.measure import label, regionprops
 import numpy as np
 import dask
 import dask.bag
@@ -43,6 +44,31 @@ def otsu_thresholding(sample: dict):
     return {**sample, **dict(mask=thresholded_masks)}
 
 
+def largest_blob_detection(sample: dict):
+
+    def largest_region(regions):
+        largest = 0
+        largest_index = 0
+        for props in regions:
+            if props.area > largest:
+                largest = props.area
+                largest_index = regions.index(props)
+        return largest_index
+
+    largest_blob = np.empty(sample["mask"].shape, dtype=float)
+    channels = sample["mask"].shape[0]
+    for i in range(channels):
+        label_img = label(sample["mask"][i])
+        regions = regionprops(label_img)
+        if len(regions) == 0:
+            largest_blob[i] = sample["mask"][i]
+        else:
+            largest_blob[i] = np.where(label_img == (largest_region(regions) + 1), 1, 0)
+
+    return {**sample, **dict(single_blob_mask=largest_blob)}
+
+
+
 def create_masks_on_bag(images: dask.bag.Bag, noisy_channels):
 
     # we define the different steps as named functions
@@ -58,9 +84,13 @@ def create_masks_on_bag(images: dask.bag.Bag, noisy_channels):
     def otsu_threshold_partition(part):
         return [otsu_thresholding(p) for p in part]
 
+    def largest_blob_partition(part):
+        return [largest_blob_detection(p) for p in part]
+
     return (
         images
         .map_partitions(denoise_partition)
         .map_partitions(felzenswalb_segment_partition)
         .map_partitions(otsu_threshold_partition)
+        .map_partitions(largest_blob_partition)
     )
