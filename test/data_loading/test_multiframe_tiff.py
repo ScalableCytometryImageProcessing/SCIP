@@ -14,6 +14,7 @@ def test_load_image(data: Path):
 
 
 def test_bag_from_directory(data, cluster):
-    bag = multiframe_tiff.bag_from_directory(data, partition_size=2)
+    bag = multiframe_tiff.bag_from_directory(data, channels=None, partition_size=2)
     images = bag.compute()
     assert len(images) == 2
+    assert all(len(im["pixels"]) == 8 for im in images)

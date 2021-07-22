@@ -3,6 +3,7 @@
 from dask.distributed import (Client, LocalCluster)
 from dask_jobqueue import PBSCluster
 from pathlib import Path
+import yaml
 
 
 class ClientClusterContext:
@@ -42,3 +43,8 @@ class ClientClusterContext:
     def __exit__(self, exc_type, exc_value, exc_traceback):
         self.client.close()
         self.cluster.close()
+
+
+def load_yaml_config(path):
+    with open(path) as fh:
+        return yaml.load(fh)

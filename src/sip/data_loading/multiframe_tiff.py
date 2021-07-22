@@ -5,16 +5,20 @@ import numpy
 from pathlib import Path
 
 
-def load_image(p):
+def load_image(p, channels=None):
     im = Image.open(p)
-    arr = numpy.empty(shape=(im.n_frames, im.height, im.width), dtype=float)
-    for i in range(im.n_frames):
+
+    if channels is None:
+        channels = range(im.n_frames)
+
+    arr = numpy.empty(shape=(len(channels), im.height, im.width), dtype=float)
+    for i in channels:
         im.seek(i)
         arr[i] = numpy.array(im)
     return dict(pixels=arr, path=p)
 
 
-def bag_from_directory(path, partition_size):
+def bag_from_directory(path, channels, partition_size):
     """
     Construct delayed ops for all tiffs in a directory
 
@@ -28,5 +32,5 @@ def bag_from_directory(path, partition_size):
 
     bag = dask.bag.from_sequence(image_paths, partition_size=partition_size)
     return bag.map_partitions(
-        lambda paths: [load_image(path) for path in paths]
+        lambda paths: [load_image(path, channels) for path in paths]
     )

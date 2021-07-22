@@ -1,4 +1,3 @@
-from sip.data_loading import multiframe_tiff
 from sip.data_masking import mask_creation
 from sip.quality_control import intensity_distribution
 from sip.utils import util
@@ -9,6 +8,8 @@ from pathlib import Path
 import dask.bag
 import matplotlib.pyplot as plt
 import shutil
+from functools import partial
+from importlib import import_module
 
 
 def main(*, paths, output_directory, n_workers, headless, debug, port, local):
@@ -37,6 +38,8 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local):
     if not output_dir.exists():
         output_dir.mkdir(parents=True)
 
+    config = util.load_yaml_config()
+
     start_full = time.time()
 
     # ClientClusterContext creates cluster
@@ -44,12 +47,18 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local):
     with util.ClientClusterContext(n_workers=n_workers, local=local, port=port) as context:
         logger.debug(f"Client ({context}) created")
 
+        loader_module = import_module(config["data_loading"]["format"])
+        loader = partial(
+            loader_module.bag_from_directory,
+            channels=config["data_loading"].get("channels", None),
+            partition_size=50)
+
         images = []
         for path in paths:
             assert Path(path).exists(), f"{path} does not exist."
             assert Path(path).is_dir(), f"{path} is not a directory."
             logging.info(f"Bagging {path}")
-            images.append(multiframe_tiff.bag_from_directory(path, partition_size=50))
+            images.append(loader(path))
 
         # images are loaded from directory and masked
         # after this operation the bag is persisted as it
@@ -95,6 +104,9 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local):
 @click.option(
     "--headless", default=False, is_flag=True,
     help="If set, the program will never ask for user input")
+@click.option(
+    "--config", default=None, type=click.Path(dir_okay=False, exists=True),
+    help="Path to YAML config file")
 def cli(**kwargs):
     """Intro documentation
     """
