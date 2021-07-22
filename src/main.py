@@ -38,19 +38,14 @@ def main(*, paths, n_workers, debug, port, local):
         images = dask.bag.concat(images)
         images = mask_creation.create_masks_on_bag(images, noisy_channels=[0])
         images = mask_apply.create_masked_images_on_bag(images)
-
-        new_quantiles, new_masked_quantiles = \
-            intensity_distribution.get_distributed_partitioned_quantile(images, 0.00, 1)
-
-        new_quantiles.compute()
-
-        normalized_bag = quantile_normalization.quantile_normalization(images, 0.05, 0.95)
-        shape_features = feature_extraction.extract_features(normalized_bag)
-        counts, bins, masked_bins = \
-            intensity_distribution.segmentation_intensity_report(shape_features, 100)
+        images = quantile_normalization.quantile_normalization(images, 0.05, 0.95)
+        report_made = intensity_distribution.segmentation_intensity_report(images, 100)
+        images = intensity_distribution.check_report(images, report_made)
+        features = feature_extraction.extract_features(images)
+        
 
         start = time.time()
-
+        
         logger.info(f"Compute runtime {(time.time() - start):.2f}")
 
         fig, grid = plt.subplots(5, 4)

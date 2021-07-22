@@ -46,7 +46,6 @@ def shape_features(sample):
     return {**sample, **features_dict}
 
 
-
 def intensity_features(sample):
 
     def channel_features(i):
@@ -56,7 +55,7 @@ def intensity_features(sample):
 
     img = sample.get('masked_img_norm')
     channels = img.shape[0]
-    features_dict = {} 
+    features_dict = {}
     for i in range(channels):
         features_dict.update(channel_features(i))
 
@@ -69,12 +68,24 @@ def texture_features(sample):
         channel_img = img[i]
         hog_features = hog(channel_img, orientations=8, pixels_per_cell=(16, 16),
                            cells_per_block=(1, 1))
-        return {f'hog_{i}': hog_features}
+        hog_dict = {}
 
-    img = sample.get('masked_img_norm')
+        # If no hog features can be found inser NaN
+        if len(hog_features) == 0:
+            for j in range(48):
+                hog_dict.update({f'hog_ch_{i}_{j}': np.NaN})
+            return hog_dict
+
+        # put hog features in dictionary
+        for j in range(48):
+            hog_dict.update({f'hog_ch_{i}_{j}': hog_features[i]})
+
+        return hog_dict
+
+    img = sample.get('single_blob_mask_img_norm')
     channels = img.shape[0]
 
-    features_dict = {} 
+    features_dict = {}
     for i in range(channels):
         features_dict.update(texture_features(i))
 
@@ -82,10 +93,11 @@ def texture_features(sample):
 
 
 def remove_keys(sample):
-    entries_to_remove = ('pixels', 'denoised', 'segmented', 'mask', 'masked_img',
-                            'pixels_norm', 'masked_img_norm')
+    entries_to_remove = ('pixels', 'denoised', 'segmented', 'mask', 'mask_img', 'single_blob_mask',
+                         'pixels_norm', 'masked_img_norm', 'single_blob_mask_img_norm', 'single_blob_mask_img')
     for k in entries_to_remove:
         sample.pop(k, None)
+    
     return sample
 
 
@@ -102,7 +114,7 @@ def extract_features(images: dask.bag.Bag):
 
     def remove_redundant_keys(part):
         return [remove_keys(p) for p in part]
-    
+
     return (
         images
         .map_partitions(shape_partition)

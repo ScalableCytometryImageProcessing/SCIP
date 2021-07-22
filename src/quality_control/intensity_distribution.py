@@ -170,7 +170,8 @@ def segmentation_intensity_report(bag, bin_amount):
         .fold(reduced_counts)
 
     # return intensity_count, masked_intensity_count, bins, masked_bins
-    return (counts, bins, masked_bins, percentage)
+    report_made = plot_before_after_distribution(counts, bins, masked_bins, percentage)
+    return report_made
 
 
 @dask.delayed
@@ -293,9 +294,10 @@ def get_distributed_partitioned_quantile(bag, lower_quantile, upper_quantile):
     return quantiles, masked_quantiles
 
 
+@dask.delayed
 def plot_before_after_distribution(counts, bins_before, bins_after,
                                    missing_masks, normalize=True, pdf=True):
-
+    
     counts_before = counts[0]
     counts_after = counts[1]
     if normalize:
@@ -335,3 +337,14 @@ def plot_before_after_distribution(counts, bins_before, bins_after,
     pp.savefig(missing_masks_fg)
 
     pp.close()
+
+    return True
+
+def check_report(bag, report_made):
+
+    def check_report(part, report_made):
+        if report_made:
+            return part
+
+    return bag.map_partitions(check_report, report_made)
+

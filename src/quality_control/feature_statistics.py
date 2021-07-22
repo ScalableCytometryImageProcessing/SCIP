@@ -1,10 +1,6 @@
-from inspect import stack
 import numpy as np
-import matplotlib.pyplot as plt
 import dask
-from data_masking.mask_apply import get_masked_intensities
-from matplotlib.backends.backend_pdf import PdfPages
-from datetime import datetime
+
 
 def get_shape_features(sample):
     features = sample.get('shape_features')
@@ -40,7 +36,7 @@ def shape_partition(part):
     stacked = np.array([])
     for p in part:
         stacked = np.vstack((stacked, get_shape_features(p)))
-    
+
     # Calculate stats on stacked samples
     mean = np.nanmean(stacked, axis=0)
     median = np.nanmedian(stacked, axis=0)
@@ -49,8 +45,9 @@ def shape_partition(part):
 
 
 def get_feature_statistics(feature_df):
-    
+
     mean = feature_df.mean(axis=0, skipna=True)
     var = feature_df.var(axis=0, skipna=True)
+    columns = feature_df.columns
 
-    return mean, var
+    return mean, var, columns

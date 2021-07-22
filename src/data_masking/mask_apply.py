@@ -1,6 +1,5 @@
 import dask
 import dask.bag
-from dask.bag.core import map_partitions
 from dask.delayed import Delayed
 import numpy as np
 
@@ -24,9 +23,9 @@ def create_masked_images_on_bag(images: dask.bag.Bag):
         return [apply_mask(p, origin) for p in part]
 
     return (
-         images
-         .map_partitions(apply_mask_partition, 'mask')
-         .map_partitions(apply_mask_partition, 'single_blob_mask')
+        images
+        .map_partitions(apply_mask_partition, 'mask')
+        .map_partitions(apply_mask_partition, 'single_blob_mask')
     )
 
 

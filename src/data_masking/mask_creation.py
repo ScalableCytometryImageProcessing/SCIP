@@ -68,7 +68,6 @@ def largest_blob_detection(sample: dict):
     return {**sample, **dict(single_blob_mask=largest_blob)}
 
 
-
 def create_masks_on_bag(images: dask.bag.Bag, noisy_channels):
 
     # we define the different steps as named functions
