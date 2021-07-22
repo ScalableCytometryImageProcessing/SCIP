@@ -5,3 +5,6 @@ pytest-flake8
 wheel
 pytest
 coverage
+mypy
+pytest-mypy
+types-PyYAML

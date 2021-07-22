@@ -1,0 +1,3 @@
+data_loading:
+  format: data_loading.multiframe_tiff
+  channels: [0, 1, 2, 3]

@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import dask
-from data_masking.mask_apply import get_masked_intensities
 from matplotlib.backends.backend_pdf import PdfPages
+from sip.data_masking.mask_apply import get_masked_intensities
 from datetime import datetime
 
 
@@ -179,7 +179,6 @@ def get_binned_quantile(counts_tuple, bins, masked_bins, lower_quantile, upper_q
     """
     First method for quantile calculation:
     Based on the bins and bincount we find the bin in which the n% quantile should lie
-
     """
     def get_single_quantile_value(counts, quantile, bins):
         cum_sum = np.cumsum(counts)

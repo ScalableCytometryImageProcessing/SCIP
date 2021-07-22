@@ -2,11 +2,8 @@ from skimage import filters, segmentation
 from skimage.restoration import denoise_nl_means
 from skimage.measure import label, regionprops
 import numpy as np
-import dask
-import dask.bag
 
-
-def denoising(sample: dict[np.ndarray, str], noisy_channels=[]):
+def denoising(sample, noisy_channels=[]):
     img = sample.get('pixels')
     denoised = np.empty(img.shape, dtype=float)
     channels = img.shape[0]
@@ -21,7 +18,7 @@ def denoising(sample: dict[np.ndarray, str], noisy_channels=[]):
     return {**sample, **dict(denoised=denoised)}
 
 
-def felzenszwalb_segmentation(sample: dict):
+def felzenszwalb_segmentation(sample):
     segmented = np.empty(sample["denoised"].shape, dtype=float)
     channels = sample["denoised"].shape[0]
     # TODO add list parameter with felzenszwalb parameters
@@ -31,7 +28,7 @@ def felzenszwalb_segmentation(sample: dict):
     return {**sample, **dict(segmented=segmented)}
 
 
-def otsu_thresholding(sample: dict):
+def otsu_thresholding(sample):
     thresholded_masks = np.empty(sample["segmented"].shape, dtype=bool)
     channels = sample["segmented"].shape[0]
     for i in range(channels):
@@ -68,7 +65,7 @@ def largest_blob_detection(sample: dict):
     return {**sample, **dict(single_blob_mask=largest_blob)}
 
 
-def create_masks_on_bag(images: dask.bag.Bag, noisy_channels):
+def create_masks_on_bag(images, noisy_channels):
 
     # we define the different steps as named functions
     # so that Dask can differentiate between them in

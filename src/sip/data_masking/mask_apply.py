@@ -4,7 +4,7 @@ from dask.delayed import Delayed
 import numpy as np
 
 
-def apply_mask(dict_sample: dict[np.ndarray, str, np.ndarray], origin):
+def apply_mask(dict_sample, origin):
 
     img = dict_sample.get("pixels")
     mask = dict_sample.get(origin)
@@ -17,7 +17,7 @@ def apply_mask(dict_sample: dict[np.ndarray, str, np.ndarray], origin):
     return {**dict_sample, **{origin + '_img': masked_img}}
 
 
-def create_masked_images_on_bag(images: dask.bag.Bag):
+def create_masked_images_on_bag(images):
 
     def apply_mask_partition(part, origin):
         return [apply_mask(p, origin) for p in part]
@@ -43,7 +43,7 @@ def get_masked_intensities(dict_sample: dict[np.ndarray, str, np.ndarray]):
     return {**dict_sample, **dict(masked_intensities=masked_intensities)}
 
 
-def create_masks(imageList: list[Delayed]) -> list[Delayed]:
+def create_masks(imageList):
     mask_samples = []
 
     for img in imageList:

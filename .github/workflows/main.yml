@@ -18,6 +18,6 @@ jobs:
         run: |
           pip install .
       - name: Test with pytest (lint with flake8 and run coverage)
-        run: coverage run --source=src/ -m pytest --flake8
+        run: coverage run --source=src/ -m pytest --flake8 --mypy
       - name: Coverage report
         run: coverage report -m
