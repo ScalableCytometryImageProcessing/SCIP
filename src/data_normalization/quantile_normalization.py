@@ -8,7 +8,7 @@ def sample_normalization(sample, quantiles, masked_quantiles):
 
     img = sample.get('pixels')
     masked = sample.get('mask_img')
-    single_blob_mask  = sample.get('single_blob_mask_img')
+    single_blob_mask = sample.get('single_blob_mask_img')
 
     normalized = np.empty(img.shape, dtype=float)
     normalized_masked = np.empty(img.shape, dtype=float)
@@ -25,8 +25,10 @@ def sample_normalization(sample, quantiles, masked_quantiles):
     for i in range(channels):
         # Normalize
         quantile_norm = (img[i] - lower[i]) / (upper[i] - lower[i])
-        quantile_norm_masked = (masked[i] - masked_lower[i]) / (masked_upper[i] - masked_lower[i])
-        quantile_single_masked = (single_blob_mask[i] - masked_lower[i]) / (masked_upper[i] - masked_lower[i])
+        quantile_norm_masked = (masked[i] - masked_lower[i]) / \
+                               (masked_upper[i] - masked_lower[i])
+        quantile_single_masked = (single_blob_mask[i] - masked_lower[i]) / \
+                                 (masked_upper[i] - masked_lower[i])
 
         # # Clip
         normalized[i] = np.clip(quantile_norm, 0, 1)
@@ -34,7 +36,8 @@ def sample_normalization(sample, quantiles, masked_quantiles):
         normalized_single_masked[i] = np.clip(quantile_single_masked, 0, 1)
 
     sample = sample.copy()
-    sample.update({'pixels_norm': normalized, 'masked_img_norm': normalized_masked, 'single_blob_mask_img_norm': normalized_single_masked})
+    sample.update({'pixels_norm': normalized, 'masked_img_norm': normalized_masked,
+                   'single_blob_mask_img_norm': normalized_single_masked})
 
     return sample
 

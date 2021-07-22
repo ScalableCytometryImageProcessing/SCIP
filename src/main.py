@@ -42,10 +42,9 @@ def main(*, paths, n_workers, debug, port, local):
         report_made = intensity_distribution.segmentation_intensity_report(images, 100)
         images = intensity_distribution.check_report(images, report_made)
         features = feature_extraction.extract_features(images)
-        
-
+        print(features.shape)
         start = time.time()
-        
+
         logger.info(f"Compute runtime {(time.time() - start):.2f}")
 
         fig, grid = plt.subplots(5, 4)

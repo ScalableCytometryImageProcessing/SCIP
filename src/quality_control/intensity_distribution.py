@@ -297,7 +297,6 @@ def get_distributed_partitioned_quantile(bag, lower_quantile, upper_quantile):
 @dask.delayed
 def plot_before_after_distribution(counts, bins_before, bins_after,
                                    missing_masks, normalize=True, pdf=True):
-    
     counts_before = counts[0]
     counts_after = counts[1]
     if normalize:
@@ -340,6 +339,7 @@ def plot_before_after_distribution(counts, bins_before, bins_after,
 
     return True
 
+
 def check_report(bag, report_made):
 
     def check_report(part, report_made):
@@ -347,4 +347,3 @@ def check_report(bag, report_made):
             return part
 
     return bag.map_partitions(check_report, report_made)
-

@@ -93,11 +93,13 @@ def texture_features(sample):
 
 
 def remove_keys(sample):
-    entries_to_remove = ('pixels', 'denoised', 'segmented', 'mask', 'mask_img', 'single_blob_mask',
-                         'pixels_norm', 'masked_img_norm', 'single_blob_mask_img_norm', 'single_blob_mask_img')
+    entries_to_remove = ('pixels', 'denoised', 'segmented', 'mask',
+                         'mask_img', 'single_blob_mask', 'pixels_norm',
+                         'masked_img_norm', 'single_blob_mask_img_norm',
+                         'single_blob_mask_img')
     for k in entries_to_remove:
         sample.pop(k, None)
-    
+
     return sample
 
 
