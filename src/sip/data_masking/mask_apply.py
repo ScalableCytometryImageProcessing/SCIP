@@ -1,6 +1,3 @@
-import dask
-import dask.bag
-from dask.delayed import Delayed
 import numpy as np
 
 
@@ -29,7 +26,7 @@ def create_masked_images_on_bag(images):
     )
 
 
-def get_masked_intensities(dict_sample: dict[np.ndarray, str, np.ndarray]):
+def get_masked_intensities(dict_sample):
 
     img = dict_sample.get("pixels")
     mask = dict_sample.get("mask")

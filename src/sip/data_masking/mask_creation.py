@@ -3,6 +3,7 @@ from skimage.restoration import denoise_nl_means
 from skimage.measure import label, regionprops
 import numpy as np
 
+
 def denoising(sample, noisy_channels=[]):
     img = sample.get('pixels')
     denoised = np.empty(img.shape, dtype=float)

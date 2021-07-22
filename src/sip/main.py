@@ -1,7 +1,4 @@
 from sip.data_masking import mask_creation, mask_apply
-from sip.data_features import feature_extraction
-from sip.quality_control import intensity_distribution
-from sip.data_normalization import quantile_normalization
 from sip.utils import util
 import time
 import click
