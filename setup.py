@@ -15,7 +15,8 @@ setuptools.setup(
         'click',
         'dask_jobqueue @ git+https://github.com/ScalableImagingPipeline/dask-jobqueue.git',
         'scikit-image',
-        'pyyaml'
+        'pyyaml',
+        'graphviz'
     ],
     entry_points={
         'console_scripts': [
