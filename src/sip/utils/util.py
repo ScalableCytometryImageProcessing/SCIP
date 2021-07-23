@@ -47,4 +47,4 @@ class ClientClusterContext:
 
 def load_yaml_config(path):
     with open(path) as fh:
-        return yaml.load(fh)
+        return yaml.load(fh, Loader=yaml.FullLoader)

@@ -49,7 +49,7 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local, co
     with util.ClientClusterContext(n_workers=n_workers, local=local, port=port) as context:
         logger.debug(f"Client ({context}) created")
 
-        loader_module = import_module(config["data_loading"]["format"])
+        loader_module = import_module('sip.data_loading.%s' % config["data_loading"]["format"])
         loader = partial(
             loader_module.bag_from_directory,
             channels=config["data_loading"].get("channels", None),
