@@ -74,8 +74,8 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local, co
         images = intensity_distribution.check_report(images, report_made)
         features = feature_extraction.extract_features(images)
         plotted, features = feature_statistics.get_feature_statistics(features)
+        features = feature_statistics.check_report(features, plotted, meta=features._meta)
         features.compute()
-        plotted.compute()
 
         # features = intensity_distribution.check_report(features, plotted)
         # some images are exported for demonstration purposes

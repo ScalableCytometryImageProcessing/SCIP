@@ -8,7 +8,6 @@ import umap
 import dask
 
 
-@dask.delayed
 def filter_features(feature_df, var):
 
     # Find columns to drop
@@ -29,7 +28,7 @@ def feature_stats_to_html(var, mean):
     df = pd.concat([mean, var], axis=1)
     df.columns = ['means', 'var']
     html = df.to_html()
-    text_file = open("Quality_report_features.html", "w")
+    text_file = open("Quality_report_features2.html", "w")
     text_file.write('<header><h1>UMAP Feature reduction </h1></header>')
     text_file.write(html)
     text_file.close()
@@ -53,12 +52,21 @@ def plot_UMAP_to_html(feature_df, table_written):
 
     if table_written:
         html = '<img src=\'data:image/png;base64,{}\'>'.format(encoded)
-        text_file = open("Quality_report_features.html", "a")
+        text_file = open("Quality_report_features2.html", "a")
         text_file.write('<header><h1>UMAP Feature reduction </h1></header>')
         text_file.write(html)
         text_file.close()
         return True
     return False
+
+
+def check_report(df, plotted, meta):
+
+    def check_report(part, plotted):
+        if plotted:
+            return part
+
+    return df.map_partitions(check_report, plotted, meta=meta)
 
 
 def get_feature_statistics(feature_df):
