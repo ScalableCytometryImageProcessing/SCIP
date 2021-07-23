@@ -1,14 +1,13 @@
 from sip.data_masking import mask_creation, mask_apply
 from sip.utils import util
 from sip.data_normalization import quantile_normalization
-from sip.quality_control import intensity_distribution
+from sip.quality_control import intensity_distribution, feature_statistics
 from sip.data_features import feature_extraction
 import time
 import click
 import logging
 from pathlib import Path
 import dask.bag
-import matplotlib.pyplot as plt
 import shutil
 from functools import partial
 from importlib import import_module
@@ -73,17 +72,21 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local, co
         report_made = intensity_distribution.segmentation_intensity_report(images, 100,
                                                                            channel_amount)
         images = intensity_distribution.check_report(images, report_made)
-        feature_extraction.extract_features(images)
+        features = feature_extraction.extract_features(images)
+        plotted, features = feature_statistics.get_feature_statistics(features)
+        features.compute()
+        plotted.compute()
 
+        # features = intensity_distribution.check_report(features, plotted)
         # some images are exported for demonstration purposes
-        fig, grid = plt.subplots(5, 4)
-        for im, axes in zip(images.take(5), grid):
-            axes[0].set_title(im["path"])
-            axes[0].imshow(im["pixels"][1])
-            axes[1].imshow(im["denoised"][1])
-            axes[2].imshow(im["segmented"][1])
-            axes[3].imshow(im["mask"][1])
-        plt.savefig(output_dir / "output_images.png")
+        # fig, grid = plt.subplots(5, 4)
+        # for im, axes in zip(images.take(5), grid):
+        #     axes[0].set_title(im["path"])
+        #     axes[0].imshow(im["pixels"][1])
+        #     axes[1].imshow(im["denoised"][1])
+        #     axes[2].imshow(im["segmented"][1])
+        #     axes[3].imshow(im["mask"][1])
+        # plt.savefig(output_dir / "output_images.png")
 
         if debug:
             context.client.profile(filename=output_dir / "profile.html")
@@ -125,4 +128,4 @@ if __name__ == "__main__":
         output_directory="tmp",
         headless=False,
         config='/home/sanderth/dask-pipeline/sip.yml',
-        debug=True, n_workers=2, port=8990, local=False)
+        debug=True, n_workers=4, port=8990, local=True)

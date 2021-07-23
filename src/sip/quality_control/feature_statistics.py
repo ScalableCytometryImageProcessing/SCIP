@@ -1,53 +1,72 @@
 import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+from io import BytesIO
+import base64
+import umap
 import dask
 
 
-def get_shape_features(sample):
-    features = sample.get('shape_features')
+@dask.delayed
+def filter_features(feature_df, var):
 
-    combined = np.array([])
-    for channel in features:
-        combined = np.hstack((combined, list(channel.values())))
+    # Find columns to drop
+    zero_variance = list(var[var == 0].index)
+    nan_columns = list(var[np.isnan(var)].index)
 
-    return combined
+    # Drop columns
+    features_filtered = feature_df.drop(columns=zero_variance)
+    features_filtered = features_filtered.drop(columns=nan_columns)
 
-
-def stack_features(L1, L2):
-    return np.vstack((L1, L2))
+    # Drop rows with nan's
+    features_filtered = features_filtered.dropna()
+    return features_filtered
 
 
 @dask.delayed
-def mean_calculation(stacked):
-    return np.nanmean(stacked, axis=0)
+def feature_stats_to_html(var, mean):
+    df = pd.concat([mean, var], axis=1)
+    df.columns = ['means', 'var']
+    html = df.to_html()
+    text_file = open("Quality_report_features.html", "w")
+    text_file.write('<header><h1>UMAP Feature reduction </h1></header>')
+    text_file.write(html)
+    text_file.close()
+    return True
 
 
 @dask.delayed
-def variance_calculation(stacked):
-    return np.nanvar(stacked, axis=0)
+def plot_UMAP_to_html(feature_df, table_written):
+    reducer = umap.UMAP()
+    df_floats = feature_df.drop(columns=['path'])
+    scaled_cell_data = StandardScaler().fit_transform(df_floats)
+    embedding = reducer.fit_transform(scaled_cell_data)
 
+    fig = plt.figure()
+    plt.scatter(embedding[:, 0], embedding[:, 1])
+    plt.gca().set_aspect('equal', 'datalim')
+    plt.title('UMAP projection of dataset', fontsize=24)
+    tmpfile = BytesIO()
+    fig.savefig(tmpfile, format='png')
+    encoded = base64.b64encode(tmpfile.getvalue()).decode('utf-8')
 
-@dask.delayed
-def median_calculation(stacked):
-    return np.nanmedian(stacked, axis=0)
-
-
-def shape_partition(part):
-
-    stacked = np.array([])
-    for p in part:
-        stacked = np.vstack((stacked, get_shape_features(p)))
-
-    # Calculate stats on stacked samples
-    mean = np.nanmean(stacked, axis=0)
-    median = np.nanmedian(stacked, axis=0)
-    var = np.nanvar(stacked, axis=0)
-    return mean, median, var
+    if table_written:
+        html = '<img src=\'data:image/png;base64,{}\'>'.format(encoded)
+        text_file = open("Quality_report_features.html", "a")
+        text_file.write('<header><h1>UMAP Feature reduction </h1></header>')
+        text_file.write(html)
+        text_file.close()
+        return True
+    return False
 
 
 def get_feature_statistics(feature_df):
 
-    mean = feature_df.mean(axis=0, skipna=True)
     var = feature_df.var(axis=0, skipna=True)
-    columns = feature_df.columns
+    mean = feature_df.mean(axis=0, skipna=True)
 
-    return mean, var, columns
+    feature_df = filter_features(feature_df, var)
+    table_written = feature_stats_to_html(var, mean)
+    plotted = plot_UMAP_to_html(feature_df, table_written)
+    return plotted, feature_df

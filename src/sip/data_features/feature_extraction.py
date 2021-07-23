@@ -22,11 +22,11 @@ def shape_features(sample):
         label_img = label(img[i])
         regions = regionprops(label_img)
         if len(regions) == 0:
-            return {f'minor_axis_{i}': float('NaN'),
-                    f'major_axis_length_{i}': float('NaN'),
-                    f'area_{i}': float('NaN'),
-                    f'perimeter_{i}': float('NaN'),
-                    f'solidity_{i}': float('NaN'),
+            return {f'minor_axis_{i}': 0.0,
+                    f'major_axis_length_{i}': 0.0,
+                    f'area_{i}': 0.0,
+                    f'perimeter_{i}': 0.0,
+                    f'solidity_{i}': 0.0,
                     f'regions_{i}': 0}
 
         main_part = regions[0]
@@ -78,7 +78,7 @@ def texture_features(sample):
 
         # put hog features in dictionary
         for j in range(48):
-            hog_dict.update({f'hog_ch_{i}_{j}': hog_features[i]})
+            hog_dict.update({f'hog_ch_{i}_{j}': hog_features[j]})
 
         return hog_dict
 
