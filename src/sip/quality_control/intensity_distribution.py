@@ -127,7 +127,7 @@ def reduced_empty_mask(L1, L2):
     return L1 + L2
 
 
-def segmentation_intensity_report(bag, bin_amount, channels):
+def segmentation_intensity_report(bag, bin_amount, channels, output):
 
     def min_max_partition(part, origin):
         return [get_min_max(p, origin) for p in part]
@@ -170,7 +170,8 @@ def segmentation_intensity_report(bag, bin_amount, channels):
         .fold(reduced_counts)
 
     # return intensity_count, masked_intensity_count, bins, masked_bins
-    report_made = plot_before_after_distribution(counts, bins, masked_bins, percentage, channels)
+    report_made = plot_before_after_distribution(
+        counts, bins, masked_bins, percentage, channels, output)
     return report_made
 
 
@@ -295,7 +296,7 @@ def get_distributed_partitioned_quantile(bag, lower_quantile, upper_quantile):
 
 @dask.delayed
 def plot_before_after_distribution(counts, bins_before, bins_after,
-                                   missing_masks, channels, normalize=True, pdf=True):
+                                   missing_masks, channels, output, normalize=True, pdf=True):
     counts_before = counts[0]
     counts_after = counts[1]
     if normalize:
@@ -306,7 +307,7 @@ def plot_before_after_distribution(counts, bins_before, bins_after,
     # Create a pdf with unique
     now = datetime.now()
     dt_string = now.strftime("%d%m%Y_%H%M%S")
-    pp = PdfPages(dt_string + "_intensity_distribution.pdf")
+    pp = PdfPages(str(output / dt_string) + "_intensity_distribution.pdf")
 
     rows = channels
     cols = 2

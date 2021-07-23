@@ -48,7 +48,7 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local, co
     with util.ClientClusterContext(n_workers=n_workers, local=local, port=port) as context:
         logger.debug(f"Client ({context}) created")
 
-        loader_module = import_module(config["data_loading"]["format"])
+        loader_module = import_module('sip.data_loading.%s' % config["data_loading"]["format"])
         loader = partial(
             loader_module.bag_from_directory,
             channels=config["data_loading"].get("channels", None),
@@ -62,6 +62,7 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local, co
             images.append(loader(path))
 
         channel_amount = len(config["data_loading"].get("channels", None))
+
         # images are loaded from directory and masked
         # after this operation the bag is persisted as it
         # will be reused several times throughout the pipeline
@@ -69,13 +70,20 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local, co
         images = mask_creation.create_masks_on_bag(images, noisy_channels=[0])
         images = mask_apply.create_masked_images_on_bag(images)
         images = quantile_normalization.quantile_normalization(images, 0.05, 0.95)
-        report_made = intensity_distribution.segmentation_intensity_report(images, 100,
-                                                                           channel_amount)
+
+        # intermediate persist so that extract_features can reuse
+        # above computations after masking QC reports are generated
+        images = images.persist()
+
+        report_made = intensity_distribution.segmentation_intensity_report(
+            images, 100, channel_amount, output_dir)
         images = intensity_distribution.check_report(images, report_made)
         features = feature_extraction.extract_features(images)
         plotted, features = feature_statistics.get_feature_statistics(features)
         features = feature_statistics.check_report(features, plotted, meta=features._meta)
-        features.compute()
+
+        if debug:
+            features.visualize(filename=str(output_dir / "task_graph.svg"))
 
         # features = intensity_distribution.check_report(features, plotted)
         # some images are exported for demonstration purposes
