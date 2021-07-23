@@ -127,7 +127,7 @@ def reduced_empty_mask(L1, L2):
     return L1 + L2
 
 
-def segmentation_intensity_report(bag, bin_amount):
+def segmentation_intensity_report(bag, bin_amount, channels):
 
     def min_max_partition(part, origin):
         return [get_min_max(p, origin) for p in part]
@@ -170,7 +170,7 @@ def segmentation_intensity_report(bag, bin_amount):
         .fold(reduced_counts)
 
     # return intensity_count, masked_intensity_count, bins, masked_bins
-    report_made = plot_before_after_distribution(counts, bins, masked_bins, percentage)
+    report_made = plot_before_after_distribution(counts, bins, masked_bins, percentage, channels)
     return report_made
 
 
@@ -295,7 +295,7 @@ def get_distributed_partitioned_quantile(bag, lower_quantile, upper_quantile):
 
 @dask.delayed
 def plot_before_after_distribution(counts, bins_before, bins_after,
-                                   missing_masks, normalize=True, pdf=True):
+                                   missing_masks, channels, normalize=True, pdf=True):
     counts_before = counts[0]
     counts_after = counts[1]
     if normalize:
@@ -308,7 +308,7 @@ def plot_before_after_distribution(counts, bins_before, bins_after,
     dt_string = now.strftime("%d%m%Y_%H%M%S")
     pp = PdfPages(dt_string + "_intensity_distribution.pdf")
 
-    rows = 8
+    rows = channels
     cols = 2
     f, axarr = plt.subplots(rows, cols, figsize=(20, 30))
     bin_amount = bins_before[0].shape[0]
@@ -328,9 +328,9 @@ def plot_before_after_distribution(counts, bins_before, bins_after,
     pp.savefig(f, bbox_inches='tight')
 
     missing_masks_fg = plt.figure()
-    channels = ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8']
+    channel_labels = [f'ch{i}' for i in range(channels)]
     missing = missing_masks
-    plt.bar(channels, missing)
+    plt.bar(channel_labels, missing)
     missing_masks_fg.suptitle('Missing masks', fontsize=16)
     pp.savefig(missing_masks_fg)
 

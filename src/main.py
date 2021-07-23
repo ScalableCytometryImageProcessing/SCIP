@@ -85,4 +85,4 @@ if __name__ == "__main__":
     # should contain path to small debug dataset
     path = os.environ["DEBUG_DATASET"]
     path = "/home/sanderth/debug_images"
-    main(paths=(path,), debug=True, n_workers=2, port=8990, local=True)
+    main(paths=(path,), debug=True, n_workers=2, port=8990, local=False)

@@ -1,5 +1,8 @@
 from sip.data_masking import mask_creation, mask_apply
 from sip.utils import util
+from sip.data_normalization import quantile_normalization
+from sip.quality_control import intensity_distribution
+from sip.data_features import feature_extraction
 import time
 import click
 import logging
@@ -58,6 +61,7 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local, co
             assert Path(path).is_dir(), f"{path} is not a directory."
             logging.info(f"Bagging {path}")
             images.append(loader(path))
+            #images.append(multiframe_tiff.bag_from_directory(path, partition_size=50, channels=[0,1,2,3,4]))
 
         # images are loaded from directory and masked
         # after this operation the bag is persisted as it
@@ -65,12 +69,12 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local, co
         images = dask.bag.concat(images)
         images = mask_creation.create_masks_on_bag(images, noisy_channels=[0])
         images = mask_apply.create_masked_images_on_bag(images)
-        # images = quantile_normalization.quantile_normalization(images, 0.05, 0.95)
-        # report_made = intensity_distribution.segmentation_intensity_report(images, 100)
-        # images = intensity_distribution.check_report(images, report_made)
-        # features = feature_extraction.extract_features(images)
-        # print(features.shape)
+        images = quantile_normalization.quantile_normalization(images, 0.05, 0.95)
+        report_made = intensity_distribution.segmentation_intensity_report(images, 100, len(config["data_loading"].get("channels", None)))
+        images = intensity_distribution.check_report(images, report_made)
+        feature_extraction.extract_features(images)
 
+        
         # some images are exported for demonstration purposes
         fig, grid = plt.subplots(5, 4)
         for im, axes in zip(images.take(5), grid):
@@ -121,4 +125,4 @@ if __name__ == "__main__":
         output_directory="tmp",
         headless=False,
         config='/home/sanderth/dask-pipeline/sip.yml',
-        debug=True, n_workers=4, port=8990, local=False)
+        debug=True, n_workers=2, port=8990, local=False)
