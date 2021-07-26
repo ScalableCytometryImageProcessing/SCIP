@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import dask
+from io import BytesIO
+import base64
 from matplotlib.backends.backend_pdf import PdfPages
 from sip.data_masking.mask_apply import get_masked_intensities
 from datetime import datetime
@@ -304,14 +306,9 @@ def plot_before_after_distribution(counts, bins_before, bins_after,
         counts_before = (counts_before.T / (counts_before.sum(axis=1))).T
         counts_after = (counts_after.T / (counts_after.sum(axis=1))).T
 
-    # Create a pdf with unique
-    now = datetime.now()
-    dt_string = now.strftime("%d%m%Y_%H%M%S")
-    pp = PdfPages(str(output / dt_string) + "_intensity_distribution.pdf")
-
     rows = channels
     cols = 2
-    f, axarr = plt.subplots(rows, cols, figsize=(20, 30))
+    intensity_distribution_fg, axarr = plt.subplots(rows, cols, figsize=(20, 30))
     bin_amount = bins_before[0].shape[0]
     for i in range(rows):
         # Plot intensities without mask
@@ -325,17 +322,32 @@ def plot_before_after_distribution(counts, bins_before, bins_after,
                         width=0.01 * (bins_after[i].max() - bins_after[i].min()))
 
         axarr[i, 1].title.set_text('After mask')
-    f.suptitle('Intensity distributions', fontsize=16, y=0.90)
-    pp.savefig(f, bbox_inches='tight')
 
+    # Encode to include in HTML
+    distribution_tmp = BytesIO()
+    intensity_distribution_fg.savefig(distribution_tmp, format='png')
+    encoded = base64.b64encode(distribution_tmp.getvalue()).decode('utf-8')
+    html_before_after = '<img src=\'data:image/png;base64,{}\'>'.format(encoded)
+
+    # Missing mask bar plot
     missing_masks_fg = plt.figure()
     channel_labels = [f'ch{i}' for i in range(channels)]
     missing = missing_masks
     plt.bar(channel_labels, missing)
-    missing_masks_fg.suptitle('Missing masks', fontsize=16)
-    pp.savefig(missing_masks_fg)
 
-    pp.close()
+    # Encode to include in HTML
+    missing_mask_tmp = BytesIO()
+    missing_masks_fg.savefig(missing_mask_tmp, format='png')
+    encoded = base64.b64encode(missing_mask_tmp.getvalue()).decode('utf-8')
+    html_missing_mask = '<img src=\'data:image/png;base64,{}\'>'.format(encoded)
+
+    # Write HTML
+    text_file = open("Intensity_quality_control.html", "w")
+    text_file.write('<header><h1>Intensity distribution before vs after masking</h1></header>')
+    text_file.write(html_before_after)
+    text_file.write('<header><h1>Amount of missing masks per channel</h1></header>')
+    text_file.write(html_missing_mask)
+    text_file.close()
 
     return True
 

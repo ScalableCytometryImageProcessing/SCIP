@@ -81,7 +81,17 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local, co
         features = feature_extraction.extract_features(images)
         plotted, features = feature_statistics.get_feature_statistics(features)
         features = feature_statistics.check_report(features, plotted, meta=features._meta)
+        features.compute()
 
+        format = config["data_export"]["format"]
+        filename = config["data_export"]["filename"]
+
+        if format == 'parquet':
+            features.to_parquet(f'{filename}.parquet')
+        elif format == 'csv':
+            features.to_csv(f'{filename}*.csv')  
+
+            
         if debug:
             features.visualize(filename=str(output_dir / "task_graph.svg"))
 
@@ -137,3 +147,4 @@ if __name__ == "__main__":
         headless=False,
         config='/home/sanderth/dask-pipeline/sip.yml',
         debug=True, n_workers=4, port=8990, local=True)
+

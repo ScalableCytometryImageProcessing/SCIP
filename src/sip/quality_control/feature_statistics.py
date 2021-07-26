@@ -20,17 +20,27 @@ def filter_features(feature_df, var):
 
     # Drop rows with nan's
     features_filtered = features_filtered.dropna()
-    return features_filtered
+    return features_filtered, zero_variance, nan_columns
 
 
 @dask.delayed
-def feature_stats_to_html(var, mean):
+def feature_stats_to_html(var, mean, dropped_zero_variance, dropped_nan):
     df = pd.concat([mean, var], axis=1)
     df.columns = ['means', 'var']
     html = df.to_html()
-    text_file = open("Quality_report_features2.html", "w")
-    text_file.write('<header><h1>UMAP Feature reduction </h1></header>')
+
+    # Construct two single columns dataframes with dropped features
+    zero_variance_html = pd.DataFrame(dropped_zero_variance, columns=['feature']).to_html()
+    nan_html = pd.DataFrame(dropped_nan, columns=['feature']).to_html()
+
+    # Write HTML
+    text_file = open("Quality_report_features.html", "w")
+    text_file.write('<header><h1>Feature statistics</h1></header>')
     text_file.write(html)
+    text_file.write('<header><h1>Dropped columns: NaN</h1></header>')
+    text_file.write(nan_html)
+    text_file.write('<header><h1>Dropped columns: Zero variance</h1></header>')
+    text_file.write(zero_variance_html)
     text_file.close()
     return True
 
@@ -52,7 +62,7 @@ def plot_UMAP_to_html(feature_df, table_written):
 
     if table_written:
         html = '<img src=\'data:image/png;base64,{}\'>'.format(encoded)
-        text_file = open("Quality_report_features2.html", "a")
+        text_file = open("Quality_report_features.html", "a")
         text_file.write('<header><h1>UMAP Feature reduction </h1></header>')
         text_file.write(html)
         text_file.close()
@@ -74,7 +84,7 @@ def get_feature_statistics(feature_df):
     var = feature_df.var(axis=0, skipna=True)
     mean = feature_df.mean(axis=0, skipna=True)
 
-    feature_df = filter_features(feature_df, var)
-    table_written = feature_stats_to_html(var, mean)
+    feature_df, dropped_zero_variance, dropped_nan = filter_features(feature_df, var)
+    table_written = feature_stats_to_html(var, mean, dropped_zero_variance, dropped_nan)
     plotted = plot_UMAP_to_html(feature_df, table_written)
     return plotted, feature_df
