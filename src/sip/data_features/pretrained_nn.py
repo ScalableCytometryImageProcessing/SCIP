@@ -2,6 +2,7 @@ from dask.distributed import WorkerPlugin, get_worker, get_client
 
 import torch.nn
 import torch
+import torchvision
 
 import numpy
 
@@ -65,8 +66,20 @@ def map_to_layer(partition):
         .get_submodule(worker.intermediate_layer)
         .register_forward_hook(get_activation(batch_out))
     )
+
+    transform = torchvision.transforms.Compose(
+        torchvision.transforms.CenterCrop(worker.input_shape[0]),
+        torchvision.transforms.ToTensor()
+    )
+
     for i in range(partition % batch_size):
-        worker.model([d["masked"] for d in partition[i * batch_size:(i + 1) * batch_size]])
+
+        batch = [
+            d["masked"] 
+            for d in partition[i * batch_size:(i + 1) * batch_size]
+        ]
+
+        worker.model(transform(batch))
         full_out[i * batch_size:(i + 1) * batch_size] = batch_out.numpy()
 
 
