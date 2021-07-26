@@ -89,24 +89,10 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local, co
         if format == 'parquet':
             features.to_parquet(f'{filename}.parquet')
         elif format == 'csv':
-            features.to_csv(f'{filename}*.csv')  
+            features.to_csv(f'{filename}*.csv')
 
-            
         if debug:
             features.visualize(filename=str(output_dir / "task_graph.svg"))
-
-        # features = intensity_distribution.check_report(features, plotted)
-        # some images are exported for demonstration purposes
-        # fig, grid = plt.subplots(5, 4)
-        # for im, axes in zip(images.take(5), grid):
-        #     axes[0].set_title(im["path"])
-        #     axes[0].imshow(im["pixels"][1])
-        #     axes[1].imshow(im["denoised"][1])
-        #     axes[2].imshow(im["segmented"][1])
-        #     axes[3].imshow(im["mask"][1])
-        # plt.savefig(output_dir / "output_images.png")
-
-        if debug:
             context.client.profile(filename=output_dir / "profile.html")
 
     logger.info(f"Full runtime {(time.time() - start_full):.2f}")
@@ -147,4 +133,3 @@ if __name__ == "__main__":
         headless=False,
         config='/home/sanderth/dask-pipeline/sip.yml',
         debug=True, n_workers=4, port=8990, local=True)
-
