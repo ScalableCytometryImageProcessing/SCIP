@@ -2,7 +2,7 @@ from sip.data_masking import mask_creation, mask_apply
 from sip.utils import util
 from sip.data_normalization import quantile_normalization
 from sip.quality_control import intensity_distribution
-from sip.data_features import feature_extraction
+from sip.data_features import feature_extraction, pretrained_nn
 import time
 import click
 import logging
@@ -80,10 +80,12 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local, co
             images, 100, channel_amount, output_dir)
         images = intensity_distribution.check_report(images, report_made)
 
-        features = feature_extraction.extract_features(images)
+        feature_extraction.extract_features(images)
+        pretrained_nn_features = pretrained_nn.extract_features(
+            images, "model", (32, 32, channel_amount), "fc3")
 
         if debug:
-            features.visualize(filename=str(output_dir / "task_graph.svg"))
+            pretrained_nn_features.visualize(filename=str(output_dir / "task_graph.svg"))
 
         # some images are exported for demonstration purposes
         fig, grid = plt.subplots(5, 4)
