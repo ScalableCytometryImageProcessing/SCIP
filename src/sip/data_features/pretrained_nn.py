@@ -1,4 +1,5 @@
 from dask.distributed import WorkerPlugin, get_worker, get_client
+import dask.dataframe
 
 import torch.nn
 import torch
@@ -8,23 +9,25 @@ import numpy
 
 from sip.data_features import models
 
+from collections import OrderedDict
+
 
 class GPUPlugin(WorkerPlugin):
 
-    def __init__(self, model, submodule_id, input_shape, batch_size):
+    def __init__(self, *, model, submodule_id, input_shape, batch_size):
         self.model = model
         self.submodule_id = submodule_id
         self.input_shape = input_shape
         self.batch_size = batch_size
 
     def setup(self, worker):
-        worker.model = self.model
+        worker.model_name = self.model
         worker.submodule_id = self.submodule_id
         worker.input_shape = self.input_shape
         worker.batch_size = self.batch_size
 
     def teardown(self, worker):
-        del worker.model
+        del worker.model_name
         del worker.submodule_id
         del worker.input_shape
         del worker.batch_size
@@ -42,7 +45,7 @@ def map_to_layer(partition):
     worker = get_worker()
     if not hasattr(worker, "model"):
         # if the model is not yet present on the worker, instantiate it
-        worker.model = models.get_random_model(worker.input_shape)
+        worker.model = models.get_untrained_model(worker.input_shape)
 
         # find index of named submodule so that the model can be clipped to this layer
         for i, (name, _) in enumerate(worker.model.named_modules()):
@@ -51,52 +54,55 @@ def map_to_layer(partition):
                 break
 
         # create a new 'clipped' model
-        worker.model = torch.nn.Sequential(*list(worker.model.children())[:idx + 1])
-        worker.intermediate_shape = torch.randn(*worker.input_shape)
+        worker.model = torch.nn.Sequential(
+            OrderedDict(list(worker.model.children())[:idx + 1]))
+        worker.intermediate_shape = worker.model(torch.randn(1, *worker.input_shape)).shape
 
+    batch_size = worker.batch_size
     if len(partition) < worker.batch_size:
         batch_size = len(partition)
 
-    full_out = numpy.empty(
-        shape=(len(partition),) + worker.intermediate_shape, dtype=partition.dtype)
+    dtype = partition[0]["single_blob_mask_img"].dtype
+    full_out = numpy.zeros(
+        shape=(len(partition),) + worker.intermediate_shape, dtype=dtype)
     batch_out = numpy.empty(
-        shape=(len(batch_size),) + worker.intermediate_shape, dtype=partition.dtype)
+        shape=(batch_size,) + worker.intermediate_shape, dtype=dtype)
     (
         worker.model
-        .get_submodule(worker.intermediate_layer)
+        .get_submodule(worker.submodule_id)
         .register_forward_hook(get_activation(batch_out))
     )
 
     transform = torchvision.transforms.Compose(
-        torchvision.transforms.CenterCrop(worker.input_shape[0]),
+        torchvision.transforms.CenterCrop(worker.input_shape[-1]),
         torchvision.transforms.ToTensor()
     )
 
-    for i in range(partition % batch_size):
+    for i in range((len(partition) % batch_size)-1):
 
-        batch = [
-            d["masked"] 
-            for d in partition[i * batch_size:(i + 1) * batch_size]
-        ]
+        batch = map(
+            transform, 
+            (partition[j]["single_blob_mask_img"] 
+                for j in range(i * batch_size, (i + 1) * batch_size))
+            )
 
-        worker.model(transform(batch))
+        worker.model(batch)
         full_out[i * batch_size:(i + 1) * batch_size] = batch_out.numpy()
 
+    return dask.dataframe.from_array(
+        x=full_out, 
+        columns=["model_%d" % i for i in range(worker.intermediate_shape[1])]
+    )
 
-def extract_features(*, images, model, input_shape, intermediate_layer):
+
+def extract_features(*, images):
     """Extract intermediate representations from pretrained PyTorch models
 
     model: Path to PyTorch model
     intermediate_layer: Layer index from which to extract representations
     """
 
-    model_plugin = GPUPlugin(model, intermediate_layer, input_shape, 32)
-
-    # register plugin to instantiate models on the workers
-    get_client().register_worker_plugin(model_plugin, name="model")
-
     # extract intermediate representations
-    images.map_partitions(map_to_layer)
+    features = images.map_partitions(map_to_layer)
 
-    # unregister plugin to remove models from the workers
-    get_client().unregister_worker_plugin(name="model")
+    return features

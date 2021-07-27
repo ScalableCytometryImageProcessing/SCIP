@@ -2,7 +2,7 @@ from sip.data_masking import mask_creation, mask_apply
 from sip.utils import util
 from sip.data_normalization import quantile_normalization
 from sip.quality_control import intensity_distribution
-from sip.data_features import feature_extraction, pretrained_nn
+from sip.data_features import pretrained_nn, feature_extraction
 import time
 import click
 import logging
@@ -81,8 +81,17 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local, co
         # images = intensity_distribution.check_report(images, report_made)
 
         # feature_extraction.extract_features(images)
-        pretrained_nn_features = pretrained_nn.extract_features(
-            images, "model", (32, 32, channel_amount), "fc3")
+
+        model_plugin = pretrained_nn.GPUPlugin(
+            model="model", 
+            submodule_id="fc3", 
+            input_shape=(channel_amount,32,32),
+            batch_size=32)
+        # register plugin to instantiate models on the workers
+        context.client.register_worker_plugin(model_plugin, name="model")
+        pretrained_nn_features = pretrained_nn.extract_features(images=images).compute()
+        # unregister plugin to remove models from the workers
+        context.client.unregister_worker_plugin(name="model")
 
         if debug:
             pretrained_nn_features.visualize(filename=str(output_dir / "task_graph.svg"))
@@ -135,6 +144,6 @@ if __name__ == "__main__":
     main(
         paths=(path,),
         output_directory="tmp",
-        headless=False,
-        config='/home/sanderth/dask-pipeline/sip.yml',
-        debug=True, n_workers=2, port=8990, local=False)
+        headless=True,
+        config='/home/maximl/daskPipeline/sip.yml',
+        debug=True, n_workers=2, port=9001, local=True)
