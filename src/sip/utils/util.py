@@ -21,7 +21,7 @@ class ClientClusterContext:
 
     def __enter__(self):
         if self.local:
-            self.cluster = LocalCluster(n_workers=self.n_workers)
+            self.cluster = LocalCluster(n_workers=self.n_workers, dashboard_address=f":{self.port}")
         else:
             assert (Path.home() / "logs").exists(), "Make sure directory\
                  'logs' exists in your home dir"

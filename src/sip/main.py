@@ -70,31 +70,38 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local, co
         images = dask.bag.concat(images)
         images = mask_creation.create_masks_on_bag(images, noisy_channels=[0])
         images = mask_apply.create_masked_images_on_bag(images)
-        # images = quantile_normalization.quantile_normalization(images, 0.05, 0.95)
+        images = quantile_normalization.quantile_normalization(images, 0.05, 0.95)
 
-        # intermediate persist so that extract_features can reuse
-        # above computations after masking QC reports are generated
-        # images = images.persist()
+        # The masked and normalized images will now be used to
+        # compute QC reports, image features and pretrained NN features
+        # Persist the dataframe so that computations can be done once and the result
+        # can be reused from memory
+        images = images.persist()
 
-        # report_made = intensity_distribution.segmentation_intensity_report(
-        #     images, 100, channel_amount, output_dir)
-        # images = intensity_distribution.check_report(images, report_made)
+        report_made = intensity_distribution.segmentation_intensity_report(
+            images, 100, channel_amount, output_dir)
+        images = intensity_distribution.check_report(images, report_made)
 
-        # feature_extraction.extract_features(images)
+        image_features = feature_extraction.extract_features(images)
 
-        model_plugin = pretrained_nn.GPUPlugin(
-            model="model", 
-            submodule_id="fc3", 
-            input_shape=(channel_amount,32,32),
-            batch_size=32)
-        # register plugin to instantiate models on the workers
-        context.client.register_worker_plugin(model_plugin, name="model")
-        pretrained_nn_features = pretrained_nn.extract_features(images=images).compute()
-        # unregister plugin to remove models from the workers
-        context.client.unregister_worker_plugin(name="model")
+        model_remover_plugin = pretrained_nn.ModelRemoverPlugin()
+        context.client.register_worker_plugin(model_remover_plugin, name="model_remover")
 
-        if debug:
-            pretrained_nn_features.visualize(filename=str(output_dir / "task_graph.svg"))
+        def remove_models(f):
+            # unregister plugin to remove models from the workers
+            context.client.unregister_worker_plugin(name="model_remover")
+
+        # compute features with Future API so that we can register a done callback
+        # this callback will remove the models from the workers to free up memory for
+        # later computations
+        pretrained_nn_features = context.client.submit(
+            pretrained_nn.extract_features,
+            images=images,
+            model="model",
+            input_shape=(channel_amount, 32, 32),
+            batch_size=32
+        )
+        pretrained_nn_features.add_done_callback(remove_models)
 
         # some images are exported for demonstration purposes
         fig, grid = plt.subplots(5, 4)
@@ -105,6 +112,9 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local, co
             axes[2].imshow(im["segmented"][1])
             axes[3].imshow(im["mask"][1])
         plt.savefig(output_dir / "output_images.png")
+
+        print(pretrained_nn_features.result().head())
+        print(image_features.head())
 
         if debug:
             context.client.profile(filename=output_dir / "profile.html")
@@ -146,4 +156,4 @@ if __name__ == "__main__":
         output_directory="tmp",
         headless=True,
         config='/home/maximl/daskPipeline/sip.yml',
-        debug=True, n_workers=2, port=9001, local=True)
+        debug=True, n_workers=8, port=9002, local=True)

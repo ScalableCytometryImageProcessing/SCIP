@@ -1,6 +1,5 @@
 import torch.nn as nn
 import torch.nn.functional as F
-import torch
 
 
 class Net(nn.Module):
@@ -10,10 +9,9 @@ class Net(nn.Module):
         self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv2d(6, 16, 5)
         self.flatten = nn.Flatten(start_dim=1)
-        self.fc1 = nn.Linear(1600, 120)
+        self.fc1 = nn.Linear(400, 120)
         self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(84, 10)
-
 
     def forward(self, x):
         x = self.pool(F.relu(self.conv1(x)))

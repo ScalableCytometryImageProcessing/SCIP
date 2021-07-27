@@ -1,101 +1,74 @@
-from dask.distributed import WorkerPlugin, get_worker, get_client
-import dask.dataframe
+from dask.distributed import WorkerPlugin, get_worker
 
 import torch.nn
 import torch
-import torchvision
 
 import numpy
+import operator
 
 from sip.data_features import models
 
-from collections import OrderedDict
+
+def croppadND(img, bounding):
+    padding = tuple(map(lambda a, b: abs(min(0, b - a)), bounding, img.shape))
+    if sum(padding) > 0:
+        before_after = tuple(map(lambda a: (a // 2, (a // 2) + (a % 2)), padding))
+        img = numpy.pad(
+            array=img,
+            pad_width=before_after,
+            mode='edge'
+        )
+
+    start = tuple(map(lambda a, da: a // 2 - da // 2, img.shape, bounding))
+    end = tuple(map(operator.add, start, bounding))
+    slices = tuple(map(slice, start, end))
+    return img[slices]
 
 
-class GPUPlugin(WorkerPlugin):
-
-    def __init__(self, *, model, submodule_id, input_shape, batch_size):
-        self.model = model
-        self.submodule_id = submodule_id
-        self.input_shape = input_shape
-        self.batch_size = batch_size
-
-    def setup(self, worker):
-        worker.model_name = self.model
-        worker.submodule_id = self.submodule_id
-        worker.input_shape = self.input_shape
-        worker.batch_size = self.batch_size
-
+class ModelRemoverPlugin(WorkerPlugin):
     def teardown(self, worker):
-        del worker.model_name
-        del worker.submodule_id
-        del worker.input_shape
-        del worker.batch_size
+        if hasattr(worker, "model"):
+            del worker.model
 
 
-def get_activation(out):
-    def hook(model, input, output):
-        output = output.detach()
-    return hook
-
-
-def map_to_layer(partition):
+def map_to_layer(partition, *, model, input_shape, batch_size):
 
     # check if model is already instantiated on worker
     worker = get_worker()
     if not hasattr(worker, "model"):
         # if the model is not yet present on the worker, instantiate it
-        worker.model = models.get_untrained_model(worker.input_shape)
+        worker.model = models.get_untrained_model(input_shape)
+        worker.model.eval()
+        worker.output_size = worker.model(
+            torch.randn(1, *input_shape, dtype=torch.float32)).shape[-1]
 
-        # find index of named submodule so that the model can be clipped to this layer
-        for i, (name, _) in enumerate(worker.model.named_modules()):
-            if name == worker.submodule_id:
-                idx = i
-                break
-
-        # create a new 'clipped' model
-        worker.model = torch.nn.Sequential(
-            OrderedDict(list(worker.model.children())[:idx + 1]))
-        worker.intermediate_shape = worker.model(torch.randn(1, *worker.input_shape)).shape
-
-    batch_size = worker.batch_size
-    if len(partition) < worker.batch_size:
+    if len(partition) < batch_size:
         batch_size = len(partition)
 
-    dtype = partition[0]["single_blob_mask_img"].dtype
     full_out = numpy.zeros(
-        shape=(len(partition),) + worker.intermediate_shape, dtype=dtype)
-    batch_out = numpy.empty(
-        shape=(batch_size,) + worker.intermediate_shape, dtype=dtype)
-    (
-        worker.model
-        .get_submodule(worker.submodule_id)
-        .register_forward_hook(get_activation(batch_out))
-    )
+        shape=(len(partition), worker.output_size), dtype=numpy.float32)
 
-    transform = torchvision.transforms.Compose(
-        torchvision.transforms.CenterCrop(worker.input_shape[-1]),
-        torchvision.transforms.ToTensor()
-    )
+    with torch.no_grad():
+        n_batches = len(partition) // batch_size
+        for i in range(n_batches + 1):
 
-    for i in range((len(partition) % batch_size)-1):
+            if i == n_batches:
+                end = len(partition)
+            else:
+                end = (i + 1) * batch_size
 
-        batch = map(
-            transform, 
-            (partition[j]["single_blob_mask_img"] 
-                for j in range(i * batch_size, (i + 1) * batch_size))
-            )
+            batch = list(map(
+                lambda j: croppadND(partition[j]["mask_img"], input_shape),
+                range(i * batch_size, end)
+            ))
 
-        worker.model(batch)
-        full_out[i * batch_size:(i + 1) * batch_size] = batch_out.numpy()
+            full_out[i * batch_size:end] = worker.model(
+                torch.as_tensor(batch, dtype=torch.float32))
 
-    return dask.dataframe.from_array(
-        x=full_out, 
-        columns=["model_%d" % i for i in range(worker.intermediate_shape[1])]
-    )
+    return list(map(tuple, full_out))
 
 
-def extract_features(*, images):
+def extract_features(*, images, model, input_shape, batch_size):
     """Extract intermediate representations from pretrained PyTorch models
 
     model: Path to PyTorch model
@@ -103,6 +76,10 @@ def extract_features(*, images):
     """
 
     # extract intermediate representations
-    features = images.map_partitions(map_to_layer)
+    features = images.map_partitions(
+        map_to_layer,
+        model=model,
+        input_shape=input_shape,
+        batch_size=batch_size).to_dataframe()
 
     return features
