@@ -3,6 +3,7 @@ from sip.utils import util
 from sip.data_normalization import quantile_normalization
 from sip.quality_control import intensity_distribution, feature_statistics
 from sip.data_features import feature_extraction
+from sip.data_analysis import fuzzy_c_mean
 import time
 import click
 import logging
@@ -81,6 +82,8 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local, co
         features = feature_extraction.extract_features(images)
         plotted, features = feature_statistics.get_feature_statistics(features)
         features = feature_statistics.check_report(features, plotted, meta=features._meta)
+        temp = fuzzy_c_mean.fuzzy_c_means(features)
+        temp.compute()
         features.compute()
 
         format = config["data_export"]["format"]
