@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import dask
 from matplotlib.backends.backend_pdf import PdfPages
-from sip.data_masking.mask_apply import get_masked_intensities
+from scip.data_masking.mask_apply import get_masked_intensities
 from datetime import datetime
 
 

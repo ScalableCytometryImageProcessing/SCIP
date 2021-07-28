@@ -1,5 +1,5 @@
 from pathlib import Path
-from sip.data_loading import multiframe_tiff
+from scip.data_loading import multiframe_tiff
 
 
 def test_load_image(data: Path):
