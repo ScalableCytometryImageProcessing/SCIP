@@ -1,6 +1,6 @@
 # Scalable image processing
 
-![main workflow badge](https://github.com/ScalableImagingPipeline/dask-pipeline/actions/workflows/main.yml/badge.svg)
+![example workflow](https://github.com/ScalableImageProcessing/dask-pipeline/actions/workflows/main.yml/badge.svg)
 
 ## Installation
 
