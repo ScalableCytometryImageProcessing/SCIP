@@ -48,6 +48,7 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local, co
 
     # ClientClusterContext creates cluster
     # and registers Client as default client for this session
+    logger.debug("Starting Dask cluster")
     with util.ClientClusterContext(n_workers=n_workers, local=local, port=port) as context:
         logger.debug(f"Client ({context}) created")
 
@@ -80,31 +81,31 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local, co
         # above computations after masking QC reports are generated
         images = images.persist()
 
-        # report_made = intensity_distribution.segmentation_intensity_report(
-        #     images, 100, channel_amount, output_dir)
-        # images = intensity_distribution.check_report(images, report_made)
+        report_made = intensity_distribution.segmentation_intensity_report(
+            images, 100, channel_amount, output_dir)
+        images = intensity_distribution.check_report(images, report_made)
 
-        # features = feature_extraction.extract_features(images)
+        features = feature_extraction.extract_features(images)
         cp_features = cellprofiler.extract_features(images=images, channels=channels)
 
-        # if debug:
-        #     features.visualize(filename=str(output_dir / "task_graph.svg"))
+        if debug:
+            features.visualize(filename=str(output_dir / "task_graph.svg"))
 
         # some images are exported for demonstration purposes
-        # fig, grid = plt.subplots(5, 4)
-        # for im, axes in zip(images.take(5), grid):
-        #     axes[0].set_title(im["path"])
-        #     axes[0].imshow(im["pixels"][1])
-        #     axes[1].imshow(im["denoised"][1])
-        #     axes[2].imshow(im["segmented"][1])
-        #     axes[3].imshow(im["mask"][1])
-        # plt.savefig(output_dir / "output_images.png")
+        fig, grid = plt.subplots(5, 4)
+        for im, axes in zip(images.take(5), grid):
+            axes[0].set_title(im["path"])
+            axes[0].imshow(im["pixels"][1])
+            axes[1].imshow(im["denoised"][1])
+            axes[2].imshow(im["segmented"][1])
+            axes[3].imshow(im["mask"][1])
+        plt.savefig(output_dir / "output_images.png")
 
-        #features.compute().to_parquet(str(output_dir / "features.parquet"))
+        features.compute().to_parquet(str(output_dir / "features.parquet"))
         cp_features.compute().to_parquet(str(output_dir / "cp_features.parquet"))
 
-        # if debug:
-        #     context.client.profile(filename=output_dir / "profile.html")
+        if debug:
+            context.client.profile(filename=output_dir / "profile.html")
 
     logger.info(f"Full runtime {(time.time() - start_full):.2f}")
 

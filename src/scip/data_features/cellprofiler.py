@@ -24,16 +24,17 @@ def compute_measurements_on_partition(partition, *, modules, channels):
 
     logger.debug('Starting iteration over images')
 
-    for im in partition: # iterate over all images
+    for im in partition:
 
-        # populate image set 0 with current image
+        # populate image set '0' with current image
+        # we don´t construct the full image_set_list to avoid copying
         image_set = image_set_list.get_image_set(0)
         for j in range(im["pixels"].shape[0]):
             cp_img = cellprofiler_core.image.Image(image=im["pixels"][j], mask=im["mask"][j])
             image_set.add(str(channels[j]), cp_img)
 
-        for module in modules: # iterate over all modules
-            workspace = cellprofiler_core.workspace.Workspace( 
+        for module in modules:
+            workspace = cellprofiler_core.workspace.Workspace(
                 pipeline,
                 module,
                 image_set,
@@ -46,7 +47,7 @@ def compute_measurements_on_partition(partition, *, modules, channels):
 
     logger.debug("All measurements collected")
 
-    df = pandas.DataFrame(columns=[c for _,c,_ in measurements.get_measurement_columns()])
+    df = pandas.DataFrame(columns=[c for _, c, _ in measurements.get_measurement_columns()])
     for o, m, _ in measurements.get_measurement_columns():
         df[m] = measurements.get_all_measurements(o, m)
 
@@ -57,7 +58,7 @@ def compute_measurements_on_partition(partition, *, modules, channels):
 
 def extract_features(*, images, channels):
 
-    modules =  []
+    modules = []
     module = cellprofiler.modules.measureimageintensity.MeasureImageIntensity()
     module.images_list.set_value([str(c) for c in channels])
     modules.append(module)
