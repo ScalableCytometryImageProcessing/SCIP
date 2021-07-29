@@ -84,7 +84,6 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local, co
         features = feature_statistics.check_report(features, plotted, meta=features._meta)
         memberships, plotted = fuzzy_c_mean.fuzzy_c_means(features, 5, 3, 10)
         plotted.compute()
-        #features.compute()
 
         format = config["data_export"]["format"]
         filename = config["data_export"]["filename"]
@@ -95,7 +94,6 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local, co
             features.to_csv(f'{filename}*.csv')
 
         if debug:
-        
             features.visualize(filename=str(output_dir / "task_graph.svg"))
             context.client.profile(filename=output_dir / "profile.html")
 
