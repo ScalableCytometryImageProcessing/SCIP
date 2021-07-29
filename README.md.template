@@ -1,4 +1,4 @@
-# Scalable image processing
+# SCIP: Scalable Image Processing
 
 ![main workflow badge](https://github.com/ScalableImagingPipeline/dask-pipeline/actions/workflows/main.yml/badge.svg)
 
