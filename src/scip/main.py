@@ -49,7 +49,8 @@ def main(*, paths, output_directory, n_workers, headless, debug, processes, port
     # ClientClusterContext creates cluster
     # and registers Client as default client for this session
     logger.debug("Starting Dask cluster")
-    with util.ClientClusterContext(n_workers=n_workers, local=local, port=port, processes=processes) as context:
+    with util.ClientClusterContext(n_workers=n_workers, local=local,
+                                   port=port, processes=processes) as context:
         logger.debug(f"Client ({context}) created")
 
         loader_module = import_module('scip.data_loading.%s' % config["data_loading"]["format"])

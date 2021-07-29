@@ -1,6 +1,4 @@
-from sklearn import decomposition
 import pandas as pd
-import numpy as np
 import dask
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
@@ -8,8 +6,9 @@ from collections import defaultdict
 from sklearn.metrics.pairwise import euclidean_distances
 from sklearn.preprocessing import StandardScaler
 
+
 class PFA(object):
-    def __init__(self, diff_n_features = 2, q=None, explained_var = 0.95):
+    def __init__(self, diff_n_features=2, q=None, explained_var=0.95):
         self.q = q
         self.diff_n_features = diff_n_features
         self.explained_var = explained_var
@@ -19,20 +18,20 @@ class PFA(object):
         X = sc.fit_transform(X)
 
         pca = PCA().fit(X)
-        
         if not self.q:
             explained_variance = pca.explained_variance_ratio_
-            cumulative_expl_var = [sum(explained_variance[:i+1]) for i in range(len(explained_variance))]
-            for i,j in enumerate(cumulative_expl_var):
+            cumulative_expl_var = [sum(explained_variance[:i + 1])
+                                   for i in range(len(explained_variance))]
+            for i, j in enumerate(cumulative_expl_var):
                 if j >= self.explained_var:
                     q = i
                     break
-                    
-        A_q = pca.components_.T[:,:q]
-        
+
+        A_q = pca.components_.T[:, :q]
+
         clusternumber = min([q + self.diff_n_features, X.shape[1]])
-        
-        kmeans = KMeans(n_clusters= clusternumber).fit(A_q)
+
+        kmeans = KMeans(n_clusters=clusternumber).fit(A_q)
         clusters = kmeans.predict(A_q)
         cluster_centers = kmeans.cluster_centers_
 
@@ -43,26 +42,27 @@ class PFA(object):
 
         self.indices_ = [sorted(f, key=lambda x: x[1])[0][0] for f in dists.values()]
         self.features_ = X[:, self.indices_]
-        
-    def fit_transform(self,X):    
+
+    def fit_transform(self, X):
         sc = StandardScaler()
         X = sc.fit_transform(X)
 
         pca = PCA().fit(X)
-        
+
         if not self.q:
             explained_variance = pca.explained_variance_ratio_
-            cumulative_expl_var = [sum(explained_variance[:i+1]) for i in range(len(explained_variance))]
-            for i,j in enumerate(cumulative_expl_var):
+            cumulative_expl_var = [sum(explained_variance[:i + 1])
+                                   for i in range(len(explained_variance))]
+            for i, j in enumerate(cumulative_expl_var):
                 if j >= self.explained_var:
                     q = i
                     break
-                    
-        A_q = pca.components_.T[:,:q]
-        
+
+        A_q = pca.components_.T[:, :q]
+
         clusternumber = min([q + self.diff_n_features, X.shape[1]])
-        
-        kmeans = KMeans(n_clusters= clusternumber).fit(A_q)
+
+        kmeans = KMeans(n_clusters=clusternumber).fit(A_q)
         clusters = kmeans.predict(A_q)
         cluster_centers = kmeans.cluster_centers_
 
@@ -73,15 +73,16 @@ class PFA(object):
 
         self.indices_ = [sorted(f, key=lambda x: x[1])[0][0] for f in dists.values()]
         self.features_ = X[:, self.indices_]
-        
+
         return X[:, self.indices_]
-    
+
     def transform(self, X):
         return X[:, self.indices_]
 
+
 @dask.delayed
 def apply_pfa(features):
-    pfa = PFA(diff_n_features=1, explained_var= 0.90)
+    pfa = PFA(diff_n_features=1, explained_var=0.90)
     pfa_result = pfa.fit_transform(features)
 
     featurekeys = [features.columns.tolist()[i] for i in pfa.indices_]
