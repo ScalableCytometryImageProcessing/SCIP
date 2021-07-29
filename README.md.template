@@ -18,18 +18,5 @@ We recommend using [mamba](https://github.com/mamba-org/mamba) and pip to instal
 ## Usage
 
 ```
-Usage: scip [OPTIONS] [PATHS]... [OUTPUT_DIRECTORY]
-
-  Intro documentation
-
-Options:
-  -j, --n-workers INTEGER  how many workers are started in the dask cluster
-  -p, --port INTEGER       dask dashboard port
-  --debug                  sets logging level to debug
-  --local / --no-local     deploy app to Dask LocalCluster, otherwise deploy
-                           to dask-jobqueue PBSCluster
-  --headless               If set, the program will never ask for user input
-  --config FILE            Path to YAML config file
-  --help                   Show this message and exit.
-
+{usage}
 ```
