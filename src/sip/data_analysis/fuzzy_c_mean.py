@@ -1,9 +1,16 @@
-import dask
-from dask_ml.decomposition import PCA
+import umap
 import pandas as pd
-import dask.dataframe as dd
-
 import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
+# Dask imports
+import dask
+import dask.dataframe as dd
+from dask_ml.decomposition import PCA
+from io import BytesIO
+import base64
+
+
     
 
 def dimensionality_reduction(features):
@@ -58,10 +65,38 @@ def fuzzy_c_means(features, amount_of_centers, m, iterations):
         df.index.name = "centers"
         return df
 
+
     def get_memberships_partioned(part, centers, m, amount_of_centers):
         membership =  part.apply(get_membership, center_points=centers, m=m, axis=1)
         return membership
 
+    @dask.delayed
+    def plot_membership(memberships, features):
+        reducer = umap.UMAP()
+        scaled_cell_data = StandardScaler().fit_transform(features)
+        embedding = reducer.fit_transform(scaled_cell_data)
+
+        scatter_df = pd.DataFrame(embedding)
+        rows = memberships.shape[1]
+        cols = 1
+        fuzzy_c_means_fg, axarr = plt.subplots(rows, cols, figsize=(5, 20))
+
+        for count, column in enumerate(memberships):
+            axarr[count].scatter(scatter_df[0], scatter_df[1], c=memberships[column],cmap='Blues', s=1, alpha=0.5)
+            axarr[count].title.set_text(f"UMAP for cluster: {count}")
+
+        fuzzy_cmeans_tmp = BytesIO()
+        fuzzy_c_means_fg.savefig(fuzzy_cmeans_tmp, format='png')
+        encoded = base64.b64encode(fuzzy_cmeans_tmp.getvalue()).decode('utf-8')
+        facet_plots = '<img src=\'data:image/png;base64,{}\'>'.format(encoded)
+
+        # Write HTML
+        text_file = open("Fuzzy_clustering.html", "w")
+        text_file.write('<header><h1>Fuzzy C means</h1></header>')
+        text_file.write(facet_plots)
+        text_file.close()
+
+        return True
 
 
     pca_df = dimensionality_reduction(features)
@@ -71,7 +106,7 @@ def fuzzy_c_means(features, amount_of_centers, m, iterations):
         summed_numerators = numerator_collection.groupby('centers').sum()
         memberships = pca_df.map_partitions(get_memberships_partioned, centers=centers, m=m, amount_of_centers=amount_of_centers, meta={0:float, 1:float, 2:float, 3:float, 4:float})
         summed_denominator = memberships.pow(m).reduction(lambda x: x.sum())
-        
         centers = summed_numerators.div(summed_denominator, axis=0)
-        
-    return memberships
+
+    plotted = plot_membership(memberships, pca_df)
+    return memberships, plotted
