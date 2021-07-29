@@ -17,4 +17,6 @@ We recommend using [mamba](https://github.com/mamba-org/mamba) and pip to instal
 
 ## Usage
 
-```{usage}```
+```
+{usage}
+```
