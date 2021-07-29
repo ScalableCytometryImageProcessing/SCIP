@@ -8,7 +8,7 @@ import yaml
 
 class ClientClusterContext:
 
-    def __init__(self, local=True, n_workers=2, port=8787):
+    def __init__(self, local=True, n_workers=2, processes=12, port=8787):
         """
         Sets up a cluster and client.
 
@@ -18,6 +18,7 @@ class ClientClusterContext:
         self.local = local
         self.n_workers = n_workers
         self.port = port
+        self.processes = processes
 
     def __enter__(self):
         if self.local:
@@ -30,8 +31,8 @@ class ClientClusterContext:
                 cores=24,
                 memory="240GiB",
                 resource_spec="h_vmem=10G,mem_free=240G",
-                processes=12,
-                project="SIP",
+                processes=self.processes,
+                project="scip",
                 job_extra=("-pe serial 24", "-j y", "-o ~/logs/dask_workers.out"),
                 scheduler_options={'dashboard_address': f':{self.port}'}
             )

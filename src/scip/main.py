@@ -1,26 +1,28 @@
-from sip.data_masking import mask_creation, mask_apply
-from sip.utils import util
-from sip.data_normalization import quantile_normalization
-from sip.quality_control import intensity_distribution, feature_statistics
-from sip.data_features import feature_extraction
-from sip.data_analysis import fuzzy_c_mean
+from scip.data_masking import mask_creation, mask_apply
+from scip.utils import util
+from scip.data_normalization import quantile_normalization
+from scip.quality_control import intensity_distribution, feature_statistics
+from scip.data_features import feature_extraction
+from scip.data_analysis import fuzzy_c_mean
 import time
 import click
 import logging
+import logging.config
 from pathlib import Path
 import dask.bag
 import shutil
 from functools import partial
 from importlib import import_module
+import yaml
 
 
-def main(*, paths, output_directory, n_workers, headless, debug, port, local, config):
+def main(*, paths, output_directory, n_workers, headless, debug, processes, port, local, config):
 
-    logging.basicConfig(
-        level=logging.DEBUG if debug else logging.WARNING
-    )
-    logging.getLogger("matplotlib").setLevel(logging.WARNING)
-    logger = logging.getLogger(__name__)
+    with open('./logging.yml', 'r') as stream:
+        loggingConfig = yaml.load(stream, Loader=yaml.FullLoader)
+    logging.config.dictConfig(loggingConfig)
+
+    logger = logging.getLogger("scip")
     logger.info(f"Running pipeline for {','.join(paths)}")
 
     # logic for creating output directory
@@ -35,7 +37,7 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local, co
         if not should_remove:
             raise FileExistsError(f"{str(output_dir)} exists and should not be removed. Exiting.")
     if should_remove and output_dir.exists():
-        logging.info(f"Running headless and/or {str(output_dir)} exists. Removing.")
+        logger.info(f"Running headless and/or {str(output_dir)} exists. Removing.")
         shutil.rmtree(output_dir)
     if not output_dir.exists():
         output_dir.mkdir(parents=True)
@@ -46,10 +48,11 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local, co
 
     # ClientClusterContext creates cluster
     # and registers Client as default client for this session
-    with util.ClientClusterContext(n_workers=n_workers, local=local, port=port) as context:
+    logger.debug("Starting Dask cluster")
+    with util.ClientClusterContext(n_workers=n_workers, local=local, port=port, processes=processes) as context:
         logger.debug(f"Client ({context}) created")
 
-        loader_module = import_module('sip.data_loading.%s' % config["data_loading"]["format"])
+        loader_module = import_module('scip.data_loading.%s' % config["data_loading"]["format"])
         loader = partial(
             loader_module.bag_from_directory,
             channels=config["data_loading"].get("channels", None),
@@ -62,7 +65,9 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local, co
             logging.info(f"Bagging {path}")
             images.append(loader(path))
 
-        channel_amount = len(config["data_loading"].get("channels", None))
+        assert "channels" in config["data_loading"], "Please specify what channels to load"
+        channels = config["data_loading"].get("channels")
+        channel_amount = len(channels)
 
         # images are loaded from directory and masked
         # after this operation the bag is persisted as it
@@ -84,6 +89,7 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local, co
         features = feature_statistics.check_report(features, plotted, meta=features._meta)
         memberships, plotted = fuzzy_c_mean.fuzzy_c_means(features, 5, 3, 10)
         plotted.compute()
+        # cp_features = cellprofiler.extract_features(images=images, channels=channels)
 
         format = config["data_export"]["format"]
         filename = config["data_export"]["filename"]
@@ -92,6 +98,9 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local, co
             features.to_parquet(f'{filename}.parquet')
         elif format == 'csv':
             features.to_csv(f'{filename}*.csv')
+
+        features.compute().to_parquet(str(output_dir / "features.parquet"))
+        # cp_features.compute().to_parquet(str(output_dir / "cp_features.parquet"))
 
         if debug:
             features.visualize(filename=str(output_dir / "task_graph.svg"))
@@ -106,6 +115,9 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local, co
 @click.option(
     "--n-workers", "-j", type=int, default=-1,
     help="how many workers are started in the dask cluster")
+@click.option(
+    "--processes", type=int, default=12,
+    help="how many processes are started for every node the dask cluster")
 @click.option("--port", "-p", type=int, default=8787, help="dask dashboard port")
 @click.option("--debug", envvar="DEBUG", is_flag=True, help="sets logging level to debug")
 @click.option(
@@ -133,5 +145,5 @@ if __name__ == "__main__":
         paths=(path,),
         output_directory="tmp",
         headless=False,
-        config='/home/sanderth/dask-pipeline/sip.yml',
-        debug=True, n_workers=4, port=8990, local=True)
+        config='/home/sanderth/dask-pipeline/scip.yml',
+        debug=True, n_workers=4, processes=12, port=8990, local=True)

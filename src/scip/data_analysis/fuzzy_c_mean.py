@@ -88,7 +88,7 @@ def fuzzy_c_means(features, amount_of_centers, m, iterations):
 
         # Write HTML
         text_file = open("Fuzzy_clustering.html", "w")
-        text_file.write('<header><h1>Fuzzy C means</h1></header>')
+        text_file.write('<header><h1>Fuzzy C mean clustering</h1></header>')
         text_file.write(facet_plots)
         text_file.close()
 

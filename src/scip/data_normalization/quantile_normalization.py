@@ -1,4 +1,4 @@
-from sip.quality_control import intensity_distribution
+from scip.quality_control import intensity_distribution
 import numpy as np
 import dask
 import dask.bag

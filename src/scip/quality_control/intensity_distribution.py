@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 import dask
 from io import BytesIO
 import base64
-from sip.data_masking.mask_apply import get_masked_intensities
+from scip.data_masking.mask_apply import get_masked_intensities
+from datetime import datetime
 
 
 def get_min_max(sample, origin):

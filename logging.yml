@@ -1,0 +1,24 @@
+version: 1
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: WARNING
+    stream: ext://sys.stdout
+  file:
+    class: logging.FileHandler
+    level: DEBUG
+    filename: scip.log
+    mode: w
+    formatter: default
+formatters:
+  default:
+    format: '%(asctime)s %(levelname)-8s %(name)-15s %(message)s'
+    datefmt: '%Y-%m-%d %H:%M:%S'
+loggers:
+  matplotlib:
+    level: ERROR
+  scip:
+    level: DEBUG
+    handlers: [file]
+    propagate: 0
+  
