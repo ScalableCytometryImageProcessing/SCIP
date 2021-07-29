@@ -17,7 +17,7 @@ We recommend using [mamba](https://github.com/mamba-org/mamba) and pip to instal
 
 ## Usage
 
-Usage: scip [OPTIONS] [PATHS]... [OUTPUT_DIRECTORY]
+```Usage: scip [OPTIONS] [PATHS]... [OUTPUT_DIRECTORY]
 
   Intro documentation
 
@@ -30,3 +30,4 @@ Options:
   --headless               If set, the program will never ask for user input
   --config FILE            Path to YAML config file
   --help                   Show this message and exit.
+```
