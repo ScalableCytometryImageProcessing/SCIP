@@ -5,8 +5,18 @@ import numpy
 from pathlib import Path
 
 
-def load_image(p, channels=None):
-    im = Image.open(p)
+def load_image(path, channels=None):
+    """
+    Load an image from a certain path
+
+    Args:
+        path (str): path of image
+        channels (list, optional): image channels to load. Defaults to None.
+
+    Returns:
+        dict: dictionary containing pixel values (ndarray) and path for each image
+    """
+    im = Image.open(path)
 
     if channels is None:
         channels = range(im.n_frames)
@@ -15,15 +25,18 @@ def load_image(p, channels=None):
     for i in channels:
         im.seek(i)
         arr[i] = numpy.array(im)
-    return dict(pixels=arr, path=p)
+    return dict(pixels=arr, path=path)
 
 
 def bag_from_directory(path, channels, partition_size):
     """
     Construct delayed ops for all tiffs in a directory
 
-    path (str): Directory to find tiffs
+    Args:
+        path (str): Directory to find tiffs
 
+    Returns:
+        dask.bag: bag containing dictionaries with image data
     """
 
     image_paths = []

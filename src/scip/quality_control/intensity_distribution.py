@@ -7,6 +7,16 @@ from scip.data_masking.mask_apply import get_masked_intensities
 
 
 def get_min_max(sample, origin):
+    """
+    Find minima and maxima for every channel
+
+    Args:
+        sample (dict): dictionary containing image data
+        origin (str): key of image data for which min and max will be calculated
+
+    Returns:
+        (ndarray, ndarray): maxima and minima of every channel
+    """
 
     image = sample.get(origin)
 
@@ -38,6 +48,16 @@ def reduced_counts(L1, L2):
 
 @dask.delayed
 def get_bins(min_max, bin_amount=50):
+    """
+    Find bin edges using the minimum and maximum of every channel
+
+    Args:
+        min_max (ndarray, ndarray): tuple of overall minima and maxima for every channel
+        bin_amount (int, optional): amount of bins you want to create. Defaults to 50.
+
+    Returns:
+        ndarray: matrix where every row represents the bin edges of a channel
+    """
 
     # Rounding errors can result in making bins om n + 1, so we substract small float from n
     n = bin_amount - 0.01
@@ -63,6 +83,18 @@ def get_median(stacked_quantiles):
 
 
 def get_counts(sample, bins, masked_bins):
+    """
+    Bin the intensities using the calculated bin edges for every channel, both for 
+    original pixel data and masked pixel data
+
+    Args:
+        sample (dict): dictionary containing image data
+        bins (ndarray): bin edges for every channel
+        masked_bins (ndarray): bin edges for every channel for the masked images
+
+    Returns:
+        (ndarray, ndarray): binned intensity counts for both original and masked image
+    """
 
     # Count the intensities before masking
     image = sample.get('pixels')
@@ -88,6 +120,18 @@ def get_counts(sample, bins, masked_bins):
 
 
 def get_sample_quantile(sample, lower_quantile, upper_quantile, origin):
+    """
+    Find lower and upper quantile values for every channel in an sample
+
+    Args:
+        sample (dict): dictionary containing image data
+        lower_quantile (float): lower quantile percentage for which we want the value
+        upper_quantile (float): higher quantile percentage for which we want the value
+        origin (str): key of the data in which to search quantiles
+
+    Returns:
+        (ndarray, ndarray): lower and upper quantile values for every channel
+    """
     image = sample.get(origin)
 
     channels = image.shape[0] if origin == 'pixels' else len(image)
@@ -128,6 +172,20 @@ def reduced_empty_mask(L1, L2):
 
 
 def segmentation_intensity_report(bag, bin_amount, channels, output):
+    """
+    Calculate minima and maxima to find bins, followed by a binning of all
+    the intensities. Results are plotted in a report
+
+    Args:
+        bag (dask.bag): bag containing dictionaries with image data
+        bin_amount (int): number of bins to use for intensity binning
+        channels (int): number of image channels
+        output (str): output file name
+    
+    Returns:
+        delayed.item: delayed boolean that will be used further in the pipeline
+                      to force function execution
+    """
 
     def min_max_partition(part, origin):
         return [get_min_max(p, origin) for p in part]
@@ -297,6 +355,23 @@ def get_distributed_partitioned_quantile(bag, lower_quantile, upper_quantile):
 @dask.delayed
 def plot_before_after_distribution(counts, bins_before, bins_after,
                                    missing_masks, channels, output, normalize=True, pdf=True):
+    
+    """
+    Plot the intensity distribution for every channel before and after the normalization
+
+    Args:
+        counts (ndarray, ndarray): overall binned intensities counts of pixel data before and after
+        bins_before (ndarray): bin edges for non-normalized data for every channel
+        bins_after (ndarray): bin edges for normalized data for every channel
+        missing_masks (ndarray): count of amount of missing masks for every channel
+        channels (int): amount of channels
+        output (str): string of output file
+        normalize (bool, optional): [description]. Defaults to True.
+        pdf (bool, optional): [description]. Defaults to True.
+
+    Returns:
+        bool: will be passed on further in the pipeline to make sure this function will be executed
+    """
     counts_before = counts[0]
     counts_after = counts[1]
     if normalize:
@@ -351,6 +426,18 @@ def plot_before_after_distribution(counts, bins_before, bins_after,
 
 
 def check_report(bag, report_made):
+    """
+    Dask only executes a function when the returned delayed item is computed or needed
+    in the next step of the pipeline. To force the creation of the report we use a simple
+    boolean check and return the input partitions forming a bag that will be used in the next steps.
+
+    Args:
+        bag (dask.bag): bag containing dictionaries with image data
+        report_made (delayed.item): delayed item of a bool
+        
+    Returns:
+        dask.bag: input bag
+    """
 
     def check_report(part, report_made):
         if report_made:
