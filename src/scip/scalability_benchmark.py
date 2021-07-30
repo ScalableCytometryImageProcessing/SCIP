@@ -5,9 +5,10 @@ from datetime import datetime
 import uuid
 import json
 import logging
+import asyncio
 
 
-if __name__ == "__main__":
+async def main():
 
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
@@ -18,20 +19,29 @@ if __name__ == "__main__":
     paths = " ".join([
         "/home/maximl/shared_scratch/vulcan_pbmc_debug"
     ])
-    iterations = 2
+    iterations = 5
     n_workers = 1
 
     timings = []
-    for n_processes in range(1, 3, 2):
-        for i in range(iterations):
+    subprocs = []
+    for n_processes in [1, 2, 4, 8, 16, 32]:
+        for _ in range(iterations):
 
             timing = str(output / ("%s.json" % uuid.uuid4()))
             timings.append(timing)
 
-            command = f"scip -j{n_workers} -n{n_processes} --no-local\
-                 --headless --timing {timing} scip.yml {paths}"
-            logger.info(command)
-            subprocess.run(command, shell=True)
+            command = f"scip -j{n_workers} -n{n_processes} --no-local "
+            command += f"--headless --timing {timing} scip.yml {paths}"
+
+            logger.info(f"Launching: {command}")
+            proc = await asyncio.create_subprocess_shell(command)
+            subprocs.append(proc.wait())
+
+            if len(subprocs) >= 6:
+                await asyncio.gather(*subprocs)
+                subprocs = []
+
+    await asyncio.gather(*subprocs)
 
     timing_data = []
     for timing in timings:
@@ -39,3 +49,7 @@ if __name__ == "__main__":
             timing_data.append(json.load(fp))
     pandas.DataFrame.from_records(timing_data).to_csv(
         str(output / 'timing_results.csv'), index=False)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
