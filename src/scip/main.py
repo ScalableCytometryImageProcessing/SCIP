@@ -14,11 +14,12 @@ import shutil
 from functools import partial
 from importlib import import_module
 import yaml
+from pkg_resources import resource_stream
 
 
 def main(*, paths, output_directory, n_workers, headless, debug, processes, port, local, config):
 
-    with open('./logging.yml', 'r') as stream:
+    with resource_stream(__name__, 'logging.yml') as stream:
         loggingConfig = yaml.load(stream, Loader=yaml.FullLoader)
     logging.config.dictConfig(loggingConfig)
 
@@ -115,8 +116,6 @@ def main(*, paths, output_directory, n_workers, headless, debug, processes, port
 
 
 @click.command(name="Scalable imaging pipeline")
-@click.argument("paths", nargs=-1, type=click.Path(exists=True, file_okay=False))
-@click.argument("output_directory", type=click.Path(file_okay=False), default="tmp")
 @click.option(
     "--n-workers", "-j", type=int, default=-1,
     help="how many workers are started in the dask cluster")
@@ -131,9 +130,9 @@ def main(*, paths, output_directory, n_workers, headless, debug, processes, port
 @click.option(
     "--headless", default=False, is_flag=True,
     help="If set, the program will never ask for user input")
-@click.option(
-    "--config", default=None, type=click.Path(dir_okay=False, exists=True),
-    help="Path to YAML config file")
+@click.argument("config", type=click.Path(dir_okay=False, exists=True))
+@click.argument("output_directory", type=click.Path(file_okay=False))
+@click.argument("paths", nargs=-1, type=click.Path(exists=True, file_okay=False))
 def cli(**kwargs):
     """Intro documentation
     """
