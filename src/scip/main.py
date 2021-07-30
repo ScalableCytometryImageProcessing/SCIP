@@ -13,39 +13,34 @@ import dask.bag
 import shutil
 from functools import partial
 from importlib import import_module
-import yaml
-from pkg_resources import resource_stream
 
 
-def main(*, paths, output_directory, n_workers, headless, debug, processes, port, local, config):
+def main(*, paths, output, n_workers, headless, debug, processes, port, local, config):
 
-    with resource_stream(__name__, 'logging.yml') as stream:
-        loggingConfig = yaml.load(stream, Loader=yaml.FullLoader)
-    logging.config.dictConfig(loggingConfig)
-
+    util.configure_logging()
     logger = logging.getLogger("scip")
     logger.info(f"Running pipeline for {','.join(paths)}")
 
     # logic for creating output directory
     should_remove = True
-    output_dir = Path(output_directory)
-    if (not headless) and output_dir.exists():
-        should_remove = click.prompt(
-            f"{str(output_dir)} exists. Overwrite contents? [Y/n]",
-            type=str, show_default=False, default="Y"
-        ) == "Y"
 
-        if not should_remove:
-            raise FileExistsError(f"{str(output_dir)} exists and should not be removed. Exiting.")
-    if should_remove and output_dir.exists():
-        logger.info(f"Running headless and/or {str(output_dir)} exists. Removing.")
-        shutil.rmtree(output_dir)
-    if not output_dir.exists():
-        output_dir.mkdir(parents=True)
+    if output is not None:
+        output = Path(output)
+        if (not headless) and output.exists():
+            should_remove = click.prompt(
+                f"{str(output)} exists. Overwrite contents? [Y/n]",
+                type=str, show_default=False, default="Y"
+            ) == "Y"
+
+            if not should_remove:
+                raise FileExistsError(f"{str(output)} exists and should not be removed. Exiting.")
+        if should_remove and output.exists():
+            logger.info(f"Running headless and/or {str(output)} exists. Removing.")
+            shutil.rmtree(output)
+        if not output.exists():
+            output.mkdir(parents=True)
 
     config = util.load_yaml_config(config)
-
-    start_full = time.time()
 
     # ClientClusterContext creates cluster
     # and registers Client as default client for this session
@@ -53,6 +48,8 @@ def main(*, paths, output_directory, n_workers, headless, debug, processes, port
     with util.ClientClusterContext(n_workers=n_workers, local=local,
                                    port=port, processes=processes) as context:
         logger.debug(f"Client ({context}) created")
+    
+        start = time.time()
 
         loader_module = import_module('scip.data_loading.%s' % config["data_loading"]["format"])
         loader = partial(
@@ -83,9 +80,11 @@ def main(*, paths, output_directory, n_workers, headless, debug, processes, port
         # above computations after masking QC reports are generated
         images = images.persist()
 
-        report_made = intensity_distribution.segmentation_intensity_report(
-            images, 100, channel_amount, output_dir)
-        images = intensity_distribution.check_report(images, report_made)
+        if output is not None:
+            report_made = intensity_distribution.segmentation_intensity_report(
+                images, 100, channel_amount, output)
+            images = intensity_distribution.check_report(images, report_made)
+        
         features = feature_extraction.extract_features(images)
         # plotted, features = feature_statistics.get_feature_statistics(features)
         # plotted = True
@@ -96,15 +95,21 @@ def main(*, paths, output_directory, n_workers, headless, debug, processes, port
         # cp_features = cellprofiler.extract_features(images=images, channels=channels)
         # cp_features.compute()
 
-        filename = config["data_export"]["filename"]
-        features.compute().to_parquet(str(output_dir / f"{filename}.parquet"))
-        # cp_features.compute().to_parquet(str(output_dir / "cp_features.parquet"))
+        features = features.compute()
+        # cp_features = cp_features.compute()
 
-        if debug:
-            features.visualize(filename=str(output_dir / "task_graph.svg"))
-            context.client.profile(filename=output_dir / "profile.html")
+        if output is not None:
+            filename = config["data_export"]["filename"]
+            features.to_parquet(str(output / f"{filename}.parquet"))
+            # cp_features.to_parquet(str(output / "cp_features.parquet"))
 
-    logger.info(f"Full runtime {(time.time() - start_full):.2f}")
+        if debug and output is not None:
+            features.visualize(filename=str(output / "task_graph.svg"))
+            context.client.profile(filename=output / "profile.html")
+
+    runtime = time.time() - start
+    logger.info(f"Full runtime {runtime:.2f}")
+    return runtime
 
 
 @click.command(name="Scalable imaging pipeline")
@@ -112,9 +117,9 @@ def main(*, paths, output_directory, n_workers, headless, debug, processes, port
     "--n-workers", "-j", type=int, default=-1,
     help="how many workers are started in the dask cluster")
 @click.option(
-    "--processes", type=int, default=12,
-    help="how many processes are started for every node the dask cluster")
-@click.option("--port", "-p", type=int, default=8787, help="dask dashboard port")
+    "--processes", "-n", type=int, default=12,
+    help="how many processes are started for every node in the dask cluster")
+@click.option("--port", "-p", type=int, default=None, help="dask dashboard port")
 @click.option("--debug", envvar="DEBUG", is_flag=True, help="sets logging level to debug")
 @click.option(
     "--local/--no-local", default=True,
@@ -122,13 +127,26 @@ def main(*, paths, output_directory, n_workers, headless, debug, processes, port
 @click.option(
     "--headless", default=False, is_flag=True,
     help="If set, the program will never ask for user input")
+@click.option("--timing", default=None, type=click.Path(dir_okay=False))
+@click.option("--output", "-o", default=None, type=click.Path(file_okay=False))
 @click.argument("config", type=click.Path(dir_okay=False, exists=True))
-@click.argument("output_directory", type=click.Path(file_okay=False))
 @click.argument("paths", nargs=-1, type=click.Path(exists=True, file_okay=False))
 def cli(**kwargs):
     """Intro documentation
     """
-    main(**kwargs)
+
+    timing = None
+    if kwargs["timing"] is not None:
+        timing = kwargs["timing"]
+        del kwargs["timing"]
+        
+    runtime = main(**kwargs)
+
+    if timing is not None:
+        import json
+        with open(timing, "w") as fp:
+            json.dump({**kwargs, **dict(runtime=runtime)}, fp)
+        logging.getLogger("scip").info(f"Timing output written to {timing}.json")
 
 
 if __name__ == "__main__":

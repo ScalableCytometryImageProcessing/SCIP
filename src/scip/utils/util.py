@@ -4,6 +4,8 @@ from dask.distributed import (Client, LocalCluster)
 from dask_jobqueue import PBSCluster
 from pathlib import Path
 import yaml
+from pkg_resources import resource_stream
+import logging
 
 
 class ClientClusterContext:
@@ -34,7 +36,8 @@ class ClientClusterContext:
                 processes=self.processes,
                 project="scip",
                 job_extra=("-pe serial 24", "-j y", "-o ~/logs/dask_workers.out"),
-                scheduler_options={'dashboard_address': f':{self.port}'}
+                scheduler_options={
+                    'dashboard_address': None if self.port is None else f':{self.port}'}
             )
             self.cluster.scale(jobs=self.n_workers)
 
@@ -49,3 +52,8 @@ class ClientClusterContext:
 def load_yaml_config(path):
     with open(path) as fh:
         return yaml.load(fh, Loader=yaml.FullLoader)
+
+def configure_logging():
+    with resource_stream(__name__, 'logging.yml') as stream:
+        loggingConfig = yaml.load(stream, Loader=yaml.FullLoader)
+    logging.config.dictConfig(loggingConfig)
