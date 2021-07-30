@@ -8,3 +8,4 @@ coverage
 mypy
 pytest-mypy
 types-PyYAML
+types-setuptools

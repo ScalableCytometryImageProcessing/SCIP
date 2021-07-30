@@ -37,4 +37,5 @@ if __name__ == "__main__":
     for timing in timings:
         with open(timing) as fp:
             timing_data.append(json.load(fp))
-    pandas.DataFrame.from_records(timing_data).to_csv(str(output / 'timing_results.csv'), index=False)
+    pandas.DataFrame.from_records(timing_data).to_csv(
+        str(output / 'timing_results.csv'), index=False)

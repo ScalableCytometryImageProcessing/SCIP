@@ -53,6 +53,7 @@ def load_yaml_config(path):
     with open(path) as fh:
         return yaml.load(fh, Loader=yaml.FullLoader)
 
+
 def configure_logging():
     with resource_stream(__name__, 'logging.yml') as stream:
         loggingConfig = yaml.load(stream, Loader=yaml.FullLoader)
