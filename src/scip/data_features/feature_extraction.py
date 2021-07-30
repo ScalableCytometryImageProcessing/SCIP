@@ -8,15 +8,22 @@ from skimage.measure import label, regionprops
 
 
 def shape_features(sample):
+    """
+    Find following shape features based on the larges area mask:
+        - minor_axis
+        - major_axis
+        - area
+        - perimeter
+        - solidity
+        - regions
 
-    # def largest_region(regions):
-    #     largest = 0
-    #     largest_index = 0
-    #     for props in regions:
-    #         if props.area > largest:
-    #             largest = props.area
-    #             largest_index = regions.index(props)
-    #     return largest_index
+    Args:
+        sample (dict): dictionary containing image data
+
+    Returns:
+        dict: dictionary including new features
+
+    """
 
     def channel_features(i):
         label_img = label(img[i])
@@ -47,6 +54,18 @@ def shape_features(sample):
 
 
 def intensity_features(sample):
+    """
+    Find following intensity features based on normalized masked pixel data:
+        - mean
+        - max
+        - min
+
+    Args:
+        sample (dict): dictionary including image data
+    
+    Returns:
+        dict: dictionary including new intensity features
+    """
 
     def channel_features(i):
         channel_img = img[i]
@@ -63,6 +82,17 @@ def intensity_features(sample):
 
 
 def texture_features(sample):
+    """
+    Find texture features based normalized largest area masked pixel data:
+        - HOG
+
+    Args:
+        sample (dict): dictionary containing image data
+    
+    Returns:
+        dict: dictionary including new texture features
+
+    """
 
     def texture_features(i):
         channel_img = img[i]
@@ -93,6 +123,15 @@ def texture_features(sample):
 
 
 def remove_keys(sample):
+    """
+    After feature extraction remove unnecessary pixel data
+
+    Args:
+        sample (dict): dictionary containing features and pixel data
+
+    Returns:
+        dict: dictionary only containing features and path
+    """
     entries_to_remove = ('pixels', 'denoised', 'segmented', 'mask',
                          'mask_img', 'single_blob_mask', 'pixels_norm',
                          'masked_img_norm', 'single_blob_mask_img_norm',
@@ -104,6 +143,15 @@ def remove_keys(sample):
 
 
 def extract_features(images: dask.bag.Bag):
+    """
+    Extract features from pixel data
+
+    Args:
+        images (dask.bag): bag containing dictionaries of image data
+    
+    Returns:
+        dask.bag: bag containing dictionaries of image features
+    """
 
     def shape_partition(part):
         return [shape_features(p) for p in part]

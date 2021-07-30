@@ -5,6 +5,17 @@ import numpy as np
 
 
 def denoising(sample, noisy_channels=[]):
+    """
+    Non-local mean denoising
+
+    Args:
+        sample (dict): dictionary containing pixel data of an image
+        noisy_channels (list, optional): list of channels with lots of noise, non-local mean denoising 
+                                         won't be used for these. Defaults to [].
+
+    Returns:
+        dict: input dictionary including the denoised pixel data
+    """
     img = sample.get('pixels')
     denoised = np.empty(img.shape, dtype=float)
     channels = img.shape[0]
@@ -20,6 +31,15 @@ def denoising(sample, noisy_channels=[]):
 
 
 def felzenszwalb_segmentation(sample):
+    """
+    Felzenszwalb segmentation
+
+    Args:
+        sample (dict): dictionary containing pixel data, paths and denoised pixel data
+
+    Returns:
+        dict: input dictionary including the segmentation pixel data
+    """
     segmented = np.empty(sample["denoised"].shape, dtype=float)
     channels = sample["denoised"].shape[0]
     # TODO add list parameter with felzenszwalb parameters
@@ -30,6 +50,15 @@ def felzenszwalb_segmentation(sample):
 
 
 def otsu_thresholding(sample):
+    """
+    Otsu thresholding
+
+    Args:
+        sample (dict): dictionary containing pixel data, paths, denoised and segmented data
+
+    Returns:
+        dict: input dictionary including masks for every channel
+    """
     thresholded_masks = np.empty(sample["segmented"].shape, dtype=bool)
     channels = sample["segmented"].shape[0]
     for i in range(channels):
@@ -43,6 +72,16 @@ def otsu_thresholding(sample):
 
 
 def largest_blob_detection(sample: dict):
+    """
+    Detection of the largest fully connected mask region for every channel.
+
+    Args:
+        sample (dict): image dictionary containing mask data
+
+    Returns:
+        dict: input dictionary including largest mask region for every channel
+
+    """
 
     def largest_region(regions):
         largest = 0
@@ -67,6 +106,18 @@ def largest_blob_detection(sample: dict):
 
 
 def create_masks_on_bag(images, noisy_channels):
+    """
+    Create masks and largest region masks on every image in the bag
+
+    Args:
+        images (dask.bag): bag containing dictionaries with pixel data and paths
+        noisy_channels (list): list of channels with lots of noise, non-local mean denoising 
+                               won't be used for these.
+
+    Returns:
+        dask.bag: bag containing dictionaries including masks and largest region masks
+                 (intermediate masking data is also included for now)
+    """
 
     # we define the different steps as named functions
     # so that Dask can differentiate between them in
