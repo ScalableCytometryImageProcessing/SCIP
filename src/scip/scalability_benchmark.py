@@ -15,7 +15,6 @@ def start_pipeline(n_workers, processes):
 
 
 if __name__ == "__main__":
-    import os
     # add DEBUG_DATASET entry to terminal.integrated.env.linux in VS Code workspace settings
     # should contain path to small debug dataset
     iterations = 2

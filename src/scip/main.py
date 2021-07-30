@@ -87,8 +87,8 @@ def main(*, paths, output_directory, n_workers, headless, debug, processes, port
         images = intensity_distribution.check_report(images, report_made)
         features = feature_extraction.extract_features(images)
         # plotted, features = feature_statistics.get_feature_statistics(features)
-        plotted = True
-        features = feature_statistics.check_report(features, plotted, meta=features._meta)
+        # plotted = True
+        # features = feature_statistics.check_report(features, plotted, meta=features._meta)
         # memberships, plotted = fuzzy_c_mean.fuzzy_c_means(features, 5, 3, 10)
         # plotted.compute()
         features.compute()

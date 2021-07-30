@@ -64,6 +64,7 @@ def check_plotted(image, plotted, meta):
 
     return image.map_partitions(check_report, plotted, meta=meta)
 
+
 def extract_features(*, images, channels, plotted):
 
     modules = []
