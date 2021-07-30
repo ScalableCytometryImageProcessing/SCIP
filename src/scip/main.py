@@ -48,7 +48,7 @@ def main(*, paths, output, n_workers, headless, debug, processes, port, local, c
     with util.ClientClusterContext(n_workers=n_workers, local=local,
                                    port=port, processes=processes) as context:
         logger.debug(f"Client ({context}) created")
-    
+
         start = time.time()
 
         loader_module = import_module('scip.data_loading.%s' % config["data_loading"]["format"])
@@ -84,7 +84,7 @@ def main(*, paths, output, n_workers, headless, debug, processes, port, local, c
             report_made = intensity_distribution.segmentation_intensity_report(
                 images, 100, channel_amount, output)
             images = intensity_distribution.check_report(images, report_made)
-        
+
         features = feature_extraction.extract_features(images)
         # plotted, features = feature_statistics.get_feature_statistics(features)
         # plotted = True
@@ -139,7 +139,7 @@ def cli(**kwargs):
     if kwargs["timing"] is not None:
         timing = kwargs["timing"]
         del kwargs["timing"]
-        
+
     runtime = main(**kwargs)
 
     if timing is not None:
@@ -157,7 +157,7 @@ if __name__ == "__main__":
     path = os.environ["DEBUG_DATASET"]
     main(
         paths=(path,),
-        output_directory="tmp",
+        output="tmp",
         headless=False,
         config='/home/sanderth/dask-pipeline/scip.yml',
         debug=True, n_workers=4, processes=12, port=8990, local=True)
