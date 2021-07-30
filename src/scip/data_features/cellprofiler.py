@@ -56,7 +56,15 @@ def compute_measurements_on_partition(partition, *, modules, channels):
     return df.to_dict("records")
 
 
-def extract_features(*, images, channels):
+def check_plotted(image, plotted, meta):
+
+    def check_report(part, plotted):
+        if plotted:
+            return part
+
+    return image.map_partitions(check_report, plotted, meta=meta)
+
+def extract_features(*, images, channels, plotted):
 
     modules = []
     module = cellprofiler.modules.measureimageintensity.MeasureImageIntensity()

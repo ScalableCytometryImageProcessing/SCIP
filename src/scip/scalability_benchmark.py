@@ -5,7 +5,7 @@ import time
 
 
 def start_pipeline(n_workers, processes):
-    path = os.environ["FULL_DATASET"]
+    path = "/home/sanderth/debug_images"
     run_pipeline(
         paths=(path,),
         output_directory="tmp",
@@ -18,7 +18,7 @@ if __name__ == "__main__":
     import os
     # add DEBUG_DATASET entry to terminal.integrated.env.linux in VS Code workspace settings
     # should contain path to small debug dataset
-    iterations = 10
+    iterations = 2
     time_df = pd.DataFrame(columns=["workers", "processes", "time"])
     n_workers = 1
 

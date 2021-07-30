@@ -1,9 +1,9 @@
 from scip.data_masking import mask_creation, mask_apply
 from scip.utils import util
 from scip.data_normalization import quantile_normalization
-from scip.quality_control import intensity_distribution, feature_statistics
+from scip.quality_control import intensity_distribution
 from scip.data_features import feature_extraction
-from scip.data_analysis import fuzzy_c_mean
+# from scip.data_analysis import fuzzy_c_mean
 import time
 import click
 import logging
@@ -86,11 +86,15 @@ def main(*, paths, output_directory, n_workers, headless, debug, processes, port
             images, 100, channel_amount, output_dir)
         images = intensity_distribution.check_report(images, report_made)
         features = feature_extraction.extract_features(images)
-        plotted, features = feature_statistics.get_feature_statistics(features)
+        # plotted, features = feature_statistics.get_feature_statistics(features)
+        plotted = True
         features = feature_statistics.check_report(features, plotted, meta=features._meta)
-        memberships, plotted = fuzzy_c_mean.fuzzy_c_means(features, 5, 3, 10)
-        plotted.compute()
+        # memberships, plotted = fuzzy_c_mean.fuzzy_c_means(features, 5, 3, 10)
+        # plotted.compute()
+        features.compute()
+        # images = cellprofiler.check_plotted(images, plotted, meta=features._meta)
         # cp_features = cellprofiler.extract_features(images=images, channels=channels)
+        # cp_features.compute()
 
         format = config["data_export"]["format"]
         filename = config["data_export"]["filename"]
