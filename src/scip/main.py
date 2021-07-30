@@ -92,20 +92,12 @@ def main(*, paths, output_directory, n_workers, headless, debug, processes, port
         # features = feature_statistics.check_report(features, plotted, meta=features._meta)
         # memberships, plotted = fuzzy_c_mean.fuzzy_c_means(features, 5, 3, 10)
         # plotted.compute()
-        features.compute()
         # images = cellprofiler.check_plotted(images, plotted, meta=features._meta)
         # cp_features = cellprofiler.extract_features(images=images, channels=channels)
         # cp_features.compute()
 
-        format = config["data_export"]["format"]
         filename = config["data_export"]["filename"]
-
-        if format == 'parquet':
-            features.to_parquet(f'{filename}.parquet')
-        elif format == 'csv':
-            features.to_csv(f'{filename}*.csv')
-
-        features.compute().to_parquet(str(output_dir / "features.parquet"))
+        features.compute().to_parquet(str(output_dir / f"{filename}.parquet"))
         # cp_features.compute().to_parquet(str(output_dir / "cp_features.parquet"))
 
         if debug:
