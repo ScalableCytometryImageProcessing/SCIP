@@ -112,10 +112,6 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local, co
 
 
 @click.command(name="Scalable imaging pipeline")
-@click.argument("paths", nargs=-1, type=click.Path(exists=True, file_okay=False))
-@click.argument("output_directory", type=click.Path(file_okay=False), default="tmp")
-@click.argument(
-    "config", type=click.Path(dir_okay=False, exists=True), help="Path to YAML config file")
 @click.option(
     "--n-workers", "-j", type=int, default=-1,
     help="how many workers are started in the dask cluster")
@@ -127,6 +123,9 @@ def main(*, paths, output_directory, n_workers, headless, debug, port, local, co
 @click.option(
     "--headless", default=False, is_flag=True,
     help="If set, the program will never ask for user input")
+@click.argument("config", type=click.Path(dir_okay=False, exists=True))
+@click.argument("output_directory", type=click.Path(file_okay=False))
+@click.argument("paths", nargs=-1, type=click.Path(exists=True, file_okay=False))
 def cli(**kwargs):
     """Intro documentation
     """
