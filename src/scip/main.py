@@ -1,9 +1,9 @@
 from scip.data_masking import mask_creation, mask_apply
 from scip.utils import util
 from scip.data_normalization import quantile_normalization
-from scip.quality_control import intensity_distribution
-from scip.data_features import feature_extraction
-# from scip.data_analysis import fuzzy_c_mean
+from scip.quality_control import intensity_distribution, feature_statistics
+from scip.data_features import feature_extraction, cellprofiler
+from scip.data_analysis import fuzzy_c_mean
 import time
 import click
 import logging
@@ -86,22 +86,28 @@ def main(*, paths, output, n_workers, headless, debug, processes, port, local, c
             images = intensity_distribution.check_report(images, report_made)
 
         features = feature_extraction.extract_features(images)
-        # plotted, features = feature_statistics.get_feature_statistics(features)
-        # plotted = True
-        # features = feature_statistics.check_report(features, plotted, meta=features._meta)
-        # memberships, plotted = fuzzy_c_mean.fuzzy_c_means(features, 5, 3, 10)
-        # plotted.compute()
-        # images = cellprofiler.check_plotted(images, plotted, meta=features._meta)
-        # cp_features = cellprofiler.extract_features(images=images, channels=channels)
-        # cp_features.compute()
+
+        if output is not None:
+            plotted, features = feature_statistics.get_feature_statistics(features)
+            features = feature_statistics.check_report(
+                features, plotted, meta=features._meta)
+        
+        cp_features = cellprofiler.extract_features(images=images, channels=channels)
+
+        if output is not None:
+            plotted, cp_features = feature_statistics.get_feature_statistics(cp_features)
+            cp_features = feature_statistics.check_report(
+                cp_features, plotted, meta=cp_features._meta)
+
+        memberships, plotted = fuzzy_c_mean.fuzzy_c_means(features, 5, 3, 10) 
 
         features = features.compute()
-        # cp_features = cp_features.compute()
+        cp_features = cp_features.compute()
 
         if output is not None:
             filename = config["data_export"]["filename"]
             features.to_parquet(str(output / f"{filename}.parquet"))
-            # cp_features.to_parquet(str(output / "cp_features.parquet"))
+            cp_features.to_parquet(str(output / "cp_features.parquet"))
 
         if debug and output is not None:
             features.visualize(filename=str(output / "task_graph.svg"))
