@@ -73,11 +73,10 @@ def get_bins(min_max, bin_amount=50):
 
 
 @dask.delayed
-def get_median(stacked_quantiles):
+def get_median(quantile_vectors):
 
-    # Rounding errors can result in making bins om n + 1, so we substract small float from n
-    lower = np.nanmedian(stacked_quantiles[0], axis=0)
-    upper = np.nanmedian(stacked_quantiles[1], axis=0)
+    lower = np.nanmedian(quantile_vectors[0], axis=0)
+    upper = np.nanmedian(quantile_vectors[1], axis=0)
 
     return (lower, upper)
 
@@ -151,10 +150,6 @@ def get_sample_quantile(sample, lower_quantile, upper_quantile, origin):
 
 
 def stack_quantiles(L1, L2):
-    return (np.vstack((L1[0], L2[0])), np.vstack((L1[1], L2[1])))
-
-
-def stack_quantiles2(L1, L2):
     return (np.vstack((L1[0], L2[0])), np.vstack((L1[1], L2[1])))
 
 
@@ -300,54 +295,48 @@ def get_distributed_partitioned_quantile(bag, lower_quantile, upper_quantile):
     a quantile calculation is performed. The found quantiles per partition are then reduced
     with a median.
     """
-    def quantile_partition(part, lower_quantile, upper_quantile, origin):
+    def quantile_partition(part, lower, upper, origin):
 
-        collection = []
-        if origin == 'pixels':
-            channels = part[0].get(origin).shape[0]
-        else:
-            channels = len(part[0].get(origin))
-        channel_quantiles_lower = np.empty(channels)
-        channel_quantiles_upper = np.empty(channels)
+        channels = len(part[0].get(origin))
 
         if origin == 'pixels':
-            channels = part[0].get(origin).shape[0]
-
+            collection = []
             for p in part:
                 collection.append(np.vstack([i.flatten() for i in p.get(origin)]))
-
             flattened_partition = np.hstack(collection)
 
-            channel_quantiles_lower = np.quantile(flattened_partition, lower_quantile, axis=1)
-            channel_quantiles_upper = np.quantile(flattened_partition, upper_quantile, axis=1)
-
+            channel_quantiles = np.quantile(flattened_partition, (lower, upper), axis=1).T
         else:
+            channel_quantiles = np.empty(shape=(channels, 2))
             for i in range(channels):
                 channel_collection = [p.get(origin)[i] for p in part]
                 stacked_collection = np.hstack(channel_collection)
                 if stacked_collection.shape[0] > 0:
-                    channel_quantiles_lower[i] = np.quantile(stacked_collection, lower_quantile)
-                    channel_quantiles_upper[i] = np.quantile(stacked_collection, upper_quantile)
+                    channel_quantiles[i] = np.quantile(stacked_collection, (lower, upper))
                 else:
-                    channel_quantiles_lower[i] = np.nan
-                    channel_quantiles_upper[i] = np.nan
+                    channel_quantiles[i] = [np.nan, np.nan]
 
-        return (channel_quantiles_lower, channel_quantiles_upper)
+        return channel_quantiles[..., np.newaxis]
 
     def masked_intensities_partition(part):
         return [get_masked_intensities(p) for p in part]
 
     bag = bag.map_partitions(masked_intensities_partition)
 
-    stacked_quantiles_masked = bag.map_partitions(quantile_partition, lower_quantile,
-                                                  upper_quantile, origin="masked_intensities") \
-                                  .fold(return_input, stack_quantiles2)
+    stacked_quantiles_masked = bag.map_partitions(
+        quantile_partition, 
+        lower_quantile, upper_quantile, 
+        origin="masked_intensities"
+    ).fold(lambda A, B: np.concatenate((A, B), axis=-1))
 
-    stacked_quantiles = bag.map_partitions(quantile_partition, lower_quantile, upper_quantile,
-                                           origin="pixels").fold(return_input, stack_quantiles2)
+    stacked_quantiles = bag.map_partitions(
+        quantile_partition, 
+        lower_quantile, upper_quantile,
+        origin="pixels"
+    ).fold(lambda A, B: np.concatenate((A, B), axis=-1))
 
-    quantiles = get_median(stacked_quantiles)
-    masked_quantiles = get_median(stacked_quantiles_masked)
+    quantiles = dask.delayed(np.nanmedian)(stacked_quantiles, axis=-1)
+    masked_quantiles = dask.delayed(np.nanmedian)(stacked_quantiles_masked, axis=-1)
 
     return quantiles, masked_quantiles
 

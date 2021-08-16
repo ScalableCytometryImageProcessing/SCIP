@@ -4,15 +4,15 @@ import dask
 import dask.bag
 
 
-def sample_normalization(sample, quantiles, masked_quantiles):
+def sample_normalization(sample, qq, masked_qq):
     """
     Perform min-max normalization using quantiles on original pixel data,
     masked pixel data and flat masked intensities list
 
     Args:
         sample (dict): dictionary containing image data and mask data
-        quantiles (tuple): (lower, upper) list of quantiles for every channel
-        masked_quantiles (tuple): (lower, upper) list of quantiles for 
+        qq (tuple): (lower, upper) list of quantiles for every channel
+        masked_qq (tuple): (lower, upper) list of quantiles for 
                                   every channel of masked images
 
     Returns:
@@ -27,30 +27,18 @@ def sample_normalization(sample, quantiles, masked_quantiles):
     normalized_masked = np.empty(img.shape, dtype=float)
     normalized_single_masked = np.empty(img.shape, dtype=float)
 
-    channels = img.shape[0]
-
-    lower = quantiles[0]
-    upper = quantiles[1]
-
-    masked_lower = masked_quantiles[0]
-    masked_upper = masked_quantiles[1]
-
-    for i in range(channels):
-        # Normalize
-        quantile_norm = (img[i] - lower[i]) / (upper[i] - lower[i])
-        quantile_norm_masked = (masked[i] - masked_lower[i]) / \
-                               (masked_upper[i] - masked_lower[i])
-        quantile_single_masked = (single_blob_mask[i] - masked_lower[i]) / \
-                                 (masked_upper[i] - masked_lower[i])
-
-        # # Clip
-        normalized[i] = np.clip(quantile_norm, 0, 1)
-        normalized_masked[i] = np.clip(quantile_norm_masked, 0, 1)
-        normalized_single_masked[i] = np.clip(quantile_single_masked, 0, 1)
+    for i in range(len(img)):
+        normalized[i] = (img[i] - qq[0, i]) / (qq[1, i] - qq[0, i])
+        normalized_masked[i] = (masked[i] - masked_qq[0, i]) / (masked_qq[1, i] - masked_qq[0, i])
+        normalized_single_masked[i] = \
+            (single_blob_mask[i] - masked_qq[0, i]) / (masked_qq[1, i] - masked_qq[0, i])
 
     sample = sample.copy()
-    sample.update({'pixels_norm': normalized, 'masked_img_norm': normalized_masked,
-                   'single_blob_mask_img_norm': normalized_single_masked})
+    sample.update({
+        'pixels_norm': np.clip(normalized, 0, 1), 
+        'masked_img_norm': np.clip(normalized_masked, 0, 1),
+        'single_blob_mask_img_norm': np.clip(normalized_single_masked, 0, 1)
+    })
 
     return sample
 

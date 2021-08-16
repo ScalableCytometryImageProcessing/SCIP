@@ -15,7 +15,7 @@ from functools import partial
 from importlib import import_module
 
 
-def main(*, paths, output, n_workers, headless, debug, processes, port, local, config):
+def main(*, paths, output, n_workers, headless, debug, n_processes, port, local, config):
 
     util.configure_logging()
     logger = logging.getLogger("scip")
@@ -46,7 +46,7 @@ def main(*, paths, output, n_workers, headless, debug, processes, port, local, c
     # and registers Client as default client for this session
     logger.debug("Starting Dask cluster")
     with util.ClientClusterContext(n_workers=n_workers, local=local,
-                                   port=port, processes=processes) as context:
+                                   port=port, n_processes=n_processes) as context:
         logger.debug(f"Client ({context}) created")
 
         start = time.time()
@@ -119,17 +119,17 @@ def main(*, paths, output, n_workers, headless, debug, processes, port, local, c
 
 
 @click.command(name="Scalable imaging pipeline")
-@click.option(
-    "--n-workers", "-j", type=int, default=-1,
-    help="how many workers are started in the dask cluster")
-@click.option(
-    "--processes", "-n", type=int, default=12,
-    help="how many processes are started for every node in the dask cluster")
 @click.option("--port", "-p", type=int, default=None, help="dask dashboard port")
 @click.option("--debug", envvar="DEBUG", is_flag=True, help="sets logging level to debug")
 @click.option(
     "--local/--no-local", default=True,
     help="deploy app to Dask LocalCluster, otherwise deploy to dask-jobqueue PBSCluster")
+@click.option(
+    "--n-workers", "-j", type=int, default=-1,
+    help="Number of workers in the LocalCluster, or number of provisioned nodes otherwise")
+@click.option(
+    "--n-processes", "-n", type=int, default=1,
+    help="Number of workers started per node in the PBSCluster")
 @click.option(
     "--headless", default=False, is_flag=True,
     help="If set, the program will never ask for user input")
@@ -141,10 +141,14 @@ def cli(**kwargs):
     """Intro documentation
     """
 
+    # noop if no paths are provided
+    if len(kwargs["paths"]) == 0:
+        return
+
     timing = None
     if kwargs["timing"] is not None:
         timing = kwargs["timing"]
-        del kwargs["timing"]
+    del kwargs["timing"]
 
     runtime = main(**kwargs)
 
@@ -164,6 +168,6 @@ if __name__ == "__main__":
     main(
         paths=(path,),
         output="tmp",
-        headless=False,
-        config='/home/sanderth/dask-pipeline/scip.yml',
-        debug=True, n_workers=4, processes=12, port=8990, local=True)
+        headless=True,
+        config='scip.yml',
+        debug=True, n_workers=2, n_processes=1, port=8990, local=True)
