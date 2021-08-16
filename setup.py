@@ -12,13 +12,15 @@ setuptools.setup(
         'numpy',
         'Pillow',
         'dask',
+        'dask-ml',
         'click',
         'dask_jobqueue @ git+https://github.com/ScalableImagingPipeline/dask-jobqueue.git',
         'scikit-image',
         'pyyaml',
         'graphviz',
         'cellprofiler',
-        'pyarrow'
+        'pyarrow',
+        'umap-learn',
     ],
     entry_points={
         'console_scripts': [
