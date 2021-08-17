@@ -6,7 +6,8 @@ from scip.utils import util
 
 @pytest.fixture(scope="session")
 def data():
-    return Path("test/data")
+    # return Path("test/data")
+    return Path("/home/maximl/shared_scratch/vulcan_pbmc_debug")
 
 
 @pytest.fixture(scope="session")

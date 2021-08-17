@@ -14,12 +14,12 @@ def test_distributed_partitioned_quantile(data, cluster):
     )
 
     quantiles = quantiles.compute()
-    masked_quantiles = masked_quantiles.compute()
+    # masked_quantiles = masked_quantiles.compute()
 
-    assert quantiles.shape == masked_quantiles.shape
+    # assert quantiles.shape == masked_quantiles.shape
     assert quantiles.shape == (3, 2)
     assert all([q[0] < q[1] for q in quantiles])
-    assert all([q[0] < q[1] for q in masked_quantiles])
+    # assert all([q[0] < q[1] for q in masked_quantiles])
 
 
 def test_quantile_normalization(data, cluster):

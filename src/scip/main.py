@@ -36,7 +36,7 @@ def get_images_bag(paths, channels, config):
     return dask.bag.concat(images)
 
 
-def preprocess_images(images):
+def preprocess_images(images, channels, output):
 
     # images are loaded from directory and masked
     # after this operation the bag is persisted as it
@@ -44,15 +44,15 @@ def preprocess_images(images):
     images = mask_creation.create_masks_on_bag(images, noisy_channels=[0])
     images = mask_apply.create_masked_images_on_bag(images)
     images = quantile_normalization.quantile_normalization(images, 0.05, 0.95)
+    
+    if output is not None:
+        intensity_distribution.segmentation_intensity_report(
+            images, 100, len(channels), output).compute()
 
     return images
 
 
 def compute_features(images, channels, output):
-
-    if output is not None:
-        intensity_distribution.segmentation_intensity_report(
-            images, 100, len(channels), output).compute()
 
     skimage_features = feature_extraction.extract_features(images)
     cp_features = cellprofiler.extract_features(images=images, channels=channels)
@@ -104,7 +104,7 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
         channels = config["data_loading"].get("channels")
 
         images = get_images_bag(paths, channels, config)
-        images = preprocess_images(images)
+        images = preprocess_images(images, channels, output)
         features = compute_features(images, channels, output)
 
         # memberships, membership_plot = fuzzy_c_mean.fuzzy_c_means(features, 5, 3, 10)

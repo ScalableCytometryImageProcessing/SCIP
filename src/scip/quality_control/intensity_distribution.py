@@ -357,13 +357,49 @@ def get_distributed_quantile(bag, lower_quantile, upper_quantile):
     return quantiles, masked_quantiles
 
 
-def get_distributed_partitioned_quantile(bag, lower_quantile, upper_quantile):
+def get_distributed_partitioned_quantile(bag, lower, upper):
     """
     Third method for quantile calculation:
     In every partition intensities are grouped together per channel, on this grouping
     a quantile calculation is performed. The found quantiles per partition are then reduced
     with a median.
     """
+
+    def select_origin(partition, *, origin):
+        """
+        Maps each element in the partition to the requested and flattened origin values
+        """
+
+        mapped = []
+        for el in partition:
+
+            # values cannot be a numpy array as not all channels are required to have the same
+            # amount of values for one element (due to masking)
+            values = []
+            for v in el[origin]:
+                values.append(v.flatten())
+            mapped.append(values)
+
+        return mapped
+
+    def concatenate_lists(a, b):
+        """
+        Concatenates the numpy vectors in list a and b element-wise
+        """
+        for i in range(len(b)):
+            a[i] = np.concatenate((a[i], b[i]))
+
+        return a
+
+    def reduce_quantiles(a, b):
+        """
+        Reduces numpy vectors in lists a and b to their quantiles and concatenates them
+        """
+
+        a = np.array([np.quantile(v, (lower, upper)) for v in a])[..., np.newaxis]
+        b = np.array([np.quantile(v, (lower, upper)) for v in b])[..., np.newaxis]
+        return np.mean([a, b], axis=-1)
+
 
     def quantile_partition(part, lower, upper, origin):
 
@@ -384,32 +420,26 @@ def get_distributed_partitioned_quantile(bag, lower_quantile, upper_quantile):
                 if stacked_collection.shape[0] > 0:
                     channel_quantiles[i] = np.quantile(stacked_collection, (lower, upper))
                 else:
-                    channel_quantiles[i] = [np.nan, np.nan]
+                    channel_quantiles[i] = np.array([np.nan, np.nan])
 
         return channel_quantiles[..., np.newaxis]
 
     bag = bag.map_partitions(masked_intensities_partition)
+    quantiles = bag.map_partitions(select_origin, origin="pixels")
+    quantiles = quantiles.fold(concatenate_lists, reduce_quantiles)
 
-    masked_quantiles = bag.reduction(
-        partial(
-            quantile_partition,
-            lower=lower_quantile,
-            upper=upper_quantile,
-            origin="masked_intensities"
-        ),
-        lambda results: np.nanmedian(np.concatenate([r for r in results], axis=-1), axis=-1)
-    )
-    quantiles = bag.reduction(
-        partial(
-            quantile_partition,
-            lower=lower_quantile,
-            upper=upper_quantile,
-            origin="pixels"
-        ),
-        lambda results: np.nanmedian(np.concatenate([r for r in results], axis=-1), axis=-1)
-    )
+    # quantiles = bag.reduction(
+    #     partial(
+    #         quantile_partition,
+    #         lower=lower_quantile,
+    #         upper=upper_quantile,
+    #         origin="pixels"
+    #     ),
+    # )
+    # def func(results):
+    #     return np.nanmedian(np.concatenate([r for r in results], axis=-1), axis=-1)
 
-    return quantiles, masked_quantiles
+    return quantiles, None
 
 
 def check_report(bag, report_made):
