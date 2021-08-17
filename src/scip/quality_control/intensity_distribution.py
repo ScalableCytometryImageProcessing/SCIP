@@ -4,6 +4,7 @@ import dask
 from io import BytesIO
 import base64
 from scip.data_masking.mask_apply import get_masked_intensities
+from functools import partial
 
 
 def get_min_max(sample, origin):
@@ -320,20 +321,24 @@ def get_distributed_partitioned_quantile(bag, lower_quantile, upper_quantile):
 
     def masked_intensities_partition(part):
         return [get_masked_intensities(p) for p in part]
-
     bag = bag.map_partitions(masked_intensities_partition)
 
-    stacked_quantiles_masked = bag.map_partitions(
-        quantile_partition, 
-        lower_quantile, upper_quantile, 
-        origin="masked_intensities"
-    ).fold(lambda A, B: np.concatenate((A, B), axis=-1))
-
-    stacked_quantiles = bag.map_partitions(
-        quantile_partition, 
-        lower_quantile, upper_quantile,
-        origin="pixels"
-    ).fold(lambda A, B: np.concatenate((A, B), axis=-1))
+    stacked_quantiles_masked = bag.reduction(
+        partial(quantile_partition,
+            lower=lower_quantile, 
+            upper=upper_quantile, 
+            origin="masked_intensities"
+        ),
+        lambda results: np.concatenate([r for r in results], axis=-1)
+    )
+    stacked_quantiles = bag.reduction(
+        partial(quantile_partition,
+            lower=lower_quantile, 
+            upper=upper_quantile, 
+            origin="pixels"
+        ),
+        lambda results: np.concatenate([r for r in results], axis=-1)
+    )
 
     quantiles = dask.delayed(np.nanmedian)(stacked_quantiles, axis=-1)
     masked_quantiles = dask.delayed(np.nanmedian)(stacked_quantiles_masked, axis=-1)

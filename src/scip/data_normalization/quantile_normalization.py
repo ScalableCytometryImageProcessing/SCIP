@@ -28,10 +28,10 @@ def sample_normalization(sample, qq, masked_qq):
     normalized_single_masked = np.empty(img.shape, dtype=float)
 
     for i in range(len(img)):
-        normalized[i] = (img[i] - qq[0, i]) / (qq[1, i] - qq[0, i])
-        normalized_masked[i] = (masked[i] - masked_qq[0, i]) / (masked_qq[1, i] - masked_qq[0, i])
+        normalized[i] = (img[i] - qq[i, 0]) / (qq[i, 1] - qq[i, 0])
+        normalized_masked[i] = (masked[i] - masked_qq[i, 0]) / (masked_qq[i, 1] - masked_qq[i, 0])
         normalized_single_masked[i] = \
-            (single_blob_mask[i] - masked_qq[0, i]) / (masked_qq[1, i] - masked_qq[0, i])
+            (single_blob_mask[i] - masked_qq[i, 0]) / (masked_qq[i, 1] - masked_qq[i, 1])
 
     sample = sample.copy()
     sample.update({
