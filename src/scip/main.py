@@ -10,6 +10,7 @@ import logging
 import logging.config
 from pathlib import Path
 import dask.bag
+import dask.dataframe
 import shutil
 from functools import partial
 from importlib import import_module
@@ -50,23 +51,25 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
         logger.debug(f"Client ({context}) created")
 
         start = time.time()
+        
+        assert "channels" in config["data_loading"], "Please specify what channels to load"
+        channels = config["data_loading"].get("channels")
+        channel_amount = len(channels)
 
         loader_module = import_module('scip.data_loading.%s' % config["data_loading"]["format"])
         loader = partial(
             loader_module.bag_from_directory,
-            channels=config["data_loading"].get("channels", None),
+            channels=channels,
             partition_size=50)
 
         images = []
+        idx = 0
         for path in paths:
             assert Path(path).exists(), f"{path} does not exist."
             assert Path(path).is_dir(), f"{path} is not a directory."
             logging.info(f"Bagging {path}")
-            images.append(loader(path))
-
-        assert "channels" in config["data_loading"], "Please specify what channels to load"
-        channels = config["data_loading"].get("channels")
-        channel_amount = len(channels)
+            bag, idx = loader(path, idx)
+            images.append(bag)
 
         # images are loaded from directory and masked
         # after this operation the bag is persisted as it
@@ -84,22 +87,14 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
             intensity_distribution.segmentation_intensity_report(
                 images, 100, channel_amount, output).compute()
 
-        features = feature_extraction.extract_features(images)
+        skimage_features = feature_extraction.extract_features(images) 
+        cp_features = cellprofiler.extract_features(images=images, channels=channels)
+        features = dask.dataframe.multi.concat([skimage_features, cp_features], axis=1)
 
         if output is not None:
             feature_statistics.get_feature_statistics(features, output).compute()
         
-        # cp_features = cellprofiler.extract_features(images=images, channels=channels)
-
-        # if output is not None:
-        #     plotted, cp_features = feature_statistics.get_feature_statistics(cp_features)
-        #     cp_features = feature_statistics.check_report(
-        #         cp_features, plotted, meta=cp_features._meta)
-
         # memberships, plotted = fuzzy_c_mean.fuzzy_c_means(features, 5, 3, 10) 
-
-        features = features.compute()
-        # cp_features = cp_features.compute()
 
         # if output is not None:
         #     filename = config["data_export"]["filename"]

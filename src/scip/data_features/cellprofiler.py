@@ -24,7 +24,9 @@ def compute_measurements_on_partition(partition, *, modules, channels):
 
     logger.debug('Starting iteration over images')
 
+    idx = []
     for im in partition:
+        idx.append(im["idx"])
 
         # populate image set '0' with current image
         # we don´t construct the full image_set_list to avoid copying
@@ -50,13 +52,14 @@ def compute_measurements_on_partition(partition, *, modules, channels):
     df = pandas.DataFrame(columns=[c for _, c, _ in measurements.get_measurement_columns()])
     for o, m, _ in measurements.get_measurement_columns():
         df[m] = measurements.get_all_measurements(o, m)
+    df["idx"] = idx
 
     logger.debug("Measurements converted to pandas dataframe")
 
     return df.to_dict("records")
 
 
-def extract_features(*, images, channels, plotted):
+def extract_features(*, images, channels):
 
     modules = []
     module = cellprofiler.modules.measureimageintensity.MeasureImageIntensity()
@@ -69,4 +72,7 @@ def extract_features(*, images, channels, plotted):
     modules.append(module)
 
     return images.map_partitions(
-        compute_measurements_on_partition, modules=modules, channels=channels).to_dataframe()
+        compute_measurements_on_partition, 
+        modules=modules,
+        channels=channels
+    ).to_dataframe().set_index("idx")

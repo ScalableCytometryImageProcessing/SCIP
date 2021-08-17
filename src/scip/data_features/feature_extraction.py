@@ -1,5 +1,6 @@
 import dask
 import dask.bag
+import dask.dataframe
 import numpy as np
 
 # Scikit image libraries
@@ -46,11 +47,11 @@ def shape_features(sample):
 
     img = sample.get('single_blob_mask')
     channels = img.shape[0]
-    features_dict = {}
+    features_dict = {"idx": sample["idx"]}
     for i in range(channels):
         features_dict.update(channel_features(i))
 
-    return {**sample, **features_dict}
+    return features_dict
 
 
 def intensity_features(sample):
@@ -74,11 +75,11 @@ def intensity_features(sample):
 
     img = sample.get('masked_img_norm')
     channels = img.shape[0]
-    features_dict = {}
+    features_dict = {"idx": sample["idx"]}
     for i in range(channels):
         features_dict.update(channel_features(i))
 
-    return {**sample, **features_dict}
+    return features_dict
 
 
 def texture_features(sample):
@@ -115,31 +116,11 @@ def texture_features(sample):
     img = sample.get('single_blob_mask_img_norm')
     channels = img.shape[0]
 
-    features_dict = {}
+    features_dict = {"idx": sample["idx"]}
     for i in range(channels):
         features_dict.update(texture_features(i))
 
-    return {**sample, **features_dict}
-
-
-def remove_keys(sample):
-    """
-    After feature extraction remove unnecessary pixel data
-
-    Args:
-        sample (dict): dictionary containing features and pixel data
-
-    Returns:
-        dict: dictionary only containing features and path
-    """
-    entries_to_remove = ('pixels', 'denoised', 'segmented', 'mask',
-                         'mask_img', 'single_blob_mask', 'pixels_norm',
-                         'masked_img_norm', 'single_blob_mask_img_norm',
-                         'single_blob_mask_img')
-    for k in entries_to_remove:
-        sample.pop(k, None)
-
-    return sample
+    return features_dict
 
 
 def extract_features(images: dask.bag.Bag):
@@ -162,14 +143,8 @@ def extract_features(images: dask.bag.Bag):
     def texture_partition(part):
         return [texture_features(p) for p in part]
 
-    def remove_redundant_keys(part):
-        return [remove_keys(p) for p in part]
+    shape_df = images.map_partitions(shape_partition).to_dataframe().set_index("idx")
+    intensity_df = images.map_partitions(intensity_partition).to_dataframe().set_index("idx")
+    texture_df = images.map_partitions(texture_partition).to_dataframe().set_index("idx")
 
-    return (
-        images
-        .map_partitions(shape_partition)
-        .map_partitions(intensity_partition)
-        .map_partitions(texture_partition)
-        .map_partitions(remove_redundant_keys)
-        .to_dataframe()
-    )
+    return dask.dataframe.multi.concat([shape_df, intensity_df, texture_df], axis=1)

@@ -43,9 +43,8 @@ def feature_stats_to_html(var, mean, dropped_zero_variance, dropped_nan, feature
         text_file.write(zero_variance_html)
 
     reducer = umap.UMAP()
-    df_floats = feature_df.drop(columns=['path'])
-    scaled_cell_data = StandardScaler().fit_transform(df_floats)
-    embedding = reducer.fit_transform(scaled_cell_data)
+    values = StandardScaler().fit_transform(feature_df.values)
+    embedding = reducer.fit_transform(values)
 
     fig = plt.figure()
     plt.scatter(embedding[:, 0], embedding[:, 1])

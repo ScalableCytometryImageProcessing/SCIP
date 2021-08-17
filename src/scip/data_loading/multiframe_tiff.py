@@ -5,7 +5,7 @@ import numpy
 from pathlib import Path
 
 
-def load_image(path, channels=None):
+def load_image(event, channels=None):
     """
     Load an image from a certain path
 
@@ -16,7 +16,7 @@ def load_image(path, channels=None):
     Returns:
         dict: dictionary containing pixel values (ndarray) and path for each image
     """
-    im = Image.open(path)
+    im = Image.open(event["path"])
 
     if channels is None:
         channels = range(im.n_frames)
@@ -25,10 +25,10 @@ def load_image(path, channels=None):
     for i in channels:
         im.seek(i)
         arr[i] = numpy.array(im)
-    return dict(pixels=arr, path=path)
+    return dict(pixels=arr, path=event["path"], idx=event["idx"])
 
 
-def bag_from_directory(path, channels, partition_size):
+def bag_from_directory(path, idx, channels, partition_size):
     """
     Construct delayed ops for all tiffs in a directory
 
@@ -39,11 +39,11 @@ def bag_from_directory(path, channels, partition_size):
         dask.bag: bag containing dictionaries with image data
     """
 
-    image_paths = []
-    for p in Path(path).glob("**/*.tiff"):
-        image_paths.append(str(p))
+    events = []
+    for i, p in enumerate(Path(path).glob("**/*.tiff")):
+        events.append(dict(path=str(p), idx=idx+i))
 
-    bag = dask.bag.from_sequence(image_paths, partition_size=partition_size)
+    bag = dask.bag.from_sequence(events, partition_size=partition_size)
     return bag.map_partitions(
-        lambda paths: [load_image(path, channels) for path in paths]
-    )
+        lambda partition: [load_image(event, channels) for event in partition]
+    ), len(events)
