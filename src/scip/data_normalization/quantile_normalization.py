@@ -31,7 +31,7 @@ def sample_normalization(sample, qq, masked_qq):
         normalized[i] = (img[i] - qq[i, 0]) / (qq[i, 1] - qq[i, 0])
         normalized_masked[i] = (masked[i] - masked_qq[i, 0]) / (masked_qq[i, 1] - masked_qq[i, 0])
         normalized_single_masked[i] = \
-            (single_blob_mask[i] - masked_qq[i, 0]) / (masked_qq[i, 1] - masked_qq[i, 1])
+            (single_blob_mask[i] - masked_qq[i, 0]) / (masked_qq[i, 1] - masked_qq[i, 0])
 
     sample = sample.copy()
     sample.update({
