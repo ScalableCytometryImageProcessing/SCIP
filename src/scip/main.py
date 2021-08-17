@@ -84,12 +84,10 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
             intensity_distribution.segmentation_intensity_report(
                 images, 100, channel_amount, output).compute()
 
-        # features = feature_extraction.extract_features(images)
+        features = feature_extraction.extract_features(images)
 
-        # if output is not None:
-        #     plotted, features = feature_statistics.get_feature_statistics(features)
-        #     features = feature_statistics.check_report(
-        #         features, plotted, meta=features._meta)
+        if output is not None:
+            feature_statistics.get_feature_statistics(features, output).compute()
         
         # cp_features = cellprofiler.extract_features(images=images, channels=channels)
 
@@ -100,7 +98,7 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
 
         # memberships, plotted = fuzzy_c_mean.fuzzy_c_means(features, 5, 3, 10) 
 
-        # features = features.compute()
+        features = features.compute()
         # cp_features = cp_features.compute()
 
         # if output is not None:
