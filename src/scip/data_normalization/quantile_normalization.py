@@ -12,7 +12,7 @@ def sample_normalization(sample, qq, masked_qq):
     Args:
         sample (dict): dictionary containing image data and mask data
         qq (tuple): (lower, upper) list of quantiles for every channel
-        masked_qq (tuple): (lower, upper) list of quantiles for 
+        masked_qq (tuple): (lower, upper) list of quantiles for
                                   every channel of masked images
 
     Returns:
@@ -35,7 +35,7 @@ def sample_normalization(sample, qq, masked_qq):
 
     sample = sample.copy()
     sample.update({
-        'pixels_norm': np.clip(normalized, 0, 1), 
+        'pixels_norm': np.clip(normalized, 0, 1),
         'masked_img_norm': np.clip(normalized_masked, 0, 1),
         'single_blob_mask_img_norm': np.clip(normalized_single_masked, 0, 1)
     })
@@ -49,8 +49,10 @@ def quantile_normalization(images: dask.bag.Bag, lower, upper):
 
     Args:
         images (dask.bag): bag of dictionaries containing image data
-        lower (float): lower quantile percentage that will be used as minimum in the min-max normalization
-        upper (float): upper quantile percentage that will be used as maximum in the min-max normalization
+        lower (float): lower quantile percentage that will be used as
+                        minimum in the min-max normalization
+        upper (float): upper quantile percentage that will be used as
+                        maximum in the min-max normalization
     Returns:
         dask.bag: bag of dictionaries including normalized data
     """

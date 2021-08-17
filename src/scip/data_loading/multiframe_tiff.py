@@ -41,7 +41,7 @@ def bag_from_directory(path, idx, channels, partition_size):
 
     events = []
     for i, p in enumerate(Path(path).glob("**/*.tiff")):
-        events.append(dict(path=str(p), idx=idx+i))
+        events.append(dict(path=str(p), idx=idx + i))
 
     bag = dask.bag.from_sequence(events, partition_size=partition_size)
     return bag.map_partitions(

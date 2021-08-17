@@ -5,7 +5,7 @@ from scip.data_normalization import quantile_normalization
 
 
 def test_distributed_partitioned_quantile(data, cluster):
-    bag = multiframe_tiff.bag_from_directory(data, channels=[0, 1, 2], partition_size=2)
+    bag, _ = multiframe_tiff.bag_from_directory(data, idx=0, channels=[0, 1, 2], partition_size=2)
     bag = mask_creation.create_masks_on_bag(bag, noisy_channels=[0])
     bag = mask_apply.create_masked_images_on_bag(bag)
 
@@ -23,7 +23,7 @@ def test_distributed_partitioned_quantile(data, cluster):
 
 
 def test_quantile_normalization(data, cluster):
-    bag = multiframe_tiff.bag_from_directory(data, channels=[0, 1, 2], partition_size=2)
+    bag, _ = multiframe_tiff.bag_from_directory(data, idx=0, channels=[0, 1, 2], partition_size=2)
     bag = mask_creation.create_masks_on_bag(bag, noisy_channels=[0])
     bag = mask_apply.create_masked_images_on_bag(bag)
 

@@ -84,7 +84,7 @@ def get_median(quantile_vectors):
 
 def get_counts(sample, bins, masked_bins):
     """
-    Bin the intensities using the calculated bin edges for every channel, both for 
+    Bin the intensities using the calculated bin edges for every channel, both for
     original pixel data and masked pixel data
 
     Args:
@@ -165,8 +165,8 @@ def get_blanks(sample):
 
 def reduced_empty_mask(L1, L2):
     return L1 + L2
-    
-    
+
+
 def masked_intensities_partition(part):
     return [get_masked_intensities(p) for p in part]
 
@@ -181,7 +181,7 @@ def segmentation_intensity_report(bag, bin_amount, channels, output):
         bin_amount (int): number of bins to use for intensity binning
         channels (int): number of image channels
         output (str): output file name
-    
+
     Returns:
         delayed.item: delayed boolean that will be used further in the pipeline
                       to force function execution
@@ -197,14 +197,16 @@ def segmentation_intensity_report(bag, bin_amount, channels, output):
         return [get_blanks(p) for p in part]
 
     @dask.delayed
-    def plot_before_after_distribution(counts, bins_before, bins_after,
-                                    missing_masks, channels, output, normalize=True, pdf=True):
-        
+    def plot_before_after_distribution(
+            counts, bins_before, bins_after, missing_masks, channels,
+            output, normalize=True, pdf=True):
+
         """
         Plot the intensity distribution for every channel before and after the normalization
 
         Args:
-            counts (ndarray, ndarray): overall binned intensities counts of pixel data before and after
+            counts (ndarray, ndarray): overall binned intensities counts of pixel
+                                        data before and after
             bins_before (ndarray): bin edges for non-normalized data for every channel
             bins_after (ndarray): bin edges for normalized data for every channel
             missing_masks (ndarray): count of amount of missing masks for every channel
@@ -212,9 +214,6 @@ def segmentation_intensity_report(bag, bin_amount, channels, output):
             output (str): string of output file
             normalize (bool, optional): [description]. Defaults to True.
             pdf (bool, optional): [description]. Defaults to True.
-
-        Returns:
-            bool: will be passed on further in the pipeline to make sure this function will be executed
         """
         counts_before = counts[0]
         counts_after = counts[1]
@@ -260,7 +259,8 @@ def segmentation_intensity_report(bag, bin_amount, channels, output):
 
         # Write HTML
         with open(str(output / "intensity_quality_control.html"), "w") as text_file:
-            text_file.write('<header><h1>Intensity distribution before vs after masking</h1></header>')
+            text_file.write(
+                '<header><h1>Intensity distribution before vs after masking</h1></header>')
             text_file.write(html_before_after)
             text_file.write('<header><h1>Amount of missing masks per channel</h1></header>')
             text_file.write(html_missing_mask)
@@ -391,17 +391,19 @@ def get_distributed_partitioned_quantile(bag, lower_quantile, upper_quantile):
     bag = bag.map_partitions(masked_intensities_partition)
 
     masked_quantiles = bag.reduction(
-        partial(quantile_partition,
-            lower=lower_quantile, 
-            upper=upper_quantile, 
+        partial(
+            quantile_partition,
+            lower=lower_quantile,
+            upper=upper_quantile,
             origin="masked_intensities"
         ),
         lambda results: np.nanmedian(np.concatenate([r for r in results], axis=-1), axis=-1)
     )
     quantiles = bag.reduction(
-        partial(quantile_partition,
-            lower=lower_quantile, 
-            upper=upper_quantile, 
+        partial(
+            quantile_partition,
+            lower=lower_quantile,
+            upper=upper_quantile,
             origin="pixels"
         ),
         lambda results: np.nanmedian(np.concatenate([r for r in results], axis=-1), axis=-1)
@@ -419,7 +421,7 @@ def check_report(bag, report_made):
     Args:
         bag (dask.bag): bag containing dictionaries with image data
         report_made (delayed.item): delayed item of a bool
-        
+
     Returns:
         dask.bag: input bag
     """

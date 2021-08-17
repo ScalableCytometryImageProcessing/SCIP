@@ -72,7 +72,7 @@ def extract_features(*, images, channels):
     modules.append(module)
 
     return images.map_partitions(
-        compute_measurements_on_partition, 
+        compute_measurements_on_partition,
         modules=modules,
         channels=channels
     ).to_dataframe().set_index("idx")

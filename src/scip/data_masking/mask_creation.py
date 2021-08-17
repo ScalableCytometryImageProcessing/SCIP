@@ -10,8 +10,8 @@ def denoising(sample, noisy_channels=[]):
 
     Args:
         sample (dict): dictionary containing pixel data of an image
-        noisy_channels (list, optional): list of channels with lots of noise, non-local mean denoising 
-                                         won't be used for these. Defaults to [].
+        noisy_channels (list, optional): list of channels with lots of noise, non-local mean
+         denoising won't be used for these. Defaults to [].
 
     Returns:
         dict: input dictionary including the denoised pixel data
@@ -111,7 +111,7 @@ def create_masks_on_bag(images, noisy_channels):
 
     Args:
         images (dask.bag): bag containing dictionaries with pixel data and paths
-        noisy_channels (list): list of channels with lots of noise, non-local mean denoising 
+        noisy_channels (list): list of channels with lots of noise, non-local mean denoising
                                won't be used for these.
 
     Returns:

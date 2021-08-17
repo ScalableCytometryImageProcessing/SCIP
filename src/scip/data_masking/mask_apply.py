@@ -66,4 +66,3 @@ def get_masked_intensities(dict_sample):
         masked_intensities.append(img[i][np.where(mask[i])])
 
     return {**dict_sample, **dict(masked_intensities=masked_intensities)}
-

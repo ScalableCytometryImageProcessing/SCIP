@@ -9,3 +9,6 @@ __pycache__
 *.html
 tmp/
 *.log
+.mypy_cache/
+.pytest_cache/
+.commit

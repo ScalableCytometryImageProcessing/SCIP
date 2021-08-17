@@ -63,7 +63,7 @@ def intensity_features(sample):
 
     Args:
         sample (dict): dictionary including image data
-    
+
     Returns:
         dict: dictionary including new intensity features
     """
@@ -89,7 +89,7 @@ def texture_features(sample):
 
     Args:
         sample (dict): dictionary containing image data
-    
+
     Returns:
         dict: dictionary including new texture features
 
@@ -129,7 +129,7 @@ def extract_features(images: dask.bag.Bag):
 
     Args:
         images (dask.bag): bag containing dictionaries of image data
-    
+
     Returns:
         dask.bag: bag containing dictionaries of image features
     """
