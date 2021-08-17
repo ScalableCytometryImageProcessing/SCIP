@@ -78,11 +78,9 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
         images = mask_creation.create_masks_on_bag(images, noisy_channels=[0])
         images = mask_apply.create_masked_images_on_bag(images)
         images = quantile_normalization.quantile_normalization(images, 0.05, 0.95)
-
         # intermediate persist so that extract_features can reuse
         # above computations after masking QC reports are generated
         images = images.persist()
-
         if output is not None:
             intensity_distribution.segmentation_intensity_report(
                 images, 100, channel_amount, output).compute()
@@ -90,20 +88,20 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
         skimage_features = feature_extraction.extract_features(images) 
         cp_features = cellprofiler.extract_features(images=images, channels=channels)
         features = dask.dataframe.multi.concat([skimage_features, cp_features], axis=1)
-
         if output is not None:
             feature_statistics.get_feature_statistics(features, output).compute()
         
-        # memberships, plotted = fuzzy_c_mean.fuzzy_c_means(features, 5, 3, 10) 
-
+        # memberships, membership_plot = fuzzy_c_mean.fuzzy_c_means(features, 5, 3, 10)
         # if output is not None:
-        #     filename = config["data_export"]["filename"]
-        #     features.to_parquet(str(output / f"{filename}.parquet"))
-        #     cp_features.to_parquet(str(output / "cp_features.parquet"))
+        #     membership_plot.compute()
 
-        # if debug and output is not None:
-        #     features.visualize(filename=str(output / "task_graph.svg"))
-        #     context.client.profile(filename=str(output / "profile.html"))
+        if output is not None:
+            filename = config["data_export"]["filename"]
+            features.compute().to_parquet(str(output / f"{filename}.parquet"))
+
+        if debug and output is not None:
+            features.visualize(filename=str(output / "task_graph.svg"))
+            context.client.profile(filename=str(output / "profile.html"))
 
     runtime = time.time() - start
     logger.info(f"Full runtime {runtime:.2f}")

@@ -107,5 +107,4 @@ def fuzzy_c_means(features, amount_of_centers, m, iterations):
         summed_denominator = memberships.pow(m).reduction(lambda x: x.sum())
         centers = summed_numerators.div(summed_denominator, axis=0)
 
-    plotted = plot_membership(memberships, pca_df)
-    return memberships, plotted
+    return memberships, plot_membership(memberships, pca_df)
