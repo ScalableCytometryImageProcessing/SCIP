@@ -165,6 +165,10 @@ def get_blanks(sample):
 
 def reduced_empty_mask(L1, L2):
     return L1 + L2
+    
+    
+def masked_intensities_partition(part):
+    return [get_masked_intensities(p) for p in part]
 
 
 def segmentation_intensity_report(bag, bin_amount, channels, output):
@@ -186,14 +190,80 @@ def segmentation_intensity_report(bag, bin_amount, channels, output):
     def min_max_partition(part, origin):
         return [get_min_max(p, origin) for p in part]
 
-    def masked_intensities_partition(part):
-        return [get_masked_intensities(p) for p in part]
-
     def counts_partition(part, bins, masked_bins):
         return [get_counts(p, bins, masked_bins) for p in part]
 
     def blank_masks_partitions(part):
         return [get_blanks(p) for p in part]
+
+    @dask.delayed
+    def plot_before_after_distribution(counts, bins_before, bins_after,
+                                    missing_masks, channels, output, normalize=True, pdf=True):
+        
+        """
+        Plot the intensity distribution for every channel before and after the normalization
+
+        Args:
+            counts (ndarray, ndarray): overall binned intensities counts of pixel data before and after
+            bins_before (ndarray): bin edges for non-normalized data for every channel
+            bins_after (ndarray): bin edges for normalized data for every channel
+            missing_masks (ndarray): count of amount of missing masks for every channel
+            channels (int): amount of channels
+            output (str): string of output file
+            normalize (bool, optional): [description]. Defaults to True.
+            pdf (bool, optional): [description]. Defaults to True.
+
+        Returns:
+            bool: will be passed on further in the pipeline to make sure this function will be executed
+        """
+        counts_before = counts[0]
+        counts_after = counts[1]
+        if normalize:
+            # Normalize the counts so the sum of area is 1
+            counts_before = (counts_before.T / (counts_before.sum(axis=1))).T
+            counts_after = (counts_after.T / (counts_after.sum(axis=1))).T
+
+        rows = channels
+        cols = 2
+        intensity_distribution_fg, axarr = plt.subplots(rows, cols, figsize=(20, 30))
+        bin_amount = bins_before[0].shape[0]
+        for i in range(rows):
+            # Plot intensities without mask
+            axarr[i, 0].bar(bins_before[i][0:(bin_amount - 1)], counts_before[i],
+                            width=(0.01 * (bins_before[i].max() - bins_before[i].min())))
+
+            axarr[i, 0].title.set_text('Before mask')
+
+            # Plot intensities with mask
+            axarr[i, 1].bar(bins_after[i][0:(bin_amount - 1)], counts_after[i],
+                            width=0.01 * (bins_after[i].max() - bins_after[i].min()))
+
+            axarr[i, 1].title.set_text('After mask')
+
+        # Encode to include in HTML
+        distribution_tmp = BytesIO()
+        intensity_distribution_fg.savefig(distribution_tmp, format='png')
+        encoded = base64.b64encode(distribution_tmp.getvalue()).decode('utf-8')
+        html_before_after = '<img src=\'data:image/png;base64,{}\'>'.format(encoded)
+
+        # Missing mask bar plot
+        missing_masks_fg = plt.figure()
+        channel_labels = [f'ch{i}' for i in range(channels)]
+        missing = missing_masks
+        plt.bar(channel_labels, missing)
+
+        # Encode to include in HTML
+        missing_mask_tmp = BytesIO()
+        missing_masks_fg.savefig(missing_mask_tmp, format='png')
+        encoded = base64.b64encode(missing_mask_tmp.getvalue()).decode('utf-8')
+        html_missing_mask = '<img src=\'data:image/png;base64,{}\'>'.format(encoded)
+
+        # Write HTML
+        with open(str(output / "intensity_quality_control.html"), "w") as text_file:
+            text_file.write('<header><h1>Intensity distribution before vs after masking</h1></header>')
+            text_file.write(html_before_after)
+            text_file.write('<header><h1>Amount of missing masks per channel</h1></header>')
+            text_file.write(html_missing_mask)
 
     @dask.delayed
     def get_percentage(counts, total):
@@ -224,9 +294,7 @@ def segmentation_intensity_report(bag, bin_amount, channels, output):
         .fold(reduced_counts)
 
     # return intensity_count, masked_intensity_count, bins, masked_bins
-    report_made = plot_before_after_distribution(
-        counts, bins, masked_bins, percentage, channels, output)
-    return report_made
+    return plot_before_after_distribution(counts, bins, masked_bins, percentage, channels, output)
 
 
 @dask.delayed
@@ -296,6 +364,7 @@ def get_distributed_partitioned_quantile(bag, lower_quantile, upper_quantile):
     a quantile calculation is performed. The found quantiles per partition are then reduced
     with a median.
     """
+
     def quantile_partition(part, lower, upper, origin):
 
         channels = len(part[0].get(origin))
@@ -319,104 +388,26 @@ def get_distributed_partitioned_quantile(bag, lower_quantile, upper_quantile):
 
         return channel_quantiles[..., np.newaxis]
 
-    def masked_intensities_partition(part):
-        return [get_masked_intensities(p) for p in part]
     bag = bag.map_partitions(masked_intensities_partition)
 
-    stacked_quantiles_masked = bag.reduction(
+    masked_quantiles = bag.reduction(
         partial(quantile_partition,
             lower=lower_quantile, 
             upper=upper_quantile, 
             origin="masked_intensities"
         ),
-        lambda results: np.concatenate([r for r in results], axis=-1)
+        lambda results: np.nanmedian(np.concatenate([r for r in results], axis=-1), axis=-1)
     )
-    stacked_quantiles = bag.reduction(
+    quantiles = bag.reduction(
         partial(quantile_partition,
             lower=lower_quantile, 
             upper=upper_quantile, 
             origin="pixels"
         ),
-        lambda results: np.concatenate([r for r in results], axis=-1)
+        lambda results: np.nanmedian(np.concatenate([r for r in results], axis=-1), axis=-1)
     )
 
-    quantiles = dask.delayed(np.nanmedian)(stacked_quantiles, axis=-1)
-    masked_quantiles = dask.delayed(np.nanmedian)(stacked_quantiles_masked, axis=-1)
-
     return quantiles, masked_quantiles
-
-
-@dask.delayed
-def plot_before_after_distribution(counts, bins_before, bins_after,
-                                   missing_masks, channels, output, normalize=True, pdf=True):
-    
-    """
-    Plot the intensity distribution for every channel before and after the normalization
-
-    Args:
-        counts (ndarray, ndarray): overall binned intensities counts of pixel data before and after
-        bins_before (ndarray): bin edges for non-normalized data for every channel
-        bins_after (ndarray): bin edges for normalized data for every channel
-        missing_masks (ndarray): count of amount of missing masks for every channel
-        channels (int): amount of channels
-        output (str): string of output file
-        normalize (bool, optional): [description]. Defaults to True.
-        pdf (bool, optional): [description]. Defaults to True.
-
-    Returns:
-        bool: will be passed on further in the pipeline to make sure this function will be executed
-    """
-    counts_before = counts[0]
-    counts_after = counts[1]
-    if normalize:
-        # Normalize the counts so the sum of area is 1
-        counts_before = (counts_before.T / (counts_before.sum(axis=1))).T
-        counts_after = (counts_after.T / (counts_after.sum(axis=1))).T
-
-    rows = channels
-    cols = 2
-    intensity_distribution_fg, axarr = plt.subplots(rows, cols, figsize=(20, 30))
-    bin_amount = bins_before[0].shape[0]
-    for i in range(rows):
-        # Plot intensities without mask
-        axarr[i, 0].bar(bins_before[i][0:(bin_amount - 1)], counts_before[i],
-                        width=(0.01 * (bins_before[i].max() - bins_before[i].min())))
-
-        axarr[i, 0].title.set_text('Before mask')
-
-        # Plot intensities with mask
-        axarr[i, 1].bar(bins_after[i][0:(bin_amount - 1)], counts_after[i],
-                        width=0.01 * (bins_after[i].max() - bins_after[i].min()))
-
-        axarr[i, 1].title.set_text('After mask')
-
-    # Encode to include in HTML
-    distribution_tmp = BytesIO()
-    intensity_distribution_fg.savefig(distribution_tmp, format='png')
-    encoded = base64.b64encode(distribution_tmp.getvalue()).decode('utf-8')
-    html_before_after = '<img src=\'data:image/png;base64,{}\'>'.format(encoded)
-
-    # Missing mask bar plot
-    missing_masks_fg = plt.figure()
-    channel_labels = [f'ch{i}' for i in range(channels)]
-    missing = missing_masks
-    plt.bar(channel_labels, missing)
-
-    # Encode to include in HTML
-    missing_mask_tmp = BytesIO()
-    missing_masks_fg.savefig(missing_mask_tmp, format='png')
-    encoded = base64.b64encode(missing_mask_tmp.getvalue()).decode('utf-8')
-    html_missing_mask = '<img src=\'data:image/png;base64,{}\'>'.format(encoded)
-
-    # Write HTML
-    text_file = open("Intensity_quality_control.html", "w")
-    text_file.write('<header><h1>Intensity distribution before vs after masking</h1></header>')
-    text_file.write(html_before_after)
-    text_file.write('<header><h1>Amount of missing masks per channel</h1></header>')
-    text_file.write(html_missing_mask)
-    text_file.close()
-
-    return True
 
 
 def check_report(bag, report_made):

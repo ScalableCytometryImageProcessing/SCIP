@@ -81,37 +81,36 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
         images = images.persist()
 
         if output is not None:
-            report_made = intensity_distribution.segmentation_intensity_report(
-                images, 100, channel_amount, output)
-            images = intensity_distribution.check_report(images, report_made)
+            intensity_distribution.segmentation_intensity_report(
+                images, 100, channel_amount, output).compute()
 
-        features = feature_extraction.extract_features(images)
+        # features = feature_extraction.extract_features(images)
 
-        if output is not None:
-            plotted, features = feature_statistics.get_feature_statistics(features)
-            features = feature_statistics.check_report(
-                features, plotted, meta=features._meta)
+        # if output is not None:
+        #     plotted, features = feature_statistics.get_feature_statistics(features)
+        #     features = feature_statistics.check_report(
+        #         features, plotted, meta=features._meta)
         
-        cp_features = cellprofiler.extract_features(images=images, channels=channels)
+        # cp_features = cellprofiler.extract_features(images=images, channels=channels)
 
-        if output is not None:
-            plotted, cp_features = feature_statistics.get_feature_statistics(cp_features)
-            cp_features = feature_statistics.check_report(
-                cp_features, plotted, meta=cp_features._meta)
+        # if output is not None:
+        #     plotted, cp_features = feature_statistics.get_feature_statistics(cp_features)
+        #     cp_features = feature_statistics.check_report(
+        #         cp_features, plotted, meta=cp_features._meta)
 
-        memberships, plotted = fuzzy_c_mean.fuzzy_c_means(features, 5, 3, 10) 
+        # memberships, plotted = fuzzy_c_mean.fuzzy_c_means(features, 5, 3, 10) 
 
-        features = features.compute()
-        cp_features = cp_features.compute()
+        # features = features.compute()
+        # cp_features = cp_features.compute()
 
-        if output is not None:
-            filename = config["data_export"]["filename"]
-            features.to_parquet(str(output / f"{filename}.parquet"))
-            cp_features.to_parquet(str(output / "cp_features.parquet"))
+        # if output is not None:
+        #     filename = config["data_export"]["filename"]
+        #     features.to_parquet(str(output / f"{filename}.parquet"))
+        #     cp_features.to_parquet(str(output / "cp_features.parquet"))
 
-        if debug and output is not None:
-            features.visualize(filename=str(output / "task_graph.svg"))
-            context.client.profile(filename=output / "profile.html")
+        # if debug and output is not None:
+        #     features.visualize(filename=str(output / "task_graph.svg"))
+        #     context.client.profile(filename=str(output / "profile.html"))
 
     runtime = time.time() - start
     logger.info(f"Full runtime {runtime:.2f}")
