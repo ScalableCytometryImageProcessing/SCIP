@@ -45,7 +45,7 @@ def shape_features(sample):
                 f'solidity_{i}': main_part.solidity,
                 f'regions_{i}': len(regions)}
 
-    img = sample.get('single_blob_mask')
+    img = sample.get('pixels')
     channels = img.shape[0]
     features_dict = {"idx": sample["idx"]}
     for i in range(channels):
@@ -73,7 +73,7 @@ def intensity_features(sample):
         return {f'mean_{i}': np.mean(channel_img), f'max_{i}': np.mean(channel_img),
                 f'min_{i}': np.min(channel_img)}
 
-    img = sample.get('masked_img_norm')
+    img = sample.get('pixels')
     channels = img.shape[0]
     features_dict = {"idx": sample["idx"]}
     for i in range(channels):
@@ -113,7 +113,7 @@ def texture_features(sample):
 
         return hog_dict
 
-    img = sample.get('single_blob_mask_img_norm')
+    img = sample.get('pixels')
     channels = img.shape[0]
 
     features_dict = {"idx": sample["idx"]}

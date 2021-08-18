@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def apply_mask(dict_sample, origin):
+def apply(sample, origin):
     """
     Apply binary mask on every channel
 
@@ -13,36 +13,34 @@ def apply_mask(dict_sample, origin):
         dict: dictionary including applied mask
     """
 
-    img = dict_sample.get("pixels")
-    mask = dict_sample.get(origin)
+    img = sample.get("pixels")
+    mask = sample.get(origin)
     masked_img = np.empty(img.shape, dtype=float)
 
     # Multiply image with mask to set background to zero
     for i in range(img.shape[0]):
         masked_img[i] = img[i] * mask[i]
 
-    return {**dict_sample, **{origin + '_img': masked_img}}
+    del sample["intermediate"]
+    sample["pixels"] = masked_img
+    return sample
 
 
-def create_masked_images_on_bag(images):
+def apply_masks_on_bag(bags):
     """
-    Apply both the mask and the largest mask area on the pixel data
+    Apply mask on the image data
 
     Args:
-        images (dask.bag): bag containing dictionaries with pixel and mask data
+        bags ({dask.bag}): dict of bags containing dictionaries with pixel and mask data
 
     Returns:
-        dask.bag: input bag including two new key-values: applied mask and applied largest mask area
+        [dask.bag]: input bags including applied mask
     """
 
     def apply_mask_partition(part, origin):
         return [apply_mask(p, origin) for p in part]
 
-    return (
-        images
-        .map_partitions(apply_mask_partition, 'mask')
-        .map_partitions(apply_mask_partition, 'single_blob_mask')
-    )
+    return {k:bag.map_partitions(apply_mask_partition, "result") for k,bag in bags.items()}
 
 
 def get_masked_intensities(dict_sample):

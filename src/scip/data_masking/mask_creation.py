@@ -2,6 +2,7 @@ from skimage import filters, segmentation
 from skimage.restoration import denoise_nl_means
 from skimage.measure import label, regionprops
 import numpy as np
+from scip.data_masking import mask_apply
 
 
 def denoising(sample, noisy_channels=[]):
@@ -27,7 +28,8 @@ def denoising(sample, noisy_channels=[]):
         else:
             denoised[i] = img[i]
 
-    return {**sample, **dict(denoised=denoised)}
+    sample["intermediate"] = denoised
+    return sample
 
 
 def felzenszwalb_segmentation(sample):
@@ -40,13 +42,14 @@ def felzenszwalb_segmentation(sample):
     Returns:
         dict: input dictionary including the segmentation pixel data
     """
-    segmented = np.empty(sample["denoised"].shape, dtype=float)
-    channels = sample["denoised"].shape[0]
+    segmented = np.empty(sample["intermediate"].shape, dtype=float)
+    channels = sample["intermediate"].shape[0]
     # TODO add list parameter with felzenszwalb parameters
     for i in range(channels):
-        segmented[i] = segmentation.felzenszwalb(sample["denoised"][i], sigma=0.90, scale=80)
+        segmented[i] = segmentation.felzenszwalb(sample["intermediate"][i], sigma=0.90, scale=80)
 
-    return {**sample, **dict(segmented=segmented)}
+    sample["intermediate"] = segmented
+    return sample
 
 
 def otsu_thresholding(sample):
@@ -59,16 +62,17 @@ def otsu_thresholding(sample):
     Returns:
         dict: input dictionary including masks for every channel
     """
-    thresholded_masks = np.empty(sample["segmented"].shape, dtype=bool)
-    channels = sample["segmented"].shape[0]
+    thresholded_masks = np.empty(sample["intermediate"].shape, dtype=bool)
+    channels = sample["intermediate"].shape[0]
     for i in range(channels):
         # Calculation of Otsu threshold
-        threshold = filters.threshold_otsu(sample["segmented"][i])
+        threshold = filters.threshold_otsu(sample["intermediate"][i])
 
         # Convertion to Boolean mask with Otsu threshold
-        thresholded_masks[i] = sample["segmented"][i] > threshold
+        thresholded_masks[i] = sample["intermediate"][i] > threshold
 
-    return {**sample, **dict(mask=thresholded_masks)}
+    sample["intermediate"] = thresholded_masks
+    return sample
 
 
 def largest_blob_detection(sample: dict):
@@ -92,17 +96,18 @@ def largest_blob_detection(sample: dict):
                 largest_index = regions.index(props)
         return largest_index
 
-    largest_blob = np.empty(sample["mask"].shape, dtype=float)
-    channels = sample["mask"].shape[0]
+    largest_blob = np.empty(sample["result"].shape, dtype=float)
+    channels = sample["result"].shape[0]
     for i in range(channels):
-        label_img = label(sample["mask"][i])
+        label_img = label(sample["result"][i])
         regions = regionprops(label_img)
         if len(regions) == 0:
-            largest_blob[i] = sample["mask"][i]
+            largest_blob[i] = sample["result"][i]
         else:
             largest_blob[i] = np.where(label_img == (largest_region(regions) + 1), 1, 0)
 
-    return {**sample, **dict(single_blob_mask=largest_blob)}
+    sample["intermediate"] = largest_blob
+    return sample
 
 
 def create_masks_on_bag(images, noisy_channels):
@@ -135,10 +140,23 @@ def create_masks_on_bag(images, noisy_channels):
     def largest_blob_partition(part):
         return [largest_blob_detection(p) for p in part]
 
-    return (
+    def apply_mask_partition(part):
+        return [mask_apply.apply(p, "intermediate") for p in part]
+
+    otsu = (
         images
         .map_partitions(denoise_partition)
         .map_partitions(felzenswalb_segment_partition)
         .map_partitions(otsu_threshold_partition)
-        .map_partitions(largest_blob_partition)
-    )
+    ).persist()
+
+    largest_blob = otsu.map_partitions(largest_blob_partition)
+
+    return {
+        "masked": dict(
+            otsu=otsu.map_partitions(apply_mask_partition), 
+            largest_blob=largest_blob.map_partitions(apply_mask_partition)),
+        "mask": dict(
+            otsu=otsu, 
+            largest_blob=largest_blob)
+    }

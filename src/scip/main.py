@@ -1,3 +1,4 @@
+from dask.bag.core import map_partitions
 from scip.data_masking import mask_creation, mask_apply
 from scip.utils import util
 from scip.data_normalization import quantile_normalization
@@ -36,30 +37,22 @@ def get_images_bag(paths, channels, config):
     return dask.bag.concat(images)
 
 
-def preprocess_images(images, channels, output):
+def preprocess_images(images):
 
     # images are loaded from directory and masked
     # after this operation the bag is persisted as it
     # will be reused several times throughout the pipeline
-    images = mask_creation.create_masks_on_bag(images, noisy_channels=[0])
-    images = mask_apply.create_masked_images_on_bag(images)
-    images = quantile_normalization.quantile_normalization(images, 0.05, 0.95)
+    bags = mask_creation.create_masks_on_bag(images, noisy_channels=[0])
+    # bags = quantile_normalization.quantile_normalization(bags, 0.05, 0.95)
 
-    if output is not None:
-        intensity_distribution.segmentation_intensity_report(
-            images, 100, len(channels), output).compute()
-
-    return images
+    return bags
 
 
-def compute_features(images, channels, output):
+def compute_features(images, channels):
 
     skimage_features = feature_extraction.extract_features(images)
     cp_features = cellprofiler.extract_features(images=images, channels=channels)
     features = dask.dataframe.multi.concat([skimage_features, cp_features], axis=1)
-
-    if output is not None:
-        feature_statistics.get_feature_statistics(features, output).compute()
 
     return features
 
@@ -73,21 +66,20 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
     # logic for creating output directory
     should_remove = True
 
-    if output is not None:
-        output = Path(output)
-        if (not headless) and output.exists():
-            should_remove = click.prompt(
-                f"{str(output)} exists. Overwrite contents? [Y/n]",
-                type=str, show_default=False, default="Y"
-            ) == "Y"
+    output = Path(output)
+    if (not headless) and output.exists():
+        should_remove = click.prompt(
+            f"{str(output)} exists. Overwrite contents? [Y/n]",
+            type=str, show_default=False, default="Y"
+        ) == "Y"
 
-            if not should_remove:
-                raise FileExistsError(f"{str(output)} exists and should not be removed. Exiting.")
-        if should_remove and output.exists():
-            logger.info(f"Running headless and/or {str(output)} exists. Removing.")
-            shutil.rmtree(output)
-        if not output.exists():
-            output.mkdir(parents=True)
+        if not should_remove:
+            raise FileExistsError(f"{str(output)} exists and should not be removed. Exiting.")
+    if should_remove and output.exists():
+        logger.info(f"Running headless and/or {str(output)} exists. Removing.")
+        shutil.rmtree(output)
+    if not output.exists():
+        output.mkdir(parents=True)
 
     config = util.load_yaml_config(config)
 
@@ -104,20 +96,34 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
         channels = config["data_loading"].get("channels")
 
         images = get_images_bag(paths, channels, config)
-        images = preprocess_images(images, channels, output)
-        features = compute_features(images, channels, output)
+        bags = preprocess_images(images)
+
+        features = [
+            compute_features(bags["masked"]["otsu"], channels),
+            compute_features(bags["masked"]["largest_blob"], channels)
+        ]
+        features = dask.dataframe.multi.concat(features, axis=1)
+
+        features.visualize(filename=str(output / "features.svg"))
 
         # memberships, membership_plot = fuzzy_c_mean.fuzzy_c_means(features, 5, 3, 10)
         # if output is not None:
         #     membership_plot.compute()
 
-        if output is not None:
-            filename = config["data_export"]["filename"]
-            features.compute().to_parquet(str(output / f"{filename}.parquet"))
+        # images = context.client.persist(images)
+        # intensity_distribution.segmentation_intensity_report(
+            # images, 100, len(channels), output).compute()
 
-        if debug and output is not None:
-            features.visualize(filename=str(output / "task_graph.svg"))
-            context.client.profile(filename=str(output / "profile.html"))
+        # features = context.client.persist(features)
+
+        # feature_statistics.get_feature_statistics(features, output).compute()
+
+        # filename = config["data_export"]["filename"]
+        # features.compute().to_parquet(str(output / f"{filename}.parquet"))
+
+        # if debug:
+            # features.visualize(filename=str(output / "task_graph.svg"))
+            # context.client.profile(filename=str(output / "profile.html"))
 
     runtime = time.time() - start
     logger.info(f"Full runtime {runtime:.2f}")
