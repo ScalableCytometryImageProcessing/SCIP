@@ -19,6 +19,9 @@ def sample_normalization(sample, qq, masked_qq):
         dict: dictionary including normalized data
     """
 
+    qq = np.nanmedian(qq, axis=-1)
+    masked_qq = np.nanmedian(masked_qq, axis=-1)
+
     img = sample.get('pixels')
     masked = sample.get('mask_img')
     single_blob_mask = sample.get('single_blob_mask_img')
@@ -28,13 +31,10 @@ def sample_normalization(sample, qq, masked_qq):
     normalized_single_masked = np.empty(img.shape, dtype=float)
 
     for i in range(len(img)):
-        try:
-            normalized[i] = (img[i] - qq[i, 0]) / (qq[i, 1] - qq[i, 0])
-            normalized_masked[i] = (masked[i] - masked_qq[i, 0]) / (masked_qq[i, 1] - masked_qq[i, 0])
-            normalized_single_masked[i] = \
-                (single_blob_mask[i] - masked_qq[i, 0]) / (masked_qq[i, 1] - masked_qq[i, 0])
-        except Exception as e:
-            print("ERROR", e, i, qq, sample["path"])
+        normalized[i] = (img[i] - qq[i, 0]) / (qq[i, 1] - qq[i, 0])
+        normalized_masked[i] = (masked[i] - masked_qq[i, 0]) / (masked_qq[i, 1] - masked_qq[i, 0])
+        normalized_single_masked[i] = \
+            (single_blob_mask[i] - masked_qq[i, 0]) / (masked_qq[i, 1] - masked_qq[i, 0])
 
     sample = sample.copy()
     sample.update({

@@ -5,10 +5,18 @@ from scip.utils import util
 
 
 @pytest.fixture(scope="session")
-def data():
-    # return Path("test/data")
-    return Path("/home/maximl/shared_scratch/vulcan_pbmc_debug")
+def images_folder():
+    return Path("test/data/images")
 
+
+@pytest.fixture(scope="session")
+def image_path():
+    return Path("test/data/images/pbmc+PI_00000000.tiff")
+
+
+@pytest.fixture(scope="session")
+def data():
+    return Path("test/data/")
 
 @pytest.fixture(scope="session")
 def cluster():
