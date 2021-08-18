@@ -13,7 +13,8 @@ def test_load_image(image_path: Path):
 
 
 def test_bag_from_directory(images_folder, cluster):
-    bag, num = multiframe_tiff.bag_from_directory(images_folder, idx=0, channels=None, partition_size=2)
+    bag, num = multiframe_tiff.bag_from_directory(
+        images_folder, idx=0, channels=None, partition_size=2)
     images = bag.compute()
     assert len(images) == 11
     assert len(images) == num

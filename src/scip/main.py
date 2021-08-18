@@ -44,7 +44,7 @@ def preprocess_images(images, channels, output):
     images = mask_creation.create_masks_on_bag(images, noisy_channels=[0])
     images = mask_apply.create_masked_images_on_bag(images)
     images = quantile_normalization.quantile_normalization(images, 0.05, 0.95)
-    
+
     if output is not None:
         intensity_distribution.segmentation_intensity_report(
             images, 100, len(channels), output).compute()

@@ -18,6 +18,7 @@ def image_path():
 def data():
     return Path("test/data/")
 
+
 @pytest.fixture(scope="session")
 def cluster():
     cluster = LocalCluster(n_workers=1)

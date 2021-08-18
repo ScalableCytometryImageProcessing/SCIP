@@ -4,7 +4,6 @@ import dask
 from io import BytesIO
 import base64
 from scip.data_masking.mask_apply import get_masked_intensities
-from functools import partial
 
 
 def get_min_max(sample, origin):
