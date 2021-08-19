@@ -148,11 +148,8 @@ def create_masks_on_bag(images, noisy_channels):
         .map_partitions(denoise_partition)
         .map_partitions(felzenswalb_segment_partition)
         .map_partitions(otsu_threshold_partition)
-    ).persist()
-
-    largest_blob = otsu.map_partitions(largest_blob_partition)
-
-    return dict(
-        otsu=otsu.map_partitions(apply_mask_partition),
-        largest_blob=largest_blob.map_partitions(apply_mask_partition)
+        .map_partitions(largest_blob_partition)
+        .map_partitions(apply_mask_partition)
     )
+
+    return dict(otsu=otsu)
