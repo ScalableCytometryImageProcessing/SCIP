@@ -21,9 +21,10 @@ def apply(sample, origin):
     for i in range(img.shape[0]):
         masked_img[i] = img[i] * mask[i]
 
-    del sample["intermediate"]
-    sample["pixels"] = masked_img
-    return sample
+    output = sample.copy()
+    output["pixels"] = masked_img
+    output["mask"] = mask
+    return output
 
 
 def apply_masks_on_bag(bags):

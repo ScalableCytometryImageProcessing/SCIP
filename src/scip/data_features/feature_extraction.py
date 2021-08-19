@@ -123,7 +123,7 @@ def texture_features(sample):
     return features_dict
 
 
-def extract_features(images: dask.bag.Bag):
+def extract_features(*, images: dask.bag.Bag):
     """
     Extract features from pixel data
 
@@ -143,8 +143,16 @@ def extract_features(images: dask.bag.Bag):
     def texture_partition(part):
         return [texture_features(p) for p in part]
 
-    shape_df = images.map_partitions(shape_partition).to_dataframe().set_index("idx")
-    intensity_df = images.map_partitions(intensity_partition).to_dataframe().set_index("idx")
-    texture_df = images.map_partitions(texture_partition).to_dataframe().set_index("idx")
+    def to_dataframe(bag):
+        df = bag.to_dataframe()
+
+        # setting the index causes partition divisions to be known for Dask
+        # making concatenation fast
+        df = df.set_index("idx")
+        return df
+
+    shape_df = to_dataframe(images.map_partitions(shape_partition))
+    intensity_df = to_dataframe(images.map_partitions(intensity_partition))
+    texture_df = to_dataframe(images.map_partitions(texture_partition))
 
     return dask.dataframe.multi.concat([shape_df, intensity_df, texture_df], axis=1)

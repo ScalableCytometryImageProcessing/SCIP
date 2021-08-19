@@ -48,11 +48,12 @@ def preprocess_images(images):
     return bags
 
 
-def compute_features(images, channels):
+def compute_features(images, channels, prefix):
 
-    skimage_features = feature_extraction.extract_features(images)
-    cp_features = cellprofiler.extract_features(images=images, channels=channels)
+    skimage_features = feature_extraction.extract_features(images=images).persist()
+    cp_features = cellprofiler.extract_features(images=images, channels=channels).persist()
     features = dask.dataframe.multi.concat([skimage_features, cp_features], axis=1)
+    features = features.rename(columns=lambda c: prefix + "_" + c)
 
     return features
 
@@ -98,32 +99,31 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
         images = get_images_bag(paths, channels, config)
         bags = preprocess_images(images)
 
+        # masks are fully computed and applied at this point. They will be reused
+        # multiple times to compute features, therefore they are persisted
+        bags["masked"]["otsu"] = bags["masked"]["otsu"].persist()
+        bags["masked"]["largest_blob"] = bags["masked"]["largest_blob"].persist()
+
         features = [
-            compute_features(bags["masked"]["otsu"], channels),
-            compute_features(bags["masked"]["largest_blob"], channels)
+            compute_features(bags["masked"]["otsu"], channels, "otsu"),
+            compute_features(bags["masked"]["largest_blob"], channels, "largest_blob")
         ]
         features = dask.dataframe.multi.concat(features, axis=1)
-
-        features.visualize(filename=str(output / "features.svg"))
-
+        
         # memberships, membership_plot = fuzzy_c_mean.fuzzy_c_means(features, 5, 3, 10)
         # if output is not None:
         #     membership_plot.compute()
 
-        # images = context.client.persist(images)
+        features = features.persist()
+
         # intensity_distribution.segmentation_intensity_report(
-            # images, 100, len(channels), output).compute()
+        #     images, 100, len(channels), output).compute()
+        feature_statistics.get_feature_statistics(features, output).compute()
+        filename = config["data_export"]["filename"]
+        features.compute().to_parquet(str(output / f"{filename}.parquet"))
 
-        # features = context.client.persist(features)
-
-        # feature_statistics.get_feature_statistics(features, output).compute()
-
-        # filename = config["data_export"]["filename"]
-        # features.compute().to_parquet(str(output / f"{filename}.parquet"))
-
-        # if debug:
-            # features.visualize(filename=str(output / "task_graph.svg"))
-            # context.client.profile(filename=str(output / "profile.html"))
+        if debug:
+            context.client.profile(filename=str(output / "profile.html"))
 
     runtime = time.time() - start
     logger.info(f"Full runtime {runtime:.2f}")

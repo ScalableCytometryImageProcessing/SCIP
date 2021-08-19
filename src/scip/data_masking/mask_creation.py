@@ -96,13 +96,13 @@ def largest_blob_detection(sample: dict):
                 largest_index = regions.index(props)
         return largest_index
 
-    largest_blob = np.empty(sample["result"].shape, dtype=float)
-    channels = sample["result"].shape[0]
+    largest_blob = np.empty(sample["intermediate"].shape, dtype=float)
+    channels = sample["intermediate"].shape[0]
     for i in range(channels):
-        label_img = label(sample["result"][i])
+        label_img = label(sample["intermediate"][i])
         regions = regionprops(label_img)
         if len(regions) == 0:
-            largest_blob[i] = sample["result"][i]
+            largest_blob[i] = sample["intermediate"][i]
         else:
             largest_blob[i] = np.where(label_img == (largest_region(regions) + 1), 1, 0)
 
@@ -156,7 +156,7 @@ def create_masks_on_bag(images, noisy_channels):
         "masked": dict(
             otsu=otsu.map_partitions(apply_mask_partition), 
             largest_blob=largest_blob.map_partitions(apply_mask_partition)),
-        "mask": dict(
-            otsu=otsu, 
-            largest_blob=largest_blob)
+        # "mask": dict(
+        #     otsu=otsu, 
+        #     largest_blob=largest_blob)
     }
