@@ -1,5 +1,5 @@
 from scip.data_loading import multiframe_tiff
-from scip.data_masking import mask_apply, mask_creation
+from scip.data_masking import mask_creation
 from scip.quality_control import intensity_distribution
 from scip.data_normalization import quantile_normalization
 from scip.main import masked_intensities_partition
