@@ -364,6 +364,7 @@ def get_distributed_partitioned_quantile(bag, lower, upper):
 
     qq = bag.map_partitions(select_origin, origin="flat")
     qq = qq.fold(concatenate_lists, reduce_quantiles)
+    qq = qq.apply(lambda a: np.nanmedian(a, axis=-1))
 
     return qq
 

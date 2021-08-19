@@ -19,8 +19,6 @@ def sample_normalization(sample, qq):
         dict: dictionary including normalized data
     """
 
-    qq = np.nanmedian(qq, axis=-1)
-
     img = sample.get('pixels')
     normalized = np.empty(img.shape, dtype=float)
 

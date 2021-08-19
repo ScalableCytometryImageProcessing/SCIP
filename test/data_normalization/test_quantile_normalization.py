@@ -17,7 +17,6 @@ def test_distributed_partitioned_quantile(data, cluster):
     )
 
     quantiles = quantiles.compute()
-    quantiles = numpy.nanmedian(quantiles, axis=-1)
     assert quantiles.shape == (3, 2)
     assert all([q[0] < q[1] for q in quantiles])
 
