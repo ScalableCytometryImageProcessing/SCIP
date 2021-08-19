@@ -3,7 +3,6 @@ from scip.data_masking import mask_creation
 from scip.quality_control import intensity_distribution
 from scip.data_normalization import quantile_normalization
 from scip.main import masked_intensities_partition
-import numpy
 
 
 def test_distributed_partitioned_quantile(data, cluster):
