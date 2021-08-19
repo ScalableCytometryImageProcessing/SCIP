@@ -1,7 +1,7 @@
 from scip.data_masking import mask_creation
 from scip.utils import util
 from scip.data_normalization import quantile_normalization
-from scip.quality_control import feature_statistics
+from scip.quality_control import feature_statistics, visual
 from scip.data_features import feature_extraction, cellprofiler
 from scip.data_masking.mask_apply import get_masked_intensities
 # from scip.data_analysis import fuzzy_c_mean
@@ -107,6 +107,9 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
         for k, bag in bags.items():
             bag = preprocess_bag(bag)
             bag = bag.persist()
+
+            visual.plot_images(bag, title=k, output=output)
+
             features.append(compute_features(bag, channels, k).persist())
         features = dask.dataframe.multi.concat(features, axis=1)
         features = features.persist()
