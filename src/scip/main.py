@@ -16,6 +16,10 @@ import shutil
 from functools import partial
 from importlib import import_module
 
+    
+def masked_intensities_partition(part):
+    return [get_masked_intensities(p) for p in part]
+
 
 def get_images_bag(paths, channels, config):
 
@@ -38,9 +42,6 @@ def get_images_bag(paths, channels, config):
 
 
 def preprocess_bag(bag):
-
-    def masked_intensities_partition(part):
-        return [get_masked_intensities(p) for p in part]
 
     # images are loaded from directory and masked
     # after this operation the bag is persisted as it
