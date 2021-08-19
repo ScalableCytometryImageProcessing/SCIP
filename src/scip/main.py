@@ -109,7 +109,7 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
             features.append(compute_features(bag, channels, k).persist())
         features = dask.dataframe.multi.concat(features, axis=1)
         features = features.persist()
-        
+
         # memberships, membership_plot = fuzzy_c_mean.fuzzy_c_means(features, 5, 3, 10)
         # if output is not None:
         #     membership_plot.compute()

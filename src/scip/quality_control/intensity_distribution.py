@@ -263,10 +263,6 @@ def segmentation_intensity_report(bag, bin_amount, channels, output):
     def get_percentage(counts, total):
         return counts / total
 
-    # Compute new key-value in dictionary with list of numpy's
-    # with flattened intensities per channel
-    bag = bag.map_partitions(masked_intensities_partition)
-
     # Get amount of blank masks
     blanks_sum = bag.map_partitions(blank_masks_partitions).fold(reduced_empty_mask)
 
@@ -320,35 +316,6 @@ def get_binned_quantile(counts_tuple, bins, masked_bins, lower_quantile, upper_q
                    for count, bin in zip(masked_counts, masked_bins)]
 
     return lower_bin, upper_bin, lower_m_bin, upper_m_bin,
-
-
-def get_distributed_quantile(bag, lower_quantile, upper_quantile):
-    """
-    Second method for quantile calculation:
-    For each sample the quantiles are calculated followed by a reduction over all
-    the samples to find median of the quantiles
-    """
-    def quantile_partition(part, lower_quantile, upper_quantile, origin):
-
-        return [get_sample_quantile(p, lower_quantile, upper_quantile, origin) for p in part]
-
-    def masked_intensities_partition(part):
-        return [get_masked_intensities(p) for p in part]
-
-    bag = bag.map_partitions(masked_intensities_partition)
-
-    stacked_quantiles_masked = bag.map_partitions(quantile_partition, lower_quantile,
-                                                  upper_quantile, origin="masked_intensities") \
-                                  .fold(stack_quantiles)
-
-    stacked_quantiles = bag.map_partitions(quantile_partition, lower_quantile, upper_quantile,
-                                           origin="pixels") \
-                           .fold(stack_quantiles)
-
-    quantiles = get_median(stacked_quantiles)
-    masked_quantiles = get_median(stacked_quantiles_masked)
-
-    return quantiles, masked_quantiles
 
 
 def get_distributed_partitioned_quantile(bag, lower, upper):

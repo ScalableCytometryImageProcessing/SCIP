@@ -39,9 +39,9 @@ def apply_masks_on_bag(bags):
     """
 
     def apply_mask_partition(part, origin):
-        return [apply_mask(p, origin) for p in part]
+        return [apply(p, origin) for p in part]
 
-    return {k:bag.map_partitions(apply_mask_partition, "result") for k,bag in bags.items()}
+    return {k: bag.map_partitions(apply_mask_partition, "result") for k, bag in bags.items()}
 
 
 def get_masked_intensities(sample):
