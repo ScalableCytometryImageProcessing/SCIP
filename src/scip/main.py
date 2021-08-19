@@ -16,7 +16,7 @@ import shutil
 from functools import partial
 from importlib import import_module
 
-    
+
 def masked_intensities_partition(part):
     return [get_masked_intensities(p) for p in part]
 
