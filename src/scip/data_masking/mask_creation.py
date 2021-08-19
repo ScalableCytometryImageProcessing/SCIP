@@ -152,11 +152,7 @@ def create_masks_on_bag(images, noisy_channels):
 
     largest_blob = otsu.map_partitions(largest_blob_partition)
 
-    return {
-        "masked": dict(
-            otsu=otsu.map_partitions(apply_mask_partition), 
-            largest_blob=largest_blob.map_partitions(apply_mask_partition)),
-        # "mask": dict(
-        #     otsu=otsu, 
-        #     largest_blob=largest_blob)
-    }
+    return dict(
+        otsu=otsu.map_partitions(apply_mask_partition), 
+        largest_blob=largest_blob.map_partitions(apply_mask_partition)
+    )

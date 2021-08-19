@@ -1,9 +1,9 @@
-from dask.bag.core import map_partitions
-from scip.data_masking import mask_creation, mask_apply
+from scip.data_masking import mask_creation
 from scip.utils import util
 from scip.data_normalization import quantile_normalization
-from scip.quality_control import intensity_distribution, feature_statistics
+from scip.quality_control import feature_statistics
 from scip.data_features import feature_extraction, cellprofiler
+from scip.data_masking.mask_apply import get_masked_intensities
 # from scip.data_analysis import fuzzy_c_mean
 import time
 import click
@@ -37,21 +37,24 @@ def get_images_bag(paths, channels, config):
     return dask.bag.concat(images)
 
 
-def preprocess_images(images):
+def preprocess_bag(bag):
+
+    def masked_intensities_partition(part):
+        return [get_masked_intensities(p) for p in part]
 
     # images are loaded from directory and masked
     # after this operation the bag is persisted as it
     # will be reused several times throughout the pipeline
-    bags = mask_creation.create_masks_on_bag(images, noisy_channels=[0])
-    # bags = quantile_normalization.quantile_normalization(bags, 0.05, 0.95)
+    bag = bag.map_partitions(masked_intensities_partition)
+    bag = quantile_normalization.quantile_normalization(bag, 0.05, 0.95)
 
-    return bags
+    return bag
 
 
 def compute_features(images, channels, prefix):
 
-    skimage_features = feature_extraction.extract_features(images=images).persist()
-    cp_features = cellprofiler.extract_features(images=images, channels=channels).persist()
+    skimage_features = feature_extraction.extract_features(images=images)
+    cp_features = cellprofiler.extract_features(images=images, channels=channels)
     features = dask.dataframe.multi.concat([skimage_features, cp_features], axis=1)
     features = features.rename(columns=lambda c: prefix + "_" + c)
 
@@ -97,24 +100,19 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
         channels = config["data_loading"].get("channels")
 
         images = get_images_bag(paths, channels, config)
-        bags = preprocess_images(images)
+        bags = mask_creation.create_masks_on_bag(images, noisy_channels=[0])
 
-        # masks are fully computed and applied at this point. They will be reused
-        # multiple times to compute features, therefore they are persisted
-        bags["masked"]["otsu"] = bags["masked"]["otsu"].persist()
-        bags["masked"]["largest_blob"] = bags["masked"]["largest_blob"].persist()
-
-        features = [
-            compute_features(bags["masked"]["otsu"], channels, "otsu"),
-            compute_features(bags["masked"]["largest_blob"], channels, "largest_blob")
-        ]
+        features = []
+        for k, bag in bags.items():
+            bag = preprocess_bag(bag)
+            bag = bag.persist()
+            features.append(compute_features(bag, channels, k).persist())
         features = dask.dataframe.multi.concat(features, axis=1)
+        features = features.persist()
         
         # memberships, membership_plot = fuzzy_c_mean.fuzzy_c_means(features, 5, 3, 10)
         # if output is not None:
         #     membership_plot.compute()
-
-        features = features.persist()
 
         # intensity_distribution.segmentation_intensity_report(
         #     images, 100, len(channels), output).compute()

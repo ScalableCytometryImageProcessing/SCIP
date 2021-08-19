@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import dask
 from io import BytesIO
 import base64
-from scip.data_masking.mask_apply import get_masked_intensities
 
 
 def get_min_max(sample, origin):
@@ -164,10 +163,6 @@ def get_blanks(sample):
 
 def reduced_empty_mask(L1, L2):
     return L1 + L2
-
-
-def masked_intensities_partition(part):
-    return [get_masked_intensities(p) for p in part]
 
 
 def segmentation_intensity_report(bag, bin_amount, channels, output):
@@ -400,15 +395,10 @@ def get_distributed_partitioned_quantile(bag, lower, upper):
         b = np.array([np.quantile(v, (lower, upper)) for v in b])[..., np.newaxis]
         return np.concatenate([a, b], axis=-1)
 
-    bag = bag.map_partitions(masked_intensities_partition)
+    qq = bag.map_partitions(select_origin, origin="flat")
+    qq = qq.fold(concatenate_lists, reduce_quantiles)
 
-    quantiles = bag.map_partitions(select_origin, origin="pixels")
-    quantiles = quantiles.fold(concatenate_lists, reduce_quantiles)
-
-    masked_quantiles = bag.map_partitions(select_origin, origin="masked_intensities")
-    masked_quantiles = masked_quantiles.fold(concatenate_lists, reduce_quantiles)
-
-    return quantiles, masked_quantiles
+    return qq
 
 
 def check_report(bag, report_made):

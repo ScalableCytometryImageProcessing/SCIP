@@ -4,7 +4,7 @@ import dask
 import dask.bag
 
 
-def sample_normalization(sample, qq, masked_qq):
+def sample_normalization(sample, qq):
     """
     Perform min-max normalization using quantiles on original pixel data,
     masked pixel data and flat masked intensities list
@@ -20,28 +20,15 @@ def sample_normalization(sample, qq, masked_qq):
     """
 
     qq = np.nanmedian(qq, axis=-1)
-    masked_qq = np.nanmedian(masked_qq, axis=-1)
 
     img = sample.get('pixels')
-    masked = sample.get('mask_img')
-    single_blob_mask = sample.get('single_blob_mask_img')
-
     normalized = np.empty(img.shape, dtype=float)
-    normalized_masked = np.empty(img.shape, dtype=float)
-    normalized_single_masked = np.empty(img.shape, dtype=float)
 
     for i in range(len(img)):
         normalized[i] = (img[i] - qq[i, 0]) / (qq[i, 1] - qq[i, 0])
-        normalized_masked[i] = (masked[i] - masked_qq[i, 0]) / (masked_qq[i, 1] - masked_qq[i, 0])
-        normalized_single_masked[i] = \
-            (single_blob_mask[i] - masked_qq[i, 0]) / (masked_qq[i, 1] - masked_qq[i, 0])
 
     sample = sample.copy()
-    sample.update({
-        'pixels_norm': np.clip(normalized, 0, 1),
-        'masked_img_norm': np.clip(normalized_masked, 0, 1),
-        'single_blob_mask_img_norm': np.clip(normalized_single_masked, 0, 1)
-    })
+    sample["pixels"] = normalized
 
     return sample
 
@@ -60,10 +47,8 @@ def quantile_normalization(images: dask.bag.Bag, lower, upper):
         dask.bag: bag of dictionaries including normalized data
     """
 
-    def normalize_partition(part, quantiles, masked_quantiles):
-        return [sample_normalization(p, quantiles, masked_quantiles) for p in part]
+    def normalize_partition(part, quantiles):
+        return [sample_normalization(p, quantiles) for p in part]
 
-    quantiles, masked_quantiles = \
-        intensity_distribution.get_distributed_partitioned_quantile(images, lower, upper)
-
-    return images.map_partitions(normalize_partition, quantiles, masked_quantiles)
+    quantiles = intensity_distribution.get_distributed_partitioned_quantile(images, lower, upper)
+    return images.map_partitions(normalize_partition, quantiles)
