@@ -1,7 +1,7 @@
 from scip.data_masking import mask_creation
 from scip.utils import util
 from scip.data_normalization import quantile_normalization
-from scip.quality_control import feature_statistics, visual
+from scip.quality_control import feature_statistics, visual, intensity_distribution
 from scip.data_features import feature_extraction, cellprofiler
 from scip.data_masking.mask_apply import get_masked_intensities
 # from scip.data_analysis import fuzzy_c_mean
@@ -27,7 +27,7 @@ def get_images_bag(paths, channels, config):
     loader = partial(
         loader_module.bag_from_directory,
         channels=channels,
-        partition_size=50)
+        partition_size=config["data_loading"]["partition_size"])
 
     images = []
     idx = 0
@@ -109,8 +109,10 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
             bag = bag.persist()
 
             visual.plot_images(bag, title=k, output=output)
+            intensity_distribution.segmentation_intensity_report(
+                bag, 100, channels, output, name=k).compute()
 
-            features.append(compute_features(bag, channels, k).persist())
+            features.append(compute_features(bag, channels, k))
         features = dask.dataframe.multi.concat(features, axis=1)
         features = features.persist()
 
@@ -118,14 +120,12 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
         # if output is not None:
         #     membership_plot.compute()
 
-        # intensity_distribution.segmentation_intensity_report(
-        #     images, 100, len(channels), output).compute()
-        feature_statistics.get_feature_statistics(features, output).compute()
         filename = config["data_export"]["filename"]
         features.compute().to_parquet(str(output / f"{filename}.parquet"))
+        feature_statistics.get_feature_statistics(features, output).compute()
 
-        if debug:
-            context.client.profile(filename=str(output / "profile.html"))
+        # if debug:
+        #     context.client.profile(filename=str(output / "profile.html"))
 
     runtime = time.time() - start
     logger.info(f"Full runtime {runtime:.2f}")
@@ -178,10 +178,10 @@ if __name__ == "__main__":
 
     # add DEBUG_DATASET entry to terminal.integrated.env.linux in VS Code workspace settings
     # should contain path to small debug dataset
-    path = os.environ["DEBUG_DATASET"]
+    path = os.environ["FULL_DATASET"]
     main(
         paths=(path,),
         output="tmp",
         headless=True,
         config='scip.yml',
-        debug=True, n_workers=2, n_processes=1, port=8990, local=True)
+        debug=True, n_workers=2, n_processes=1, port=8787, local=True)

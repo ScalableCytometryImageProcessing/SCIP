@@ -1,7 +1,57 @@
-from scip.quality_control import intensity_distribution
 import numpy as np
 import dask
 import dask.bag
+
+
+def get_distributed_partitioned_quantile(bag, lower, upper):
+    """
+    Third method for quantile calculation:
+    In every partition intensities are grouped together per channel, on this grouping
+    a quantile calculation is performed. The found quantiles per partition are then reduced
+    with a median.
+    """
+
+    def select_origin(partition, *, origin):
+        """
+        Maps each element in the partition to the requested and flattened origin values
+        """
+
+        mapped = []
+        for el in partition:
+
+            # values cannot be a numpy array as not all channels are required to have the same
+            # amount of values for one element (due to masking)
+            values = []
+            for v in el[origin]:
+                values.append(v.flatten())
+            mapped.append(values)
+
+        return mapped
+
+    def concatenate_lists(a, b):
+        """
+        Concatenates the numpy vectors in list a and b element-wise
+        """
+        for i in range(len(b)):
+            a[i] = np.concatenate((a[i], b[i]))
+
+        return a
+
+    def reduce_quantiles(a, b):
+        """
+        Reduces numpy vectors in lists a and b to their quantiles and concatenates them
+        """
+
+        if not hasattr(a, "shape"):
+            a = np.array([np.quantile(v, (lower, upper)) for v in a])[..., np.newaxis]
+        b = np.array([np.quantile(v, (lower, upper)) for v in b])[..., np.newaxis]
+        return np.concatenate([a, b], axis=-1)
+
+    qq = bag.map_partitions(select_origin, origin="flat")
+    qq = qq.fold(concatenate_lists, reduce_quantiles)
+    qq = qq.apply(lambda a: np.nanmedian(a, axis=-1))
+
+    return qq
 
 
 def sample_normalization(sample, qq):
@@ -48,5 +98,5 @@ def quantile_normalization(images: dask.bag.Bag, lower, upper):
     def normalize_partition(part, quantiles):
         return [sample_normalization(p, quantiles) for p in part]
 
-    quantiles = intensity_distribution.get_distributed_partitioned_quantile(images, lower, upper)
+    quantiles = get_distributed_partitioned_quantile(images, lower, upper)
     return images.map_partitions(normalize_partition, quantiles)

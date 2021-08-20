@@ -1,6 +1,5 @@
 from scip.data_loading import multiframe_tiff
 from scip.data_masking import mask_creation
-from scip.quality_control import intensity_distribution
 from scip.data_normalization import quantile_normalization
 from scip.main import masked_intensities_partition
 
@@ -11,7 +10,7 @@ def test_distributed_partitioned_quantile(data, cluster):
     bags = mask_creation.create_masks_on_bag(images, noisy_channels=[0])
     bag = bags["otsu"].map_partitions(masked_intensities_partition)
 
-    quantiles = intensity_distribution.get_distributed_partitioned_quantile(
+    quantiles = quantile_normalization.get_distributed_partitioned_quantile(
         bag, 0.05, 0.95
     )
 
