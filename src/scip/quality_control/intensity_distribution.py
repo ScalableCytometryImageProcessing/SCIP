@@ -74,7 +74,7 @@ def get_counts(sample, bins):
     """
 
     # Count the intensities before masking
-    image = sample.get('pixels')
+    image = sample.get('flat')
     counts = np.empty(shape=(len(bins), bins.shape[1] - 1), dtype=float)
 
     # For every channel
@@ -164,7 +164,7 @@ def segmentation_intensity_report(bag, bin_amount, channels, output, name):
     total = bag.count()
     percentage = dask.delayed(lambda v, t: v / t)(blanks_sum, total)
 
-    min_max = bag.map_partitions(min_max_partition, origin='pixels').fold(reduce_minmax)
+    min_max = bag.map_partitions(min_max_partition, origin='flat').fold(reduce_minmax)
 
     # Get bins from the extrema
     bins = get_bin_edges(min_max, bin_amount=bin_amount)
