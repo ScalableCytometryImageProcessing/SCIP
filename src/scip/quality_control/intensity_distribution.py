@@ -32,9 +32,10 @@ def get_min_max(sample, origin):
 
 
 def reduce_minmax(A, B):
-    for i in range(2):
-        C = np.concatenate([A[:,i,np.newaxis],B[:,i,np.newaxis]], axis=1)
-        A[:,i] = np.nanmin(C, axis=1)
+    C = np.concatenate([A[:, 0, np.newaxis],B[:, 0, np.newaxis]], axis=1)
+    A[:,0] = np.nanmin(C, axis=1)
+    C = np.concatenate([A[:, 1, np.newaxis],B[:, 1, np.newaxis]], axis=1)
+    A[:,1] = np.nanmax(C, axis=1)
     return A
 
 
@@ -84,7 +85,14 @@ def get_counts(sample, bins):
     return counts
 
 
-def segmentation_intensity_report(bag, bin_amount, channels, output, name):
+def segmentation_intensity_report(*,
+        bag, 
+        bin_amount, 
+        channels, 
+        output, 
+        name,
+        extent=None
+        ):
     """
     Calculate minima and maxima to find bins, followed by a binning of all
     the intensities. Results are plotted in a report
@@ -114,7 +122,7 @@ def segmentation_intensity_report(bag, bin_amount, channels, output, name):
         return np.array([len(i) == 0 for i in flat_intensities], dtype=int)
     
     @dask.delayed
-    def plot_pixel_distribution(counts, bins, missing_masks, channels, output):
+    def plot_pixel_distribution(counts, bins, missing_masks):
 
         """
         Plot the intensity distribution for every channel before and after the normalization
@@ -164,10 +172,11 @@ def segmentation_intensity_report(bag, bin_amount, channels, output, name):
     total = bag.count()
     percentage = dask.delayed(lambda v, t: v / t)(blanks_sum, total)
 
-    min_max = bag.map_partitions(min_max_partition, origin='flat').fold(reduce_minmax)
+    if extent is None:
+        extent = bag.map_partitions(min_max_partition, origin='flat').fold(reduce_minmax)
 
     # Get bins from the extrema
-    bins = get_bin_edges(min_max, bin_amount=bin_amount)
+    bins = get_bin_edges(extent, bin_amount=bin_amount)
 
     # Compute the counts
     counts = bag.map_partitions(counts_partition, bins=bins).fold(lambda A, B: A + B)
@@ -182,4 +191,4 @@ def segmentation_intensity_report(bag, bin_amount, channels, output, name):
     counts = dask.delayed(density)(counts, bins)
 
     # return intensity_count, masked_intensity_count, bins, masked_bins
-    return plot_pixel_distribution(counts, bins, percentage, channels, output)
+    return plot_pixel_distribution(counts, bins, percentage)

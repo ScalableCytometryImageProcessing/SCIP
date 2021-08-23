@@ -15,6 +15,17 @@ import dask.dataframe
 import shutil
 from functools import partial
 from importlib import import_module
+import numpy
+
+
+def flat_intensities_partition(part):
+
+    def get_flat_intensities(p):
+        out = p.copy()
+        out["flat"] = p["pixels"].reshape(p["pixels"].shape[0],-1)
+        return out
+
+    return [get_flat_intensities(p) for p in part]
 
 
 def masked_intensities_partition(part):
@@ -47,7 +58,7 @@ def preprocess_bag(bag):
     # after this operation the bag is persisted as it
     # will be reused several times throughout the pipeline
     bag = bag.map_partitions(masked_intensities_partition)
-    bag = quantile_normalization.quantile_normalization(bag, 0.05, 0.95)
+    bag = quantile_normalization.quantile_normalization(bag, 0.01, 0.99)
 
     return bag
 
@@ -103,6 +114,21 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
         images = get_images_bag(paths, channels, config)
         bags = mask_creation.create_masks_on_bag(images, noisy_channels=[0])
 
+        # with open("test/data/masked.pickle", "wb") as fh:
+        #     import pickle
+        #     pickle.dump(bags["otsu"].compute(), fh)
+        # return
+
+        images = images.map_partitions(flat_intensities_partition)
+        intensity_distribution.segmentation_intensity_report(
+            bag=images,
+            bin_amount=100,
+            channels=channels,
+            output=output,
+            name="raw",
+            extent=None
+            ).compute()
+
         features = []
         for k, bag in bags.items():
             bag = preprocess_bag(bag)
@@ -110,19 +136,25 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
 
             visual.plot_images(bag, title=k, output=output)
             intensity_distribution.segmentation_intensity_report(
-                bag, 100, channels, output, name=k).compute()
+                bag=bag,
+                bin_amount=100,
+                channels=channels,
+                output=output,
+                name=k,
+                extent=numpy.array([(0,1)]*len(channels))
+                ).compute()
 
-            features.append(compute_features(bag, channels, k))
-        features = dask.dataframe.multi.concat(features, axis=1)
-        features = features.persist()
+            # features.append(compute_features(bag, channels, k))
+        # features = dask.dataframe.multi.concat(features, axis=1)
+        # features = features.persist()
 
         # memberships, membership_plot = fuzzy_c_mean.fuzzy_c_means(features, 5, 3, 10)
         # if output is not None:
         #     membership_plot.compute()
 
-        filename = config["data_export"]["filename"]
-        features.compute().to_parquet(str(output / f"{filename}.parquet"))
-        feature_statistics.get_feature_statistics(features, output).compute()
+        # filename = config["data_export"]["filename"]
+        # features.compute().to_parquet(str(output / f"{filename}.parquet"))
+        # feature_statistics.get_feature_statistics(features, output).compute()
 
         # if debug:
         #     context.client.profile(filename=str(output / "profile.html"))
@@ -178,10 +210,10 @@ if __name__ == "__main__":
 
     # add DEBUG_DATASET entry to terminal.integrated.env.linux in VS Code workspace settings
     # should contain path to small debug dataset
-    path = os.environ["FULL_DATASET"]
+    path = os.environ["DEBUG_DATASET"]
     main(
         paths=(path,),
         output="tmp",
         headless=True,
         config='scip.yml',
-        debug=True, n_workers=2, n_processes=1, port=8787, local=True)
+        debug=True, n_workers=4, n_processes=1, port=8787, local=True)

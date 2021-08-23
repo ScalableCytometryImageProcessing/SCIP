@@ -22,6 +22,7 @@ def apply(sample, origin):
         masked_img[i] = img[i] * mask[i]
 
     output = sample.copy()
+    del output["intermediate"]
     output["pixels"] = masked_img
     output["mask"] = mask
     return output
@@ -61,8 +62,8 @@ def get_masked_intensities(sample):
     masked_intensities = list()
 
     # Filter the intensities with the mask
-    for i in range(img.shape[0]):
-        masked_intensities.append(img[i][np.where(mask[i])])
+    for i in range(len(img)):
+        masked_intensities.append(img[i][mask[i]])
 
     output = sample.copy()
     output["flat"] = masked_intensities

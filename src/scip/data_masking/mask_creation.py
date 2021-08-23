@@ -106,7 +106,7 @@ def largest_blob_detection(sample: dict):
         else:
             largest_blob[i] = np.where(label_img == (largest_region(regions) + 1), 1, 0)
 
-    sample["intermediate"] = largest_blob
+    sample["intermediate"] = largest_blob.astype(bool)
     return sample
 
 

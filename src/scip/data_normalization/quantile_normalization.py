@@ -49,7 +49,14 @@ def get_distributed_partitioned_quantile(bag, lower, upper):
 
     qq = bag.map_partitions(select_origin, origin="flat")
     qq = qq.fold(concatenate_lists, reduce_quantiles)
-    qq = qq.apply(lambda a: np.nanmedian(a, axis=-1))
+
+    def quantiles(a):
+        out = np.empty(shape=(len(a), 2))
+        out[:, 0] = np.min(a[:, 0], axis=-1)
+        out[:, 1] = np.max(a[:, 1], axis=-1)
+        return out
+
+    qq = qq.apply(quantiles)
 
     return qq
 
@@ -61,22 +68,15 @@ def sample_normalization(sample, qq):
 
     Args:
         sample (dict): dictionary containing image data and mask data
-        qq (tuple): (lower, upper) list of quantiles for every channel
-        masked_qq (tuple): (lower, upper) list of quantiles for
-                                  every channel of masked images
-
+        qq: (lower, upper) list of quantiles for every channel
     Returns:
         dict: dictionary including normalized data
     """
 
-    img = sample.get('pixels')
-    normalized = np.empty(img.shape, dtype=float)
-
-    for i in range(len(img)):
-        normalized[i] = (img[i] - qq[i, 0]) / (qq[i, 1] - qq[i, 0])
-
     sample = sample.copy()
-    sample["pixels"] = normalized
+    for i in range(len(sample["pixels"])):
+        sample["flat"][i] = np.clip((sample["flat"][i] - qq[i, 0]) / (qq[i, 1] - qq[i, 0]), 0, 1)
+        sample["pixels"][i][sample["mask"][i]] = sample["flat"][i]
 
     return sample
 
