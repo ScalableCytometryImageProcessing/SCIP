@@ -93,7 +93,7 @@ def segmentation_intensity_report(
         output,
         name,
         extent=None
-    ):
+        ):
     """
     Calculate minima and maxima to find bins, followed by a binning of all
     the intensities. Results are plotted in a report
@@ -134,14 +134,14 @@ def segmentation_intensity_report(
             missing_masks (ndarray): count of amount of missing masks for every channel
             output (str): string of output file
         """
-        
+
         channel_labels = [f'ch{i}' for i in channels]
-        
+
         fig, axes = plt.subplots(1, len(channels), figsize=(20, 10))
         for i in range(len(channels)):
             axes[i].title.set_text(channel_labels[i])
             axes[i].bar(
-                bins[i, :-1], counts[i], width=(bins[i, -1] - bins[i, 0])/bin_amount)
+                bins[i, :-1], counts[i], width=(bins[i, -1] - bins[i, 0]) / bin_amount)
 
         # Encode to include in HTML
         stream = BytesIO()

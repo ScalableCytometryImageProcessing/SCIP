@@ -140,7 +140,7 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
                 channels=channels,
                 output=output,
                 name=k,
-                extent=numpy.array([(0, 1)] * len(channels)) # extent is known due to normalization
+                extent=numpy.array([(0, 1)] * len(channels))  # extent is known due to normalization
             ).compute()
 
             # features.append(compute_features(bag, channels, k))
