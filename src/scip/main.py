@@ -22,7 +22,7 @@ def flat_intensities_partition(part):
 
     def get_flat_intensities(p):
         out = p.copy()
-        out["flat"] = p["pixels"].reshape(p["pixels"].shape[0],-1)
+        out["flat"] = p["pixels"].reshape(p["pixels"].shape[0], -1)
         return out
 
     return [get_flat_intensities(p) for p in part]
@@ -125,9 +125,8 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
             bin_amount=100,
             channels=channels,
             output=output,
-            name="raw",
-            extent=None
-            ).compute()
+            name="raw"
+        ).compute()
 
         features = []
         for k, bag in bags.items():
@@ -141,8 +140,8 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
                 channels=channels,
                 output=output,
                 name=k,
-                extent=numpy.array([(0,1)]*len(channels))
-                ).compute()
+                extent=numpy.array([(0, 1)] * len(channels)) # extent is known due to normalization
+            ).compute()
 
             # features.append(compute_features(bag, channels, k))
         # features = dask.dataframe.multi.concat(features, axis=1)

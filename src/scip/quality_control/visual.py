@@ -15,7 +15,7 @@ def plot_images(bag, *, title, output):
         ax[1].set_axis_off()
         ax[0].imshow(image["pixels"][0])
         ax[1].imshow(image["mask"][0])
-        
+
     stream = BytesIO()
     fig.savefig(stream, format='png')
     encoded = base64.b64encode(stream.getvalue()).decode('utf-8')

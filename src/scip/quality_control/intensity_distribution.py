@@ -32,10 +32,10 @@ def get_min_max(sample, origin):
 
 
 def reduce_minmax(A, B):
-    C = np.concatenate([A[:, 0, np.newaxis],B[:, 0, np.newaxis]], axis=1)
-    A[:,0] = np.nanmin(C, axis=1)
-    C = np.concatenate([A[:, 1, np.newaxis],B[:, 1, np.newaxis]], axis=1)
-    A[:,1] = np.nanmax(C, axis=1)
+    C = np.concatenate([A[:, 0, np.newaxis], B[:, 0, np.newaxis]], axis=1)
+    A[:, 0] = np.nanmin(C, axis=1)
+    C = np.concatenate([A[:, 1, np.newaxis], B[:, 1, np.newaxis]], axis=1)
+    A[:, 1] = np.nanmax(C, axis=1)
     return A
 
 
@@ -52,13 +52,13 @@ def get_bin_edges(min_max, bin_amount=50):
         ndarray: matrix where every row represents the bin edges of a channel
     """
 
-    edges = np.empty(shape=(len(min_max), bin_amount+1), dtype=float)
+    edges = np.empty(shape=(len(min_max), bin_amount + 1), dtype=float)
 
     for i in range(len(min_max)):
         if min_max[i, 0] < min_max[i, 1]:
-            edges[i] = np.linspace(min_max[i, 0], min_max[i, 1], num=bin_amount+1)
+            edges[i] = np.linspace(min_max[i, 0], min_max[i, 1], num=bin_amount + 1)
         else:
-            edges[i] = np.linspace(0, 1, num=bin_amount+1)
+            edges[i] = np.linspace(0, 1, num=bin_amount + 1)
     return edges
 
 
@@ -85,14 +85,15 @@ def get_counts(sample, bins):
     return counts
 
 
-def segmentation_intensity_report(*,
-        bag, 
-        bin_amount, 
-        channels, 
-        output, 
+def segmentation_intensity_report(
+        *,
+        bag,
+        bin_amount,
+        channels,
+        output,
         name,
         extent=None
-        ):
+    ):
     """
     Calculate minima and maxima to find bins, followed by a binning of all
     the intensities. Results are plotted in a report
@@ -120,7 +121,7 @@ def segmentation_intensity_report(*,
     def get_blanks(sample):
         flat_intensities = sample.get('flat')
         return np.array([len(i) == 0 for i in flat_intensities], dtype=int)
-    
+
     @dask.delayed
     def plot_pixel_distribution(counts, bins, missing_masks):
 
@@ -140,7 +141,7 @@ def segmentation_intensity_report(*,
         for i in range(len(channels)):
             axes[i].title.set_text(channel_labels[i])
             axes[i].bar(
-                bins[i,:-1], counts[i], width=(bins[i,-1] - bins[i, 0])/bin_amount)
+                bins[i, :-1], counts[i], width=(bins[i, -1] - bins[i, 0])/bin_amount)
 
         # Encode to include in HTML
         stream = BytesIO()
@@ -186,7 +187,7 @@ def segmentation_intensity_report(*,
         # density computation taken from numpy histogram source
         # https://github.com/numpy/numpy/blob/v1.21.0/numpy/lib/histograms.py#L678-L929
         db = np.diff(bins, axis=-1)
-        return n/db/n.sum(axis=0)
+        return n / db / n.sum(axis=0)
 
     counts = dask.delayed(density)(counts, bins)
 

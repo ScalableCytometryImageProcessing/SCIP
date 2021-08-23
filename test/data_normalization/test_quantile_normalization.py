@@ -14,12 +14,12 @@ def test_distributed_partitioned_quantile(data, cluster):
     quantiles = quantile_normalization.get_distributed_partitioned_quantile(
         bag, 0.05, 0.95
     )
-    
+
     observed_quantiles = quantiles.compute()
     expected_quantiles = numpy.load(str(data / "quantiles.npy"))
 
     errors = numpy.load(str(data / "quantile_errors.npy"))
-    errors = numpy.tile(errors, (2,1)).T
+    errors = numpy.tile(errors, (2, 1)).T
 
     assert numpy.all(numpy.abs(observed_quantiles - expected_quantiles) < errors)
 
