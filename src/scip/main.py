@@ -66,8 +66,8 @@ def preprocess_bag(bag):
 def compute_features(images, channels, prefix):
 
     skimage_features = feature_extraction.extract_features(images=images)
-    cp_features = cellprofiler.extract_features(images=images, channels=channels) 
-    features = dask.dataframe.multi.concat([skimage_features, cp_features], axis=1) 
+    cp_features = cellprofiler.extract_features(images=images, channels=channels)
+    features = dask.dataframe.multi.concat([skimage_features, cp_features], axis=1)
 
     def name(c):
         parts = c.split("_", 1)
@@ -123,7 +123,7 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
             output=output,
             name="raw"
         )
- 
+
         bags = mask_creation.create_masks_on_bag(images, noisy_channels=[0])
 
         # with open("test/data/masked.pickle", "wb") as fh:
@@ -133,7 +133,7 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
 
         features = []
         for k, bag in bags.items():
-            bag = preprocess_bag(bag) 
+            bag = preprocess_bag(bag)
             bag = bag.persist()
 
             visual.plot_images(bag, title=k, output=output)

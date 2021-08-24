@@ -93,7 +93,7 @@ def segmentation_intensity_report(
         output,
         name,
         extent=None
-        ):
+):
     """
     Calculate minima and maxima to find bins, followed by a binning of all
     the intensities. Results are plotted in a report

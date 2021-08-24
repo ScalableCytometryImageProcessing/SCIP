@@ -146,7 +146,6 @@ def extract_features(*, images: dask.bag.Bag):
     def meta_partition(part):
         return [dict(path=p["path"], idx=p["idx"]) for p in part]
 
-
     def to_dataframe(bag, prefix):
         df = bag.to_dataframe()
 
