@@ -21,6 +21,9 @@ jobs:
       - name: Install package
         run: |
           pip install .
+      - name: Install dev dependencies
+        run: |
+          pip install -r requirements.txt
       - name: Test with pytest (lint with flake8 and run coverage)
         run: coverage run --source=src/ -m pytest --flake8 --mypy
       - name: Coverage report
