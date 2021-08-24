@@ -7,6 +7,7 @@ import cellprofiler_core.pipeline
 import cellprofiler_core.preferences
 import cellprofiler.modules.measureimageintensity
 import cellprofiler.modules.measuretexture
+import cellprofiler.modules.measuregranularity
 import pandas
 import logging
 
@@ -69,6 +70,12 @@ def extract_features(*, images, channels):
     module = cellprofiler.modules.measuretexture.MeasureTexture()
     module.images_or_objects.set_value(cellprofiler.modules.measuretexture.IO_IMAGES)
     module.add_scale()
+    modules.append(module)
+
+    module = cellprofiler.modules.measuregranularity.MeasureGranularity()
+    module.images_list.set_value([str(c) for c in channels])
+    module.subsample_size.set_value(0.75)
+    module.element_size.set_value(5)
     modules.append(module)
 
     return images.map_partitions(
