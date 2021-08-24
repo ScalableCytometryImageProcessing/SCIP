@@ -1,10 +1,10 @@
-from scip.data_masking import mask_creation
+from scip.segmentation import mask_creation
 from scip.utils import util
-from scip.data_normalization import quantile_normalization
+from scip.normalization import quantile_normalization
 from scip.quality_control import feature_statistics, visual, intensity_distribution
-from scip.data_features import feature_extraction, cellprofiler
-from scip.data_masking.mask_apply import get_masked_intensities
-# from scip.data_analysis import fuzzy_c_mean
+from scip.features import feature_extraction, cellprofiler
+from scip.segmentation.mask_apply import get_masked_intensities
+# from scip.analysis import fuzzy_c_mean
 import time
 import click
 import logging
@@ -34,11 +34,11 @@ def masked_intensities_partition(part):
 
 def get_images_bag(paths, channels, config):
 
-    loader_module = import_module('scip.data_loading.%s' % config["data_loading"]["format"])
+    loader_module = import_module('scip.loading.%s' % config["loading"]["format"])
     loader = partial(
         loader_module.bag_from_directory,
         channels=channels,
-        partition_size=config["data_loading"]["partition_size"])
+        partition_size=config["loading"]["partition_size"])
 
     images = []
     idx = 0
@@ -108,8 +108,8 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
 
         start = time.time()
 
-        assert "channels" in config["data_loading"], "Please specify what channels to load"
-        channels = config["data_loading"].get("channels")
+        assert "channels" in config["loading"], "Please specify what channels to load"
+        channels = config["loading"].get("channels")
 
         images = get_images_bag(paths, channels, config)
         bags = mask_creation.create_masks_on_bag(images, noisy_channels=[0])
@@ -151,7 +151,7 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
         # if output is not None:
         #     membership_plot.compute()
 
-        filename = config["data_export"]["filename"]
+        filename = config["export"]["filename"]
         features.compute().to_parquet(str(output / f"{filename}.parquet"))
         feature_statistics.get_feature_statistics(features, output).compute()
 

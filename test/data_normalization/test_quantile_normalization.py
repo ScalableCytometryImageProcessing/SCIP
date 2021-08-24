@@ -1,6 +1,6 @@
-from scip.data_loading import multiframe_tiff
-from scip.data_masking import mask_creation
-from scip.data_normalization import quantile_normalization
+from scip.loading import multiframe_tiff
+from scip.segmentation import mask_creation
+from scip.normalization import quantile_normalization
 from scip.main import masked_intensities_partition
 import dask.bag
 import pickle

@@ -1,7 +1,7 @@
-data_loading:
+loading:
   format: multiframe_tiff
   channels: [0, 1, 2, 3]
   partition_size: 5
-data_export:
+export:
   format: parquet
   filename: test
