@@ -95,7 +95,7 @@ def texture_features(sample):
 
     """
 
-    sample = 40
+    subsample = 40
 
     def texture_features(i):
         channel_img = img[i]
@@ -110,12 +110,12 @@ def texture_features(sample):
         # the amount of hog features depends on the size of the input image, which is not uniform
         # for most datasets. Truncating the feaure vector is likely to drop most information, so
         # we randomly sample a fixed number of values from the feature vector
-        hog_features = np.random.choice(hog_features, replace=False, size=sample)
+        hog_features = np.random.choice(hog_features, replace=False, size=subsample)
 
         hog_dict = {}
 
         # put hog features in dictionary
-        for j in range(sample):
+        for j in range(subsample):
             hog_dict.update({f'hog_ch_{i}_{j}': hog_features[j]})
 
         return hog_dict
