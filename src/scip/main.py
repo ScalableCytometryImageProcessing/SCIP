@@ -68,7 +68,11 @@ def compute_features(images, channels, prefix):
     skimage_features = feature_extraction.extract_features(images=images)
     cp_features = cellprofiler.extract_features(images=images, channels=channels) 
     features = dask.dataframe.multi.concat([skimage_features, cp_features], axis=1) 
-    features = features.rename(columns=lambda c: prefix + "_" + c)
+
+    def name(c):
+        parts = c.split("_", 1)
+        return f"{parts[0]}_{prefix}_{parts[1]}"
+    features = features.rename(columns=name)
 
     return features
 

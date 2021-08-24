@@ -143,16 +143,23 @@ def extract_features(*, images: dask.bag.Bag):
     def texture_partition(part):
         return [texture_features(p) for p in part]
 
-    def to_dataframe(bag):
+    def meta_partition(part):
+        return [dict(path=p["path"], idx=p["idx"]) for p in part]
+
+
+    def to_dataframe(bag, prefix):
         df = bag.to_dataframe()
 
         # setting the index causes partition divisions to be known for Dask
         # making concatenation fast
         df = df.set_index("idx")
+        df = df.rename(columns=lambda n: f"{prefix}_{n}")
         return df
 
-    shape_df = to_dataframe(images.map_partitions(shape_partition))
-    intensity_df = to_dataframe(images.map_partitions(intensity_partition))
-    texture_df = to_dataframe(images.map_partitions(texture_partition))
+    shape_df = to_dataframe(images.map_partitions(shape_partition), "feat")
+    intensity_df = to_dataframe(images.map_partitions(intensity_partition), "feat")
+    texture_df = to_dataframe(images.map_partitions(texture_partition), "feat")
+    meta_df = to_dataframe(images.map_partitions(meta_partition), "meta")
 
-    return dask.dataframe.multi.concat([shape_df, intensity_df, texture_df], axis=1)
+    return dask.dataframe.multi.concat(
+        [shape_df, intensity_df, texture_df, meta_df], axis=1)
