@@ -4,6 +4,7 @@ from scip.normalization import quantile_normalization
 from scip.quality_control import feature_statistics, visual, intensity_distribution
 from scip.features import feature_extraction, cellprofiler
 from scip.segmentation.mask_apply import get_masked_intensities
+from scip.analysis import dimensionality_reduction
 # from scip.analysis import fuzzy_c_mean
 import time
 import click
@@ -146,6 +147,8 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
 
         features = dask.dataframe.multi.concat(features, axis=1)
         features = features.persist()
+
+        components = dimensionality_reduction.umap(features)
 
         # memberships, membership_plot = fuzzy_c_mean.fuzzy_c_means(features, 5, 3, 10)
         # if output is not None:

@@ -42,24 +42,6 @@ def feature_stats_to_html(var, mean, dropped_zero_variance, dropped_nan, feature
         text_file.write('<header><h1>Dropped columns: Zero variance</h1></header>')
         text_file.write(zero_variance_html)
 
-    reducer = umap.UMAP()
-    values = StandardScaler().fit_transform(feature_df.values)
-    embedding = reducer.fit_transform(values)
-
-    fig = plt.figure()
-    plt.scatter(embedding[:, 0], embedding[:, 1])
-    plt.gca().set_aspect('equal', 'datalim')
-    plt.title('UMAP projection of dataset', fontsize=24)
-    tmpfile = BytesIO()
-    fig.savefig(tmpfile, format='png')
-    encoded = base64.b64encode(tmpfile.getvalue()).decode('utf-8')
-
-    with open(str(output / "quality_report_features.html"), "a") as text_file:
-        html = '<img src=\'data:image/png;base64,{}\'>'.format(encoded)
-        text_file.write('<header><h1>UMAP Feature reduction </h1></header>')
-        text_file.write(html)
-        text_file.close()
-
 
 def get_feature_statistics(feature_df, output):
 
