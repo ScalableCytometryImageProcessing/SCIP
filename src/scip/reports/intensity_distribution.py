@@ -137,7 +137,7 @@ def segmentation_intensity_report(
 
         channel_labels = [f'ch{i}' for i in channels]
 
-        fig, axes = plt.subplots(1, len(channels), figsize=(20, 10))
+        fig, axes = plt.subplots(1, len(channels), figsize=(10, 5))
         for i in range(len(channels)):
             axes[i].title.set_text(channel_labels[i])
             axes[i].bar(
