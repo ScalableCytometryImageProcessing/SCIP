@@ -68,6 +68,7 @@ def extract_features(*, images, channels):
     modules.append(module)
 
     module = cellprofiler.modules.measuretexture.MeasureTexture()
+    module.images_list.set_value([str(c) for c in channels])
     module.images_or_objects.set_value(cellprofiler.modules.measuretexture.IO_IMAGES)
     module.add_scale()
     modules.append(module)
