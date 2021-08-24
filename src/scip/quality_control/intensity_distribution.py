@@ -192,4 +192,4 @@ def segmentation_intensity_report(
     counts = dask.delayed(density)(counts, bins)
 
     # return intensity_count, masked_intensity_count, bins, masked_bins
-    return plot_pixel_distribution(counts, bins, percentage)
+    plot_pixel_distribution(counts, bins, percentage).compute()
