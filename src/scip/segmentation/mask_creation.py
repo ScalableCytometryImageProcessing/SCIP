@@ -2,7 +2,7 @@ from skimage import filters, segmentation
 from skimage.restoration import denoise_nl_means
 from skimage.measure import label, regionprops
 import numpy as np
-from scip.data_masking import mask_apply
+from scip.segmentation import mask_apply
 
 
 def denoising(sample, noisy_channels=[]):
