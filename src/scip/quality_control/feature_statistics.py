@@ -68,4 +68,4 @@ def get_feature_statistics(feature_df, output):
 
     feature_df, dropped_zero_variance, dropped_nan = filter_features(feature_df, var)
     return feature_stats_to_html(
-        var, mean, dropped_zero_variance, dropped_nan, feature_df, output)
+        var, mean, dropped_zero_variance, dropped_nan, feature_df, output).compute()

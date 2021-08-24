@@ -65,9 +65,9 @@ def preprocess_bag(bag):
 
 def compute_features(images, channels, prefix):
 
-    skimage_features = feature_extraction.extract_features(images=images)
-    cp_features = cellprofiler.extract_features(images=images, channels=channels)
-    features = dask.dataframe.multi.concat([skimage_features, cp_features], axis=1)
+    skimage_features = feature_extraction.extract_features(images=images).persist()
+    cp_features = cellprofiler.extract_features(images=images, channels=channels).persist() 
+    features = dask.dataframe.multi.concat([skimage_features, cp_features], axis=1) 
     features = features.rename(columns=lambda c: prefix + "_" + c)
 
     return features
@@ -111,7 +111,15 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
         assert "channels" in config["loading"], "Please specify what channels to load"
         channels = config["loading"].get("channels")
 
-        images = get_images_bag(paths, channels, config)
+        images = get_images_bag(paths, channels, config).persist()
+        intensity_distribution.segmentation_intensity_report(
+            bag=images.map_partitions(flat_intensities_partition),
+            bin_amount=100,
+            channels=channels,
+            output=output,
+            name="raw"
+        )
+ 
         bags = mask_creation.create_masks_on_bag(images, noisy_channels=[0])
 
         # with open("test/data/masked.pickle", "wb") as fh:
@@ -119,18 +127,9 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
         #     pickle.dump(bags["otsu"].compute(), fh)
         # return
 
-        images = images.map_partitions(flat_intensities_partition)
-        intensity_distribution.segmentation_intensity_report(
-            bag=images,
-            bin_amount=100,
-            channels=channels,
-            output=output,
-            name="raw"
-        ).compute()
-
         features = []
         for k, bag in bags.items():
-            bag = preprocess_bag(bag)
+            bag = preprocess_bag(bag) 
             bag = bag.persist()
 
             visual.plot_images(bag, title=k, output=output)
@@ -141,9 +140,10 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
                 output=output,
                 name=k,
                 extent=numpy.array([(0, 1)] * len(channels))  # extent is known due to normalization
-            ).compute()
+            )
 
             features.append(compute_features(bag, channels, k))
+
         features = dask.dataframe.multi.concat(features, axis=1)
         features = features.persist()
 
@@ -153,7 +153,7 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
 
         filename = config["export"]["filename"]
         features.compute().to_parquet(str(output / f"{filename}.parquet"))
-        feature_statistics.get_feature_statistics(features, output).compute()
+        feature_statistics.get_feature_statistics(features, output)
 
         if debug:
             context.client.profile(filename=str(output / "profile.html"))
