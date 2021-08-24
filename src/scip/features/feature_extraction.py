@@ -95,20 +95,27 @@ def texture_features(sample):
 
     """
 
+    sample = 40
+
     def texture_features(i):
         channel_img = img[i]
-        hog_features = hog(channel_img, orientations=8, pixels_per_cell=(16, 16),
-                           cells_per_block=(1, 1))
+        hog_features = hog(
+            channel_img,
+            orientations=3,
+            pixels_per_cell=(4, 8),
+            cells_per_block=(1, 1),
+            visualize=False
+        )
+
+        # the amount of hog features depends on the size of the input image, which is not uniform
+        # for most datasets. Truncating the feaure vector is likely to drop most information, so
+        # we randomly sample a fixed number of values from the feature vector
+        hog_features = np.random.choice(hog_features, replace=False, size=sample)
+
         hog_dict = {}
 
-        # If no hog features can be found inser NaN
-        if len(hog_features) == 0:
-            for j in range(48):
-                hog_dict.update({f'hog_ch_{i}_{j}': np.NaN})
-            return hog_dict
-
         # put hog features in dictionary
-        for j in range(48):
+        for j in range(sample):
             hog_dict.update({f'hog_ch_{i}_{j}': hog_features[j]})
 
         return hog_dict
