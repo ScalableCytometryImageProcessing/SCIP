@@ -3,6 +3,63 @@ import dask
 import dask.bag
 
 
+def select_origin(partition, *, origin):
+    """
+    Maps each element in the partition to the requested and flattened origin values
+    """
+
+    mapped = []
+    for el in partition:
+
+        # values cannot be a numpy array as not all channels are required to have the same
+        # amount of values for one element (due to masking)
+        values = []
+        for v in el[origin]:
+            values.append(v.flatten())
+        mapped.append(values)
+
+    return mapped
+
+
+def get_distributed_minmax(bag):
+
+    def combine_extent_partition(a, b):
+        out = np.empty(shape=a.shape)
+        for i in range(len(a)):
+            if b[i].size == 0:
+                out[i] = a[i]
+            else:
+                out[i, 0] = min(a[i, 0], np.min(b[i]))
+                out[i, 1] = max(a[i, 1], np.max(b[i]))
+        return out
+
+    def partition_minmax(a, b):
+        if not hasattr(a, "shape"):
+            out = np.empty(shape=(len(a), 2))
+            for i in range(len(a)):
+                tmp = np.concatenate((a[i], b[i]))
+                out[i, 0] = np.min(tmp)
+                out[i, 1] = np.max(tmp)
+            return out
+
+        return combine_extent_partition(a, b)
+
+    def final_minmax(a, b):
+        if not hasattr(b, "shape"):
+            return combine_extent_partition(a, b)
+
+        out = np.empty(shape=a.shape)
+        for i in range(len(a)):
+            out[i, 0] = min(a[i, 0], b[i, 0])
+            out[i, 1] = max(a[i, 1], b[i, 1])
+        return out
+
+    bag = bag.map_partitions(select_origin, origin="flat")
+    out = bag.fold(binop=partition_minmax, combine=final_minmax)
+
+    return out
+
+
 def get_distributed_partitioned_quantile(bag, lower, upper):
     """
     Third method for quantile calculation:
@@ -10,23 +67,6 @@ def get_distributed_partitioned_quantile(bag, lower, upper):
     a quantile calculation is performed. The found quantiles per partition are then reduced
     with a median.
     """
-
-    def select_origin(partition, *, origin):
-        """
-        Maps each element in the partition to the requested and flattened origin values
-        """
-
-        mapped = []
-        for el in partition:
-
-            # values cannot be a numpy array as not all channels are required to have the same
-            # amount of values for one element (due to masking)
-            values = []
-            for v in el[origin]:
-                values.append(v.flatten())
-            mapped.append(values)
-
-        return mapped
 
     def concatenate_lists(a, b):
         """
@@ -98,5 +138,8 @@ def quantile_normalization(images: dask.bag.Bag, lower, upper):
     def normalize_partition(part, quantiles):
         return [sample_normalization(p, quantiles) for p in part]
 
-    quantiles = get_distributed_partitioned_quantile(images, lower, upper)
+    if lower == 0 and upper == 1:
+        quantiles = get_distributed_minmax(images)
+    else:
+        quantiles = get_distributed_partitioned_quantile(images, lower, upper)
     return images.map_partitions(normalize_partition, quantiles)

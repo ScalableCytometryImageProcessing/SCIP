@@ -58,15 +58,15 @@ def preprocess_bag(bag):
     # after this operation the bag is persisted as it
     # will be reused several times throughout the pipeline
     bag = bag.map_partitions(masked_intensities_partition)
-    bag = quantile_normalization.quantile_normalization(bag, 0.01, 0.99)
+    bag = quantile_normalization.quantile_normalization(bag, 0, 1)
 
     return bag
 
 
 def compute_features(images, channels, prefix):
 
-    skimage_features = feature_extraction.extract_features(images=images).persist()
-    cp_features = cellprofiler.extract_features(images=images, channels=channels).persist() 
+    skimage_features = feature_extraction.extract_features(images=images)
+    cp_features = cellprofiler.extract_features(images=images, channels=channels) 
     features = dask.dataframe.multi.concat([skimage_features, cp_features], axis=1) 
     features = features.rename(columns=lambda c: prefix + "_" + c)
 
