@@ -143,20 +143,20 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
                 extent=numpy.array([(0, 1)] * len(channels))  # extent is known due to normalization
             ).compute()
 
-            # features.append(compute_features(bag, channels, k))
-        # features = dask.dataframe.multi.concat(features, axis=1)
-        # features = features.persist()
+            features.append(compute_features(bag, channels, k))
+        features = dask.dataframe.multi.concat(features, axis=1)
+        features = features.persist()
 
         # memberships, membership_plot = fuzzy_c_mean.fuzzy_c_means(features, 5, 3, 10)
         # if output is not None:
         #     membership_plot.compute()
 
-        # filename = config["data_export"]["filename"]
-        # features.compute().to_parquet(str(output / f"{filename}.parquet"))
-        # feature_statistics.get_feature_statistics(features, output).compute()
+        filename = config["data_export"]["filename"]
+        features.compute().to_parquet(str(output / f"{filename}.parquet"))
+        feature_statistics.get_feature_statistics(features, output).compute()
 
-        # if debug:
-        #     context.client.profile(filename=str(output / "profile.html"))
+        if debug:
+            context.client.profile(filename=str(output / "profile.html"))
 
     runtime = time.time() - start
     logger.info(f"Full runtime {runtime:.2f}")
