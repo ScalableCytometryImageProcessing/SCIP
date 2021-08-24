@@ -1,5 +1,4 @@
 import setuptools
-import scip
 
 setuptools.setup(
     classifiers=[
@@ -7,7 +6,7 @@ setuptools.setup(
         "Operating System :: LInux",
     ],
     name="scip",
-    version=scip.__version__,
+    version="0.0.2",
     package_dir={"": "src"},
     install_requires=[
         'numpy',
@@ -29,7 +28,7 @@ setuptools.setup(
         ]
     },
     packages=setuptools.find_packages(where="src"),
-    python_requires="3.8",
+    python_requires="==3.8.*",
     package_data={
         'scip': ['logging.yml']
     }
