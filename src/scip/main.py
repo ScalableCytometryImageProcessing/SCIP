@@ -1,7 +1,7 @@
 from scip.segmentation import mask_creation
 from scip.utils import util
 from scip.normalization import quantile_normalization
-from scip.quality_control import feature_statistics, visual, intensity_distribution
+from scip.reports import feature_statistics, visual, intensity_distribution
 from scip.features import feature_extraction, cellprofiler
 from scip.segmentation.mask_apply import get_masked_intensities
 # from scip.analysis import fuzzy_c_mean
