@@ -9,14 +9,14 @@ import asyncio
 
 async def main():
 
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger(__name__)
-
     output = Path.cwd() / Path("benchmark_%s" % datetime.now().strftime("%Y%m%d%H%M%S"))
     output.mkdir()
+    
+    logging.basicConfig(level=logging.INFO, filename=str(output / "benchmark.log"))
+    logger = logging.getLogger(__name__)
 
     paths = " ".join([
-        "/home/maximl/shared_scratch/vulcan_pbmc_debug"
+        "/home/maximl/shared_scratch/vulcan_pbmc"
     ])
     iterations = 5
     n_workers = 1
@@ -24,7 +24,9 @@ async def main():
     timings = []
     subprocs = []
     for n_processes in [1, 2, 4, 8, 16, 32]:
-        for _ in range(iterations):
+        logger.info(f"Benchmarking {n_processes}")
+        for i in range(iterations):
+            logger.info(f"{n_processes}: iteration {i+1}/{iterations}")
 
             timing = str(output / ("%s.json" % uuid.uuid4()))
             timings.append(timing)
@@ -37,9 +39,11 @@ async def main():
             subprocs.append(proc.wait())
 
             if len(subprocs) >= 6:
+                logger.info(f"Waiting for next {len(subprocs)} tasks to finish")
                 await asyncio.gather(*subprocs)
                 subprocs = []
 
+    logger.info(f"Waiting for final {len(subprocs)} tasks to finish")
     await asyncio.gather(*subprocs)
 
     timing_data = []
