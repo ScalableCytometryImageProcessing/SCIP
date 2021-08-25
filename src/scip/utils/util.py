@@ -6,6 +6,7 @@ from pathlib import Path
 import yaml
 from pkg_resources import resource_stream
 import logging
+import time
 
 
 class ClientClusterContext:
@@ -35,7 +36,11 @@ class ClientClusterContext:
                 resource_spec="h_vmem=10G,mem_free=240G",
                 processes=self.n_processes,
                 project="scip",
-                job_extra=("-pe serial 24", "-j y", "-o ~/logs/dask_workers.out"),
+                job_extra=(
+                    "-pe serial 24", 
+                    "-j y", 
+                    "-o ~/logs/dask_workers_%s.out" % str(int(time.time()*100))
+                ),
                 scheduler_options={
                     'dashboard_address': None if self.port is None else f':{self.port}'}
             )
