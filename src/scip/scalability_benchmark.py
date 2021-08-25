@@ -10,8 +10,8 @@ import asyncio
 async def main():
 
     output = Path.cwd() / Path("benchmark_%s" % datetime.now().strftime("%Y%m%d%H%M%S"))
-    o = str(output / "tmp")
     output.mkdir()
+    (output / "results").mkdir()
     
     logging.basicConfig(level=logging.INFO, filename=str(output / "benchmark.log"))
     logger = logging.getLogger(__name__)
@@ -28,10 +28,12 @@ async def main():
         logger.info(f"Benchmarking {n_processes}")
         for i in range(iterations):
             logger.info(f"{n_processes}: iteration {i+1}/{iterations}")
-
-            timing = str(output / ("%s.json" % uuid.uuid4()))
+            
+            ident = uuid.uuid4()
+            timing = str(output / ("%s.json" % ident))
             timings.append(timing)
 
+            o = str(output / "results" / ident)
             command = f"scip -j{n_workers} -n{n_processes} --no-local "
             command += f"--headless --timing {timing} -o {o} scip.yml {paths}"
 
