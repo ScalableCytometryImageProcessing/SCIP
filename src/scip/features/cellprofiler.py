@@ -53,7 +53,7 @@ def compute_measurements_on_partition(partition, *, modules, channels):
     df = pandas.DataFrame(columns=[c for _, c, _ in measurements.get_measurement_columns()])
     for o, m, _ in measurements.get_measurement_columns():
         df[m] = measurements.get_all_measurements(o, m)
-    df["idx"] = idx
+    df = pandas.concat([df, pandas.Series(data=idx, name="idx")], axis=1)
 
     logger.debug("Measurements converted to pandas dataframe")
 
