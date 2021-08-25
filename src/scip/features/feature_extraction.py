@@ -99,7 +99,7 @@ def texture_features(sample):
         channel_img = img[i]
         hog_features = hog(
             channel_img,
-            orientations=3,
+            orientations=4,
             pixels_per_cell=pixels_per_cell,
             cells_per_block=(1, 1),
             visualize=False
