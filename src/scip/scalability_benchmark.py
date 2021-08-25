@@ -33,7 +33,7 @@ async def main():
             timing = str(output / ("%s.json" % ident))
             timings.append(timing)
 
-            o = str(output / "results" / ident)
+            o = str(output / "results" / str(ident))
             command = f"scip -j{n_workers} -n{n_processes} --no-local "
             command += f"--headless --timing {timing} -o {o} scip.yml {paths}"
 
