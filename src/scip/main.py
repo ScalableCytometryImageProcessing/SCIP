@@ -69,7 +69,7 @@ def preprocess_bag(bag):
 def compute_features(images, channels, prefix):
 
     skimage_features = feature_extraction.extract_features(images=images)
-    cp_features = cellprofiler.extract_features(images=images, channels=channels).persist()
+    cp_features = cellprofiler.extract_features(images=images, channels=channels)
     features = dask.dataframe.multi.concat([skimage_features, cp_features], axis=1)
 
     def name(c):
@@ -141,7 +141,7 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
             flat = s["mask"].reshape(s["mask"].shape[0], -1)
             return all(numpy.any(flat, axis=1))
         
-        features = []
+        feature_dataframes = []
         for k, bag in bags.items():
             
             bag = bag.filter(nonempty_mask_predicate)
@@ -158,14 +158,14 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
                 extent=numpy.array([(0, 1)] * len(channels))  # extent is known due to normalization
             )
 
-            features.append(compute_features(bag, channels, k))
+            feature_dataframes.append(compute_features(bag, channels, k))
 
-        features = dask.dataframe.multi.concat(features, axis=1)
+        features = dask.dataframe.multi.concat(feature_dataframes, axis=1)
         features = features.persist()
 
         # memberships, membership_plot = fuzzy_c_mean.fuzzy_c_means(features, 5, 3, 10)
         # if output is not None:
-        #     membership_plot.compute()
+            # membership_plot.compute()
 
         filename = config["export"]["filename"]
         features.compute().to_parquet(str(output / f"{filename}.parquet"))
@@ -231,4 +231,4 @@ if __name__ == "__main__":
         output="tmp",
         headless=True,
         config='scip.yml',
-        debug=True, n_workers=4, n_processes=1, port=8787, local=True)
+        debug=True, n_workers=1, n_processes=1, port=8787, local=True)
