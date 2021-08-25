@@ -10,6 +10,7 @@ import asyncio
 async def main():
 
     output = Path.cwd() / Path("benchmark_%s" % datetime.now().strftime("%Y%m%d%H%M%S"))
+    o = str(output / "tmp")
     output.mkdir()
     
     logging.basicConfig(level=logging.INFO, filename=str(output / "benchmark.log"))
@@ -32,7 +33,7 @@ async def main():
             timings.append(timing)
 
             command = f"scip -j{n_workers} -n{n_processes} --no-local "
-            command += f"--headless --timing {timing} scip.yml {paths}"
+            command += f"--headless --timing {timing} -o {o} scip.yml {paths}"
 
             logger.info(f"Launching: {command}")
             proc = await asyncio.create_subprocess_shell(command)
