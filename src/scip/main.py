@@ -1,7 +1,7 @@
 from scip.segmentation import mask_creation
 from scip.utils import util
 from scip.normalization import quantile_normalization
-from scip.reports import feature_statistics, visual, intensity_distribution
+from scip.reports import feature_statistics, visual, intensity_distribution, masks
 from scip.features import feature_extraction, cellprofiler
 from scip.segmentation.mask_apply import get_masked_intensities
 # from scip.analysis import fuzzy_c_mean
@@ -16,6 +16,9 @@ import shutil
 from functools import partial
 from importlib import import_module
 import numpy
+
+import matplotlib
+matplotlib.use("Agg")
 
 
 def flat_intensities_partition(part):
@@ -66,7 +69,7 @@ def preprocess_bag(bag):
 def compute_features(images, channels, prefix):
 
     skimage_features = feature_extraction.extract_features(images=images)
-    cp_features = cellprofiler.extract_features(images=images, channels=channels)
+    cp_features = cellprofiler.extract_features(images=images, channels=channels).persist()
     features = dask.dataframe.multi.concat([skimage_features, cp_features], axis=1)
 
     def name(c):
@@ -114,33 +117,42 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
 
         assert "channels" in config["loading"], "Please specify what channels to load"
         channels = config["loading"].get("channels")
+        channel_labels = [f'ch{i}' for i in channels]
 
         images = get_images_bag(paths, channels, config).persist()
-        intensity_distribution.segmentation_intensity_report(
-            bag=images.map_partitions(flat_intensities_partition),
+        intensity_distribution.report(
+            images.map_partitions(flat_intensities_partition),
             bin_amount=100,
-            channels=channels,
+            channel_labels=channel_labels,
             output=output,
             name="raw"
         )
 
         bags = mask_creation.create_masks_on_bag(images, noisy_channels=[0])
+        for k, v in bags.items():
+            masks.report(v, channel_labels=channel_labels, output=output, name=k)
 
         # with open("test/data/masked.pickle", "wb") as fh:
         #     import pickle
         #     pickle.dump(bags["otsu"].compute(), fh)
         # return
 
+        def nonempty_mask_predicate(s):
+            flat = s["mask"].reshape(s["mask"].shape[0], -1)
+            return all(numpy.any(flat, axis=1))
+        
         features = []
         for k, bag in bags.items():
+            
+            bag = bag.filter(nonempty_mask_predicate)
             bag = preprocess_bag(bag)
             bag = bag.persist()
 
-            visual.plot_images(bag, title=k, output=output)
-            intensity_distribution.segmentation_intensity_report(
-                bag=bag,
+            visual.report(bag, name=k, output=output)
+            intensity_distribution.report(
+                bag,
                 bin_amount=100,
-                channels=channels,
+                channel_labels=channel_labels,
                 output=output,
                 name=k,
                 extent=numpy.array([(0, 1)] * len(channels))  # extent is known due to normalization
@@ -157,7 +169,7 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
 
         filename = config["export"]["filename"]
         features.compute().to_parquet(str(output / f"{filename}.parquet"))
-        feature_statistics.get_feature_statistics(features, output)
+        # feature_statistics.report(features, output)
 
         if debug:
             context.client.profile(filename=str(output / "profile.html"))

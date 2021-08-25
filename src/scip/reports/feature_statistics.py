@@ -19,7 +19,7 @@ def filter_features(feature_df, var):
 
 
 @dask.delayed
-def feature_stats_to_html(var, mean, dropped_zero_variance, dropped_nan, feature_df, output):
+def feature_stats_to_html(var, mean, dropped_zero_variance, dropped_nan, output):
     df = pd.concat([mean, var], axis=1)
     df.columns = ['means', 'var']
     html = df.to_html()
@@ -38,11 +38,12 @@ def feature_stats_to_html(var, mean, dropped_zero_variance, dropped_nan, feature
         text_file.write(zero_variance_html)
 
 
-def get_feature_statistics(feature_df, output):
+def report(df, output):
 
-    var = feature_df.var(axis=0, skipna=True)
-    mean = feature_df.mean(axis=0, skipna=True)
+    var = df.var(axis=0, skipna=True)
+    mean = df.mean(axis=0, skipna=True)
 
-    feature_df, dropped_zero_variance, dropped_nan = filter_features(feature_df, var)
+    filtered_df, dropped_zero_variance, dropped_nan = filter_features(df, var)
+
     return feature_stats_to_html(
-        var, mean, dropped_zero_variance, dropped_nan, feature_df, output).compute()
+        var, mean, dropped_zero_variance, dropped_nan, output).compute()

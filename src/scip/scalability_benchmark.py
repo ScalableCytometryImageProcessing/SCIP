@@ -41,7 +41,7 @@ async def main():
             proc = await asyncio.create_subprocess_shell(command)
             subprocs.append(proc.wait())
 
-            if len(subprocs) >= 6:
+            if len(subprocs) >= 2:
                 logger.info(f"Waiting for next {len(subprocs)} tasks to finish")
                 await asyncio.gather(*subprocs)
                 subprocs = []

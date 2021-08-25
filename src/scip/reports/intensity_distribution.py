@@ -85,11 +85,11 @@ def get_counts(sample, bins):
     return counts
 
 
-def segmentation_intensity_report(
-        *,
+def report(
         bag,
+        *,
         bin_amount,
-        channels,
+        channel_labels,
         output,
         name,
         extent=None
@@ -101,7 +101,7 @@ def segmentation_intensity_report(
     Args:
         bag (dask.bag): bag containing dictionaries with image data
         bin_amount (int): number of bins to use for intensity binning
-        channels (int): number of image channels
+        channel_labels ([str]): names of image channels
         output (str): output file name
 
     Returns:
@@ -115,15 +115,8 @@ def segmentation_intensity_report(
     def counts_partition(part, bins):
         return [get_counts(p, bins) for p in part]
 
-    def blank_masks_partitions(part):
-        return [get_blanks(p) for p in part]
-
-    def get_blanks(sample):
-        flat_intensities = sample.get('flat')
-        return np.array([len(i) == 0 for i in flat_intensities], dtype=int)
-
     @dask.delayed
-    def plot_pixel_distribution(counts, bins, missing_masks):
+    def plot_pixel_distribution(counts, bins):
 
         """
         Plot the intensity distribution for every channel before and after the normalization
@@ -135,10 +128,8 @@ def segmentation_intensity_report(
             output (str): string of output file
         """
 
-        channel_labels = [f'ch{i}' for i in channels]
-
-        fig, axes = plt.subplots(1, len(channels), figsize=(10, 5))
-        for i in range(len(channels)):
+        fig, axes = plt.subplots(1, len(channel_labels), figsize=(10, 5))
+        for i in range(len(channel_labels)):
             axes[i].title.set_text(channel_labels[i])
             axes[i].bar(
                 bins[i, :-1], counts[i], width=(bins[i, -1] - bins[i, 0]) / bin_amount)
@@ -149,29 +140,11 @@ def segmentation_intensity_report(
         encoded = base64.b64encode(stream.getvalue()).decode('utf-8')
         html_distributions = '<img src=\'data:image/png;base64,{}\'>'.format(encoded)
 
-        # Missing mask bar plot
-        fig = plt.figure()
-        plt.bar(channel_labels, missing_masks)
-
-        # Encode to include in HTML
-        stream = BytesIO()
-        fig.savefig(stream, format='png')
-        encoded = base64.b64encode(stream.getvalue()).decode('utf-8')
-        html_missing_masks = '<img src=\'data:image/png;base64,{}\'>'.format(encoded)
-
         # Write HTML
-        with open(str(output / f"{name}_intensity_quality_control.html"), "w") as text_file:
+        with open(str(output / f"intensity_{name}_quality_control.html"), "w") as text_file:
             text_file.write(
                 '<header><h1>Intensity distributions</h1></header>')
             text_file.write(html_distributions)
-            text_file.write('<header><h1>Amount of missing masks per channel</h1></header>')
-            text_file.write(html_missing_masks)
-
-    # Calculate the percentage per channel of blank masks
-    blanks_sum = bag.map_partitions(blank_masks_partitions).fold(lambda A, B: A + B)
-
-    total = bag.count()
-    percentage = dask.delayed(lambda v, t: v / t)(blanks_sum, total)
 
     if extent is None:
         extent = bag.map_partitions(min_max_partition, origin='flat').fold(reduce_minmax)
@@ -195,4 +168,4 @@ def segmentation_intensity_report(
     counts = dask.delayed(density)(counts, bins)
 
     # return intensity_count, masked_intensity_count, bins, masked_bins
-    plot_pixel_distribution(counts, bins, percentage).compute()
+    plot_pixel_distribution(counts, bins).compute()
