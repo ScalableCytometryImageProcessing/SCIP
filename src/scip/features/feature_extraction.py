@@ -95,37 +95,34 @@ def texture_features(sample):
 
     """
 
-    subsample = 40
-
-    def texture_features(i):
+    def texture_features(i, pixels_per_cell):
         channel_img = img[i]
         hog_features = hog(
             channel_img,
             orientations=3,
-            pixels_per_cell=(4, 8),
+            pixels_per_cell=pixels_per_cell,
             cells_per_block=(1, 1),
             visualize=False
         )
 
-        # the amount of hog features depends on the size of the input image, which is not uniform
-        # for most datasets. Truncating the feaure vector is likely to drop most information, so
-        # we randomly sample a fixed number of values from the feature vector
-        hog_features = np.random.choice(hog_features, replace=False, size=subsample)
-
         hog_dict = {}
 
         # put hog features in dictionary
-        for j in range(subsample):
+        for j in range(len(hog_features)):
             hog_dict.update({f'hog_ch_{i}_{j}': hog_features[j]})
 
         return hog_dict
 
     img = sample.get('pixels')
-    channels = img.shape[0]
+
+    # the amount of hog features depends on the size of the input image, which is not uniform
+    # for most datasets. Therefore, we dynamically compute the HOG parameters so that there is
+    # always a 3x3 cell grid leading to a uniform length feature vector 
+    pixels_per_cell = img.shape[1] // 3, img.shape[2] // 3
 
     features_dict = {"idx": sample["idx"]}
-    for i in range(channels):
-        features_dict.update(texture_features(i))
+    for i in range(len(img)):
+        features_dict.update(texture_features(i, pixels_per_cell))
 
     return features_dict
 
