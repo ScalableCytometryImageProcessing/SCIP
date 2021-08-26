@@ -118,7 +118,7 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
         channels = config["loading"].get("channels")
         channel_labels = [f'ch{i}' for i in channels]
 
-        images = get_images_bag(paths, channels, config).persist()
+        images = get_images_bag(paths, channels, config)
         intensity_distribution.report(
             images.map_partitions(flat_intensities_partition),
             bin_amount=100,
