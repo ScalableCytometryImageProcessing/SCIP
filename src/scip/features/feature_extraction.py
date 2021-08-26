@@ -151,6 +151,7 @@ def extract_features(*, images: dask.bag.Bag):
         return [dict(path=p["path"], idx=p["idx"]) for p in part]
 
     def to_dataframe(bag, prefix):
+        bag = bag.persist()
         df = bag.to_dataframe()
 
         # setting the index causes partition divisions to be known for Dask
