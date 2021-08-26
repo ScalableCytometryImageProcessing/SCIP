@@ -121,6 +121,8 @@ def main(
     config = util.load_yaml_config(config)
     logger.info(f"Running with following config: {config}")
 
+    template_dir = os.path.dirname(__file__) + "/reports/templates"
+
     # ClientClusterContext creates cluster
     # and registers Client as default client for this session
     logger.debug("Starting Dask cluster")
@@ -137,11 +139,15 @@ def main(
         images = get_images_bag(paths, channels, config, partition_size)
         intensity_distribution.report(
             images.map_partitions(flat_intensities_partition),
+            template_dir=template_dir,
+            template="intensity_distribution.html",
             bin_amount=100,
             channel_labels=channel_labels,
             output=output,
             name="raw"
         )
+
+        return
 
         bags = mask_creation.create_masks_on_bag(images, noisy_channels=[0])
         for k, v in bags.items():

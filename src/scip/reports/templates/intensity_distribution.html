@@ -1,0 +1,8 @@
+
+{% extends "default.html" %}
+
+{% block title %}Intensity distribution {{ name }}{% endblock %}
+
+{% block body %}
+    <img src="data:image/png;base64,{{ image }}">
+{% endblock %}

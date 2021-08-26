@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import dask
 from io import BytesIO
 import base64
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 
 def get_min_max(sample, origin):
@@ -88,6 +89,8 @@ def get_counts(sample, bins):
 def report(
         bag,
         *,
+        template,
+        template_dir,
         bin_amount,
         channel_labels,
         output,
@@ -138,13 +141,15 @@ def report(
         stream = BytesIO()
         fig.savefig(stream, format='png')
         encoded = base64.b64encode(stream.getvalue()).decode('utf-8')
-        html_distributions = '<img src=\'data:image/png;base64,{}\'>'.format(encoded)
 
+        jinja_env = Environment(
+            loader=FileSystemLoader(template_dir),
+            autoescape=select_autoescape()
+        )
+        jinja_template = jinja_env.get_template(template)
         # Write HTML
-        with open(str(output / f"intensity_{name}_quality_control.html"), "w") as text_file:
-            text_file.write(
-                '<header><h1>Intensity distributions</h1></header>')
-            text_file.write(html_distributions)
+        with open(str(output / f"intensity_{name}_quality_control.html"), "w") as fh:
+            fh.write(jinja_template.render(name=name, image=encoded))
 
     if extent is None:
         extent = bag.map_partitions(min_max_partition, origin='flat').fold(reduce_minmax)
