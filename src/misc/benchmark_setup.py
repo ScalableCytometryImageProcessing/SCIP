@@ -35,10 +35,10 @@ def main():
 
             commands.append(command)
 
-    with open(str(output / "run.sh", "w")) as fh:
-        fh.write("#!/bin/bash")
+    with open(str(output / "run.sh"), "w") as fh:
+        fh.write("#!/bin/bash\n")
         for command in commands:
-            fh.write(command)
+            fh.write(command+"\n")
 
 
 if __name__ == "__main__":
