@@ -1,11 +1,7 @@
-import pandas
 from pathlib import Path
 from datetime import datetime
 import uuid
-import json
 import logging
-import subprocess
-import shlex
 
 
 def main():
@@ -23,7 +19,7 @@ def main():
     iterations = 3
     n_workers = 1
 
-    timings = []
+    commands = []
     for n_processes in [1, 2, 4, 8, 16, 32]:
         logger.info(f"Benchmarking {n_processes}")
         for i in range(iterations):
@@ -37,17 +33,12 @@ def main():
             command += f"--headless --timing {timing} --partition-size 50"
             command += f"{o} scip.yml {paths}"
 
-            logger.info(f"Launching: {command}")
-            ret = subprocess.run(shlex.split(command))
-            timings.append((ret.returncode, timing))
+            commands.append(command)
 
-    timing_data = []
-    for ret, timing in timings:
-        if ret == 0:
-            with open(timing) as fp:
-                timing_data.append(json.load(fp))
-    pandas.DataFrame.from_records(timing_data).to_csv(
-        str(output / 'timing_results.csv'), index=False)
+    with open(str(output / "run.sh", "w")) as fh:
+        fh.write("#!/bin/bash")
+        for command in commands:
+            fh.write(command)
 
 
 if __name__ == "__main__":
