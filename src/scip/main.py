@@ -35,13 +35,13 @@ def masked_intensities_partition(part):
     return [get_masked_intensities(p) for p in part]
 
 
-def get_images_bag(paths, channels, config):
+def get_images_bag(paths, channels, config, partition_size):
 
     loader_module = import_module('scip.loading.%s' % config["loading"]["format"])
     loader = partial(
         loader_module.bag_from_directory,
         channels=channels,
-        partition_size=config["loading"]["partition_size"])
+        partition_size=partition_size)
 
     images = []
     idx = 0
@@ -80,7 +80,19 @@ def compute_features(images, channels, prefix):
     return features
 
 
-def main(*, paths, output, n_workers, headless, debug, n_processes, port, local, config):
+def main(
+    *,
+    paths,
+    output,
+    config,
+    partition_size,
+    n_workers,
+    n_processes,
+    local,
+    headless,
+    port,
+    debug
+):
 
     # logic for creating output directory
     should_remove = True
@@ -102,8 +114,12 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
     util.configure_logging(output)
     logger = logging.getLogger("scip")
     logger.info(f"Running pipeline for {','.join(paths)}")
+    logger.info(f"Running with {n_workers} workers/nodes and {n_processes} processes")
+    logger.info(f"Local mode? {local}")
+    logger.info(f"Output is saved in {str(output)}")
 
     config = util.load_yaml_config(config)
+    logger.info(f"Running with following config: {config}")
 
     # ClientClusterContext creates cluster
     # and registers Client as default client for this session
@@ -118,7 +134,7 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
         channels = config["loading"].get("channels")
         channel_labels = [f'ch{i}' for i in channels]
 
-        images = get_images_bag(paths, channels, config)
+        images = get_images_bag(paths, channels, config, partition_size)
         intensity_distribution.report(
             images.map_partitions(flat_intensities_partition),
             bin_amount=100,
@@ -168,7 +184,7 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
 
         filename = config["export"]["filename"]
         features.compute().to_parquet(str(output / f"{filename}.parquet"))
-        # feature_statistics.report(features, output)
+        feature_statistics.report(features, output)
 
         if debug:
             context.client.profile(filename=str(output / "profile.html"))
@@ -193,8 +209,11 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
 @click.option(
     "--headless", default=False, is_flag=True,
     help="If set, the program will never ask for user input")
+@click.option(
+    "--partition-size", "-s", default=50, type=click.IntRange(min=1),
+    help="Set partition size")
 @click.option("--timing", default=None, type=click.Path(dir_okay=False))
-@click.option("--output", "-o", default=None, type=click.Path(file_okay=False))
+@click.argument("output", type=click.Path(file_okay=False))
 @click.argument("config", type=click.Path(dir_okay=False, exists=True))
 @click.argument("paths", nargs=-1, type=click.Path(exists=True, file_okay=False))
 def cli(**kwargs):
@@ -230,4 +249,5 @@ if __name__ == "__main__":
         output="tmp",
         headless=True,
         config='scip.yml',
+        partition_size=5,
         debug=True, n_workers=1, n_processes=1, port=8787, local=True)
