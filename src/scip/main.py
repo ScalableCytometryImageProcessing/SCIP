@@ -82,10 +82,6 @@ def compute_features(images, channels, prefix):
 
 def main(*, paths, output, n_workers, headless, debug, n_processes, port, local, config):
 
-    util.configure_logging()
-    logger = logging.getLogger("scip")
-    logger.info(f"Running pipeline for {','.join(paths)}")
-
     # logic for creating output directory
     should_remove = True
 
@@ -99,10 +95,13 @@ def main(*, paths, output, n_workers, headless, debug, n_processes, port, local,
         if not should_remove:
             raise FileExistsError(f"{str(output)} exists and should not be removed. Exiting.")
     if should_remove and output.exists():
-        logger.info(f"Running headless and/or {str(output)} exists. Removing.")
         shutil.rmtree(output)
     if not output.exists():
         output.mkdir(parents=True)
+
+    util.configure_logging(output)
+    logger = logging.getLogger("scip")
+    logger.info(f"Running pipeline for {','.join(paths)}")
 
     config = util.load_yaml_config(config)
 

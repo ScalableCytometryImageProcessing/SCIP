@@ -59,7 +59,12 @@ def load_yaml_config(path):
         return yaml.load(fh, Loader=yaml.FullLoader)
 
 
-def configure_logging():
+def configure_logging(output):
     with resource_stream(__name__, 'logging.yml') as stream:
         loggingConfig = yaml.load(stream, Loader=yaml.FullLoader)
+
+    for k,v in loggingConfig["handlers"].items():
+        if k == "file":
+            v["filename"] = str(output / v["filename"])
+
     logging.config.dictConfig(loggingConfig)
