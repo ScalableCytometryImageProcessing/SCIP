@@ -24,7 +24,7 @@ def main():
     n_workers = 1
 
     timings = []
-    for n_processes in [1, 2, 4, 8, 16]:
+    for n_processes in [1, 2, 4, 8, 16, 32]:
         logger.info(f"Benchmarking {n_processes}")
         for i in range(iterations):
             logger.info(f"{n_processes}: iteration {i+1}/{iterations}")
@@ -34,7 +34,8 @@ def main():
 
             o = str(output / "results" / str(ident))
             command = f"scip -j{n_workers} -n{n_processes} --no-local "
-            command += f"--headless --timing {timing} -o {o} scip.yml {paths}"
+            command += f"--headless --timing {timing} --partition-size 50"
+            command += f"{o} scip.yml {paths}"
 
             logger.info(f"Launching: {command}")
             ret = subprocess.run(shlex.split(command))
