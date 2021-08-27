@@ -6,7 +6,6 @@ __pycache__
 .coverage
 *.pdf
 *.png
-*.html
 tmp/
 *.log
 .mypy_cache/
