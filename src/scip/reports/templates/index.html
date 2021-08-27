@@ -1,0 +1,11 @@
+{% extends defualt.html %}
+
+{% block title %}Table of contents{% endblock %}
+
+{% block body %}
+<ul>
+    {% for link in links %}
+    <li><a href="{{ link[0] }}">{{ link[1] }}</a></li>
+    {% endfor %}
+</ul>
+{% endblock %}
