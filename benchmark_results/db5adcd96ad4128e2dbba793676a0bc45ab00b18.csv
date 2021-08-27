@@ -1,0 +1,13 @@
+n_workers,n_processes,local,headless,partition_size,output,config,paths,port,debug,runtime
+1,4,False,True,50,/home/maximl/daskPipeline/benchmark_20210827110905/results/c4b6117f-7ab6-4e59-a287-460c05197d1f,scip.yml,['/home/maximl/shared_scratch/vulcan_pbmc_1000'],,False,278.1684060096741
+1,8,False,True,50,/home/maximl/daskPipeline/benchmark_20210827110905/results/d03b02f8-aae7-42aa-af19-f4a0e827ee2e,scip.yml,['/home/maximl/shared_scratch/vulcan_pbmc_1000'],,False,186.58940482139587
+1,8,False,True,50,/home/maximl/daskPipeline/benchmark_20210827110905/results/77847b2c-8f52-4e8d-8be1-f4e5ac56af29,scip.yml,['/home/maximl/shared_scratch/vulcan_pbmc_1000'],,False,181.90933918952942
+1,4,False,True,50,/home/maximl/daskPipeline/benchmark_20210827110905/results/5d71c389-69c3-4cd0-85b8-acba88315324,scip.yml,['/home/maximl/shared_scratch/vulcan_pbmc_1000'],,False,286.7873160839081
+1,16,False,True,50,/home/maximl/daskPipeline/benchmark_20210827110905/results/d8bed3f9-0330-4111-b574-aa19cac846d6,scip.yml,['/home/maximl/shared_scratch/vulcan_pbmc_1000'],,False,134.05226802825928
+1,2,False,True,50,/home/maximl/daskPipeline/benchmark_20210827110905/results/395b9ce4-83b1-41c6-99af-bbc85b7f51da,scip.yml,['/home/maximl/shared_scratch/vulcan_pbmc_1000'],,False,467.5850486755371
+1,8,False,True,50,/home/maximl/daskPipeline/benchmark_20210827110905/results/c9bd377f-91db-41c1-9463-163a91ae3b71,scip.yml,['/home/maximl/shared_scratch/vulcan_pbmc_1000'],,False,176.32360219955444
+1,2,False,True,50,/home/maximl/daskPipeline/benchmark_20210827110905/results/0b2a5a9d-0d83-4f88-a30e-b22fe86ed273,scip.yml,['/home/maximl/shared_scratch/vulcan_pbmc_1000'],,False,445.970374584198
+1,2,False,True,50,/home/maximl/daskPipeline/benchmark_20210827110905/results/6ccb2f8d-45a6-4e96-8f9c-945b88f570e0,scip.yml,['/home/maximl/shared_scratch/vulcan_pbmc_1000'],,False,466.57202649116516
+1,16,False,True,50,/home/maximl/daskPipeline/benchmark_20210827110905/results/8854706e-eefa-4f53-9907-0956d7a3c5ec,scip.yml,['/home/maximl/shared_scratch/vulcan_pbmc_1000'],,False,143.53996777534485
+1,16,False,True,50,/home/maximl/daskPipeline/benchmark_20210827110905/results/98309e02-feec-48ca-b970-c02d40f89efd,scip.yml,['/home/maximl/shared_scratch/vulcan_pbmc_1000'],,False,131.98753142356873
+1,4,False,True,50,/home/maximl/daskPipeline/benchmark_20210827110905/results/2357756a-d015-4def-861e-28c58427e872,scip.yml,['/home/maximl/shared_scratch/vulcan_pbmc_1000'],,False,273.91995072364807
