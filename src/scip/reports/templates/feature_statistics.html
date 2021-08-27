@@ -1,0 +1,12 @@
+{% extends "default.html" %}
+
+{% block title %}Feature statistics{% endblock %}
+
+{% block body %}
+        <h1>Feature statistics</h1>
+        {{ stats }}
+        <h1>Dropped columns: NaN</h1>
+        {{ nan }}
+        <h1>Dropped columns: Zero variance</h1>
+        {{ zero_variance }}
+{% endblock %}

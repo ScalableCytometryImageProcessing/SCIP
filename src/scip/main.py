@@ -1,7 +1,7 @@
 from scip.segmentation import mask_creation
 from scip.utils import util
 from scip.normalization import quantile_normalization
-from scip.reports import feature_statistics, visual, intensity_distribution, masks
+from scip.reports import feature_statistics, example_images, intensity_distribution, masks
 from scip.features import feature_extraction, cellprofiler
 from scip.segmentation.mask_apply import get_masked_intensities
 # from scip.analysis import fuzzy_c_mean
@@ -147,8 +147,6 @@ def main(
             name="raw"
         )
 
-        return
-
         bags = mask_creation.create_masks_on_bag(images, noisy_channels=[0])
         for k, v in bags.items():
             masks.report(v, channel_labels=channel_labels, output=output, name=k)
@@ -169,7 +167,7 @@ def main(
             bag = preprocess_bag(bag)
             bag = bag.persist()
 
-            visual.report(bag, name=k, output=output)
+            example_images.report(bag, name=k, output=output)
             intensity_distribution.report(
                 bag,
                 bin_amount=100,

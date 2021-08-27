@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 import dask
 from io import BytesIO
 import base64
-from jinja2 import Environment, FileSystemLoader, select_autoescape
+
+from scip.reports.util import get_jinja_template
 
 
 def get_min_max(sample, origin):
@@ -142,14 +143,9 @@ def report(
         fig.savefig(stream, format='png')
         encoded = base64.b64encode(stream.getvalue()).decode('utf-8')
 
-        jinja_env = Environment(
-            loader=FileSystemLoader(template_dir),
-            autoescape=select_autoescape()
-        )
-        jinja_template = jinja_env.get_template(template)
         # Write HTML
         with open(str(output / f"intensity_{name}_quality_control.html"), "w") as fh:
-            fh.write(jinja_template.render(name=name, image=encoded))
+            fh.write(get_jinja_template(template_dir, template).render(name=name, image=encoded))
 
     if extent is None:
         extent = bag.map_partitions(min_max_partition, origin='flat').fold(reduce_minmax)
