@@ -2,7 +2,7 @@ from skimage import filters, segmentation
 from skimage.restoration import denoise_nl_means
 from skimage.measure import label, regionprops
 import numpy as np
-from scip.segmentation import mask_apply
+from scip.segmentation import mask_apply, util
 
 
 def denoising(sample, noisy_channels=[]):
@@ -140,16 +140,13 @@ def create_masks_on_bag(images, noisy_channels):
     def largest_blob_partition(part):
         return [largest_blob_detection(p) for p in part]
 
-    def apply_mask_partition(part):
-        return [mask_apply.apply(p, "intermediate") for p in part]
-
     otsu = (
         images
         .map_partitions(denoise_partition)
         .map_partitions(felzenswalb_segment_partition)
         .map_partitions(otsu_threshold_partition)
         .map_partitions(largest_blob_partition)
-        .map_partitions(apply_mask_partition)
+        .map_partitions(util.apply_mask_partition)
     )
 
     return dict(otsu=otsu)

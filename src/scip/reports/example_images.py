@@ -16,7 +16,7 @@ def plot_with_masks(images):
             inner_grid = outer_grid[i, j].subgridspec(1, 2, wspace=0, hspace=0)
             axes = [fig.add_subplot(inner_grid[0, 0]), fig.add_subplot(inner_grid[0, 1])]
             axes[0].imshow(images[i]["pixels"][j])
-            axes[1].imshow(images[i]["mask"][j], cmap="grey")
+            axes[1].imshow(images[i]["mask"][j], cmap="Greys")
 
             for ax in axes:
                 ax.set_axis_off()
