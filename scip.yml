@@ -1,6 +1,8 @@
 loading:
   format: multiframe_tiff
   channels: [0, 1, 2, 3]
+masking:
+  method: watershed
 export:
   format: parquet
   filename: features

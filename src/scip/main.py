@@ -1,4 +1,3 @@
-from scip.segmentation import mask_creation
 from scip.utils import util
 from scip.normalization import quantile_normalization
 from scip.reports import feature_statistics, example_images, intensity_distribution, masks
@@ -154,7 +153,8 @@ def main(
             name="raw"
         )
 
-        bags = mask_creation.create_masks_on_bag(images, noisy_channels=[0])
+        masking_module = import_module('scip.segmentation.%s' % config["masking"]["method"])
+        bags = masking_module.create_masks_on_bag(images, noisy_channels=[0])
         for k, v in bags.items():
             masks.report(v, channel_labels=channel_labels, output=output, name=k)
 
@@ -183,6 +183,8 @@ def main(
             )
             intensity_distribution.report(
                 bag,
+                template_dir=template_dir,
+                template="intensity_distribution.html",
                 bin_amount=100,
                 channel_labels=channel_labels,
                 output=output,
@@ -190,6 +192,7 @@ def main(
                 extent=numpy.array([(0, 1)] * len(channels))  # extent is known due to normalization
             )
 
+            return
             feature_dataframes.append(compute_features(bag, channels, k))
 
         features = dask.dataframe.multi.concat(feature_dataframes, axis=1)
