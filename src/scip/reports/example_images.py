@@ -1,28 +1,52 @@
 import base64
 from io import BytesIO
 import matplotlib.pyplot as plt
+import numpy
+
+from scip.reports.util import get_jinja_template
 
 
-def report(bag, *, name, output):
+def plot_with_masks(images):
+    fig = plt.figure(figsize=(10,5), constrained_layout=False)
+    tmp = images[0]["pixels"]
+    outer_grid = fig.add_gridspec(len(images), len(tmp), wspace=0.01, hspace=0.01)
 
-    images = bag.take(3)
+    for i in range(len(images)):
+        for j in range(len(tmp)):
+            inner_grid = outer_grid[i, j].subgridspec(1, 2, wspace=0, hspace=0)
+            axes = [fig.add_subplot(inner_grid[0, 0]), fig.add_subplot(inner_grid[0, 1])]
+            axes[0].imshow(images[i]["pixels"][j])
+            axes[1].imshow(images[i]["mask"][j], cmap="grey")
 
-    fig, axes = plt.subplots(5, 2)
-    fig.suptitle("Images of %s" % name)
+            for ax in axes:
+                ax.set_axis_off()
 
-    for image, ax in zip(images, axes):
-        ax[0].set_axis_off()
-        ax[1].set_axis_off()
-        ax[0].imshow(image["pixels"][0])
-        ax[1].imshow(image["mask"][0])
+    return fig
+
+
+def plot_no_masks(images):
+
+    fig, axes = plt.subplots(len(images), len(images[0]["pixels"]), figsize=(10, 5))
+    for (i, j), ax in numpy.ndenumerate(axes):
+        ax.imshow(images[i]["pixels"][j])
+
+    return fig
+
+
+def report(bag, *, template_dir, template, name, output):
+
+    images = bag.take(5)
+
+    if "mask" in images[0]:
+        fig = plot_with_masks(images)
+    else:
+        fig = plot_no_masks(images)
 
     stream = BytesIO()
     fig.savefig(stream, format='png')
     encoded = base64.b64encode(stream.getvalue()).decode('utf-8')
-    html = '<img src=\'data:image/png;base64,{}\'>'.format(encoded)
 
     # Write HTML
-    with open(str(output / str("mask_%s_quality_control.html" % name)), "w") as text_file:
-        text_file.write(
-            '<header><h1>Image of %s masks</h1></header>' % name)
-        text_file.write(html)
+    filename = str("example_images_%s.html" % name)
+    with open(str(output / filename), "w") as fh:
+        fh.write(get_jinja_template(template_dir, template).render(image=encoded, name=name))

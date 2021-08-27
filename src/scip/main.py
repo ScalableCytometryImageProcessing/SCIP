@@ -137,6 +137,13 @@ def main(
         channel_labels = [f'ch{i}' for i in channels]
 
         images = get_images_bag(paths, channels, config, partition_size)
+        example_images.report(
+            images,
+            template_dir=template_dir,
+            template="example_images.html",
+            name="raw",
+            output=output
+        )
         intensity_distribution.report(
             images.map_partitions(flat_intensities_partition),
             template_dir=template_dir,
@@ -167,7 +174,13 @@ def main(
             bag = preprocess_bag(bag)
             bag = bag.persist()
 
-            example_images.report(bag, name=k, output=output)
+            example_images.report(
+                bag,
+                template_dir=template_dir,
+                template="example_images.html",
+                name=k,
+                output=output
+            )
             intensity_distribution.report(
                 bag,
                 bin_amount=100,
@@ -253,5 +266,5 @@ if __name__ == "__main__":
         output="tmp",
         headless=True,
         config='scip.yml',
-        partition_size=5,
+        partition_size=11,
         debug=True, n_workers=1, n_processes=1, port=8787, local=True)
