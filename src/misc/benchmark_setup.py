@@ -24,7 +24,7 @@ def main():
 
             o = str(output / "results" / str(ident))
             command = f"scip -j{n_workers} -n{n_processes} --no-local "
-            command += f"--headless --timing {timing} --partition-size 50"
+            command += f"--headless --timing {timing} --partition-size 50 "
             command += f"{o} scip.yml {paths}"
 
             commands.append(command)
