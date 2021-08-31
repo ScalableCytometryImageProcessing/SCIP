@@ -15,6 +15,7 @@ import shutil
 from functools import partial
 from importlib import import_module
 import numpy
+import os
 
 import matplotlib
 matplotlib.use("Agg")
