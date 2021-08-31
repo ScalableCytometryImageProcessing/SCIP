@@ -193,7 +193,6 @@ def main(
                 extent=numpy.array([(0, 1)] * len(channels))  # extent is known due to normalization
             )
 
-            return
             feature_dataframes.append(compute_features(bag, channels, k))
 
         features = dask.dataframe.multi.concat(feature_dataframes, axis=1)
