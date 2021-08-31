@@ -256,7 +256,7 @@ def cli(**kwargs):
         import json
         with open(timing, "w") as fp:
             json.dump({**kwargs, **dict(runtime=runtime)}, fp)
-        logging.getLogger("scip").info(f"Timing output written to {timing}.json")
+        logging.getLogger("scip").info(f"Timing output written to {timing}")
 
 
 if __name__ == "__main__":
