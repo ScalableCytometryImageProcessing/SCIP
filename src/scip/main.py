@@ -1,7 +1,6 @@
-from scip.segmentation import mask_creation
 from scip.utils import util
 from scip.normalization import quantile_normalization
-from scip.reports import feature_statistics, visual, intensity_distribution, masks
+from scip.reports import feature_statistics, example_images, intensity_distribution, masks
 from scip.features import feature_extraction, cellprofiler
 from scip.segmentation.mask_apply import get_masked_intensities
 # from scip.analysis import fuzzy_c_mean
@@ -121,6 +120,8 @@ def main(
     config = util.load_yaml_config(config)
     logger.info(f"Running with following config: {config}")
 
+    template_dir = os.path.dirname(__file__) + "/reports/templates"
+
     # ClientClusterContext creates cluster
     # and registers Client as default client for this session
     logger.debug("Starting Dask cluster")
@@ -135,15 +136,25 @@ def main(
         channel_labels = [f'ch{i}' for i in channels]
 
         images = get_images_bag(paths, channels, config, partition_size)
+        example_images.report(
+            images,
+            template_dir=template_dir,
+            template="example_images.html",
+            name="raw",
+            output=output
+        )
         intensity_distribution.report(
             images.map_partitions(flat_intensities_partition),
+            template_dir=template_dir,
+            template="intensity_distribution.html",
             bin_amount=100,
             channel_labels=channel_labels,
             output=output,
             name="raw"
         )
 
-        bags = mask_creation.create_masks_on_bag(images, noisy_channels=[0])
+        masking_module = import_module('scip.segmentation.%s' % config["masking"]["method"])
+        bags = masking_module.create_masks_on_bag(images, noisy_channels=[0])
         for k, v in bags.items():
             masks.report(v, channel_labels=channel_labels, output=output, name=k)
 
@@ -163,9 +174,17 @@ def main(
             bag = preprocess_bag(bag)
             bag = bag.persist()
 
-            visual.report(bag, name=k, output=output)
+            example_images.report(
+                bag,
+                template_dir=template_dir,
+                template="example_images.html",
+                name=k,
+                output=output
+            )
             intensity_distribution.report(
                 bag,
+                template_dir=template_dir,
+                template="intensity_distribution.html",
                 bin_amount=100,
                 channel_labels=channel_labels,
                 output=output,
@@ -173,6 +192,7 @@ def main(
                 extent=numpy.array([(0, 1)] * len(channels))  # extent is known due to normalization
             )
 
+            return
             feature_dataframes.append(compute_features(bag, channels, k))
 
         features = dask.dataframe.multi.concat(feature_dataframes, axis=1)
@@ -249,5 +269,5 @@ if __name__ == "__main__":
         output="tmp",
         headless=True,
         config='scip.yml',
-        partition_size=5,
+        partition_size=11,
         debug=True, n_workers=1, n_processes=1, port=8787, local=True)
