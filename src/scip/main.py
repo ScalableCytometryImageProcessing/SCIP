@@ -111,7 +111,7 @@ def main(
     if not output.exists():
         output.mkdir(parents=True)
 
-    util.configure_logging(output)
+    util.configure_logging(output, debug)
     logger = logging.getLogger("scip")
     logger.info(f"Running pipeline for {','.join(paths)}")
     logger.info(f"Running with {n_workers} workers/nodes and {n_processes} processes")
@@ -128,7 +128,7 @@ def main(
     logger.debug("Starting Dask cluster")
     with util.ClientClusterContext(n_workers=n_workers, local=local,
                                    port=port, n_processes=n_processes) as context:
-        logger.debug(f"Client ({context}) created")
+        logger.debug(f"Cluster ({context.cluster}) created")
 
         start = time.time()
 
@@ -137,6 +137,7 @@ def main(
         channel_labels = [f'ch{i}' for i in channels]
 
         images = get_images_bag(paths, channels, config, partition_size)
+        logger.debug("Loaded images")
         example_images.report(
             images,
             template_dir=template_dir,
