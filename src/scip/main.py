@@ -126,9 +126,15 @@ def main(
     # ClientClusterContext creates cluster
     # and registers Client as default client for this session
     logger.debug("Starting Dask cluster")
-    with util.ClientClusterContext(n_workers=n_workers, local=local,
-                                   port=port, n_processes=n_processes) as context:
+    with util.ClientClusterContext(
+            n_workers=n_workers,
+            local=local,
+            port=port,
+            n_processes=n_processes
+    ) as context:
         logger.debug(f"Cluster ({context.cluster}) created")
+        if not local:
+            logger.debug(context.cluster.job_script())
 
         start = time.time()
 
@@ -205,7 +211,12 @@ def main(
 
         filename = config["export"]["filename"]
         features.compute().to_parquet(str(output / f"{filename}.parquet"))
-        feature_statistics.report(features, output)
+        feature_statistics.report(
+            features, 
+            template_dir=template_dir, 
+            template="feature_statistics.html",
+            output=output
+        )
 
         if debug:
             context.client.profile(filename=str(output / "profile.html"))
@@ -264,11 +275,11 @@ if __name__ == "__main__":
 
     # add DEBUG_DATASET entry to terminal.integrated.env.linux in VS Code workspace settings
     # should contain path to small debug dataset
-    path = os.environ["DEBUG_DATASET"]
+    path = os.environ["FULL_DATASET"]
     main(
         paths=(path,),
         output="tmp",
         headless=True,
         config='scip.yml',
-        partition_size=11,
-        debug=True, n_workers=1, n_processes=1, port=8787, local=True)
+        partition_size=50,
+        debug=True, n_workers=2, n_processes=4, port=8787, local=True)

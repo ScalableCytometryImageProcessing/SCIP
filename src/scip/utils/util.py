@@ -11,7 +11,7 @@ import time
 
 class ClientClusterContext:
 
-    def __init__(self, local=True, n_workers=2, n_processes=12, port=8787):
+    def __init__(self, *, local=True, n_workers=2, n_processes=12, port=8787):
         """
         Sets up a cluster and client.
 
@@ -44,6 +44,7 @@ class ClientClusterContext:
                 scheduler_options={
                     'dashboard_address': None if self.port is None else f':{self.port}'}
             )
+
             self.cluster.scale(jobs=self.n_workers)
 
         self.client = Client(self.cluster)
