@@ -88,6 +88,8 @@ def main(
     partition_size,
     n_workers,
     n_processes,
+    n_cores,
+    memory,
     local,
     local_directory,
     headless,
@@ -133,7 +135,9 @@ def main(
             local=local,
             port=port,
             n_processes=n_processes,
-            local_directory=local_directory
+            local_directory=local_directory,
+            cores=n_cores,
+            memory=memory
     ) as context:
         logger.debug(f"Cluster ({context.cluster}) created")
         if not local:
@@ -246,6 +250,12 @@ def main(
 @click.option(
     "--n-processes", "-n", type=int, default=1,
     help="Number of workers started per node in the PBSCluster")
+@click.option(
+    "--n-cores", "-c", type=int, default=click.IntRange(min=1),
+    help="Number of cores available per node in the cluster")
+@click.option(
+    "--memory", "-m", type=int, default=click.IntRange(min=1),
+    help="Amount of memory available per node in the cluster")
 @click.option(
     "--headless", default=False, is_flag=True,
     help="If set, the program will never ask for user input")
