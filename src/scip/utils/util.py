@@ -11,7 +11,7 @@ import time
 
 class ClientClusterContext:
 
-    def __init__(self, *, local=True, n_workers=2, n_processes=12, port=8787):
+    def __init__(self, *, local=True, n_workers=2, n_processes=12, port=8787, local_directory=None):
         """
         Sets up a cluster and client.
 
@@ -22,6 +22,7 @@ class ClientClusterContext:
         self.n_workers = n_workers
         self.port = port
         self.n_processes = n_processes
+        self.local_directory = local_directory
 
     def __enter__(self):
         if self.local:
@@ -31,16 +32,18 @@ class ClientClusterContext:
                  'logs' exists in your home dir"
 
             self.cluster = PBSCluster(
-                cores=24,
-                memory="240GiB",
-                resource_spec="h_vmem=10G,mem_free=240G",
+                cores=12,
+                memory="24GiB",
+                resource_spec=f"nodes={self.n_workers}:ppn=12,mem=25gb",
                 processes=self.n_processes,
-                project="scip",
-                job_extra=(
-                    "-pe serial 24", 
-                    "-j y", 
-                    "-o ~/logs/dask_workers_%s.out" % str(int(time.time()*100))
-                ),
+                project=None,
+                local_directory=self.local_directory,
+                walltime="01:00:00",
+                #job_extra=(
+                    #"-pe serial 24", 
+                    #"-j y", 
+                    #"-o ~/logs/dask_workers_%s.out" % str(int(time.time()*100))
+                #),
                 scheduler_options={
                     'dashboard_address': None if self.port is None else f':{self.port}'}
             )
@@ -53,6 +56,10 @@ class ClientClusterContext:
     def __exit__(self, exc_type, exc_value, exc_traceback):
         self.client.close()
         self.cluster.close()
+
+    def wait(self):
+        while(len(self.cluster.workers) != self.n_workers):
+            time.sleep(100)
 
 
 def load_yaml_config(path):

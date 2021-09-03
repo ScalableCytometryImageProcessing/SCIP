@@ -89,9 +89,11 @@ def main(
     n_workers,
     n_processes,
     local,
+    local_directory,
     headless,
     port,
-    debug
+    debug,
+    timing
 ):
 
     # logic for creating output directory
@@ -130,11 +132,17 @@ def main(
             n_workers=n_workers,
             local=local,
             port=port,
-            n_processes=n_processes
+            n_processes=n_processes,
+            local_directory=local_directory
     ) as context:
         logger.debug(f"Cluster ({context.cluster}) created")
         if not local:
             logger.debug(context.cluster.job_script())
+
+        # if timing is set, wait for the cluster to be fully ready
+        # to isolate cluster startup time from pipeline execution
+        if timing is not None:
+            context.wait()
 
         start = time.time()
 
@@ -245,6 +253,8 @@ def main(
     "--partition-size", "-s", default=50, type=click.IntRange(min=1),
     help="Set partition size")
 @click.option("--timing", default=None, type=click.Path(dir_okay=False))
+@click.option(
+    "--local-directory", "-d", default=None, type=click.Path(file_okay=False, exists=True))
 @click.argument("output", type=click.Path(file_okay=False))
 @click.argument("config", type=click.Path(dir_okay=False, exists=True))
 @click.argument("paths", nargs=-1, type=click.Path(exists=True, file_okay=False))
@@ -256,13 +266,9 @@ def cli(**kwargs):
     if len(kwargs["paths"]) == 0:
         return
 
-    timing = None
-    if kwargs["timing"] is not None:
-        timing = kwargs["timing"]
-    del kwargs["timing"]
-
     runtime = main(**kwargs)
 
+    timing = kwargs["timing"]
     if timing is not None:
         import json
         with open(timing, "w") as fp:
