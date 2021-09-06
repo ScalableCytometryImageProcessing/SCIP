@@ -90,6 +90,7 @@ def main(
     n_processes,
     n_cores,
     memory,
+    walltime,
     local,
     local_directory,
     headless,
@@ -137,7 +138,8 @@ def main(
             n_processes=n_processes,
             local_directory=local_directory,
             cores=n_cores,
-            memory=memory
+            memory=memory,
+            walltime=walltime
     ) as context:
         logger.debug(f"Cluster ({context.cluster}) created")
         if not local:
@@ -256,6 +258,9 @@ def main(
 @click.option(
     "--memory", "-m", type=int, default=click.IntRange(min=1),
     help="Amount of memory available per node in the cluster")
+@click.option(
+    "--walltime", "-w", type=str, default="01:00:00",
+    help="Expected required walltime for the job to finish")
 @click.option(
     "--headless", default=False, is_flag=True,
     help="If set, the program will never ask for user input")

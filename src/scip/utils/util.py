@@ -21,7 +21,8 @@ class ClientClusterContext:
             local_directory=None,
             memory=None,
             cores=None,
-            job_extra=[]
+            job_extra=[],
+            walltime="01:00:00"
     ):
         """
         Sets up a cluster and client.
@@ -37,6 +38,7 @@ class ClientClusterContext:
         self.memory = memory
         self.cores = cores
         self.job_extra = job_extra
+        self.walltime = walltime
 
     def __enter__(self):
         if self.local:
@@ -52,7 +54,7 @@ class ClientClusterContext:
                 processes=self.n_processes,
                 project=None,
                 local_directory=self.local_directory,
-                walltime="01:00:00",
+                walltime=self.walltime,
                 job_extra=self.job_extra,
                 scheduler_options={
                     'dashboard_address': None if self.port is None else f':{self.port}'}
