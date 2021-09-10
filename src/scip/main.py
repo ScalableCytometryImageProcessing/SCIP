@@ -91,6 +91,7 @@ def main(
     n_cores,
     memory,
     walltime,
+    job_extra,
     local,
     local_directory,
     headless,
@@ -131,6 +132,7 @@ def main(
     # ClientClusterContext creates cluster
     # and registers Client as default client for this session
     logger.debug("Starting Dask cluster")
+    logger.debug(walltime)
     with util.ClientClusterContext(
             n_workers=n_workers,
             local=local,
@@ -139,7 +141,8 @@ def main(
             local_directory=local_directory,
             cores=n_cores,
             memory=memory,
-            walltime=walltime
+            walltime=walltime,
+            job_extra=job_extra
     ) as context:
         logger.debug(f"Cluster ({context.cluster}) created")
         if not local:
@@ -261,6 +264,9 @@ def main(
 @click.option(
     "--walltime", "-w", type=str, default="01:00:00",
     help="Expected required walltime for the job to finish")
+@click.option(
+    "--job-extra", "-e", type=str, multiple=True, default=None,
+    help="Extra arguments for job submission")
 @click.option(
     "--headless", default=False, is_flag=True,
     help="If set, the program will never ask for user input")
