@@ -7,6 +7,8 @@ import yaml
 from pkg_resources import resource_stream
 import logging
 import time
+import math
+from dask.distributed import core
 
 
 class ClientClusterContext:
@@ -47,17 +49,19 @@ class ClientClusterContext:
             assert (Path.home() / "logs").exists(), "Make sure directory\
                  'logs' exists in your home dir"
 
+            nodes_needed = int(math.ceil(self.n_workers / self.n_processes))
+            mb_needed = math.ceil(self.memory * 1073.74)
             self.cluster = PBSCluster(
                 cores=self.cores,
                 memory=f"{self.memory}GiB",
-                resource_spec=f"nodes={self.n_workers}:ppn={self.cores},mem={self.memory}gb",
+                resource_spec=f"nodes={nodes_needed}:ppn={self.cores},mem={mb_needed}mb",
                 processes=self.n_processes,
                 project=None,
                 local_directory=self.local_directory,
                 walltime=self.walltime,
                 job_extra=self.job_extra,
                 scheduler_options={
-                    'dashboard_address': None if self.port is None else f':{self.port}'}
+                    'dashboard_address': None if self.port is None else f':{self.port}'},
             )
 
             self.cluster.scale(jobs=self.n_workers)
@@ -66,12 +70,25 @@ class ClientClusterContext:
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
+
+        if exc_type is not None:
+            logging.getLogger(__name__).error(
+                "Exception in context: %s, %s", exc_type, str(exc_value))
+            logging.getLogger(__name__).error(exc_traceback)
+
         self.client.close()
         self.cluster.close()
 
     def wait(self):
-        while(len(self.cluster.workers) != self.n_workers):
-            time.sleep(100)
+        while True:
+            running = 0 
+            for w in self.cluster.workers:
+                running += (w.status == core.Status.running)
+
+            if running != self.n_workers:
+                time.sleep(1)
+            else:
+                break
 
 
 def load_yaml_config(path):
