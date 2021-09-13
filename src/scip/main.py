@@ -1,3 +1,6 @@
+import matplotlib
+matplotlib.use("Agg")
+
 from scip.utils import util
 from scip.normalization import quantile_normalization
 from scip.reports import feature_statistics, example_images, intensity_distribution, masks
@@ -16,9 +19,6 @@ from functools import partial
 from importlib import import_module
 import numpy
 import os
-
-import matplotlib
-matplotlib.use("Agg")
 
 
 def flat_intensities_partition(part):
