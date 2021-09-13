@@ -64,7 +64,7 @@ class ClientClusterContext:
                     'dashboard_address': None if self.port is None else f':{self.port}'},
             )
 
-            self.cluster.scale(jobs=self.n_workers)
+            self.cluster.scale(jobs=nodes_needed)
 
         self.client = Client(self.cluster)
         return self
@@ -78,17 +78,6 @@ class ClientClusterContext:
 
         self.client.close()
         self.cluster.close()
-
-    def wait(self):
-        while True:
-            running = 0 
-            for w in self.cluster.workers:
-                running += (w.status == core.Status.running)
-
-            if running != self.n_workers:
-                time.sleep(1)
-            else:
-                break
 
 
 def load_yaml_config(path):

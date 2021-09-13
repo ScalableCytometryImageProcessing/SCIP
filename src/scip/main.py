@@ -151,7 +151,7 @@ def main(
         # if timing is set, wait for the cluster to be fully ready
         # to isolate cluster startup time from pipeline execution
         if timing is not None:
-            context.wait()
+            context.client.wait_for_workers(n_workers=n_workers)
 
         start = time.time()
 
@@ -298,15 +298,4 @@ def cli(**kwargs):
 
 
 if __name__ == "__main__":
-    import os
-
-    # add DEBUG_DATASET entry to terminal.integrated.env.linux in VS Code workspace settings
-    # should contain path to small debug dataset
-    path = os.environ["FULL_DATASET"]
-    main(
-        paths=(path,),
-        output="tmp",
-        headless=True,
-        config='scip.yml',
-        partition_size=50,
-        debug=True, n_workers=2, n_processes=4, port=8787, local=True)
+    cli()

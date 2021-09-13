@@ -1,0 +1,27 @@
+ModuleCmd_Load.c(213):ERROR:105: Unable to locate a modulefile for 'Miniconda3'
+distributed.nanny - INFO -         Start Nanny at: 'tcp://10.118.201.157:34451'
+distributed.nanny - INFO -         Start Nanny at: 'tcp://10.118.201.157:39528'
+distributed.worker - INFO -       Start worker at: tcp://10.118.201.157:44910
+distributed.worker - INFO -          Listening to: tcp://10.118.201.157:44910
+distributed.worker - INFO -          dashboard at:       10.118.201.157:37640
+distributed.worker - INFO - Waiting to connect to:   tcp://10.118.200.4:42099
+distributed.worker - INFO - -------------------------------------------------
+distributed.worker - INFO -               Threads:                         12
+distributed.worker - INFO -                Memory:                   4.00 GiB
+distributed.worker - INFO -       Local Directory: /local_scratch/dask-worker-space/worker-9iu6st2h
+distributed.worker - INFO - -------------------------------------------------
+distributed.worker - INFO -         Registered to:   tcp://10.118.200.4:42099
+distributed.worker - INFO - -------------------------------------------------
+distributed.core - INFO - Starting established connection
+distributed.worker - INFO -       Start worker at: tcp://10.118.201.157:37834
+distributed.worker - INFO -          Listening to: tcp://10.118.201.157:37834
+distributed.worker - INFO -          dashboard at:       10.118.201.157:37064
+distributed.worker - INFO - Waiting to connect to:   tcp://10.118.200.4:42099
+distributed.worker - INFO - -------------------------------------------------
+distributed.worker - INFO -               Threads:                         12
+distributed.worker - INFO -                Memory:                   4.00 GiB
+distributed.worker - INFO -       Local Directory: /local_scratch/dask-worker-space/worker-z82egw2t
+distributed.worker - INFO - -------------------------------------------------
+distributed.worker - INFO -         Registered to:   tcp://10.118.200.4:42099
+distributed.worker - INFO - -------------------------------------------------
+distributed.core - INFO - Starting established connection
