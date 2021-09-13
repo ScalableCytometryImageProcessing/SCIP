@@ -256,16 +256,16 @@ def main(
     "--n-processes", "-n", type=int, default=1,
     help="Number of workers started per node in the PBSCluster")
 @click.option(
-    "--n-cores", "-c", type=int, default=click.IntRange(min=1),
+    "--n-cores", "-c", type=click.IntRange(min=1), default=1,
     help="Number of cores available per node in the cluster")
 @click.option(
-    "--memory", "-m", type=int, default=click.IntRange(min=1),
+    "--memory", "-m", type=click.IntRange(min=1), default=4,
     help="Amount of memory available per node in the cluster")
 @click.option(
     "--walltime", "-w", type=str, default="01:00:00",
     help="Expected required walltime for the job to finish")
 @click.option(
-    "--job-extra", "-e", type=str, multiple=True, default=None,
+    "--job-extra", "-e", type=str, multiple=True, default=[],
     help="Extra arguments for job submission")
 @click.option(
     "--headless", default=False, is_flag=True,
