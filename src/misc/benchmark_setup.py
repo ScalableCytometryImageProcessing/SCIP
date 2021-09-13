@@ -27,7 +27,7 @@ def main():
 
                 o = str(output / "results" / str(ident))
                 command = f'scip -j{n_workers} -t{n_threads} --no-local '
-                command += f'-c28 -m16 -w00:45:00 -e "-A lt1_starter-245" '
+                command += f'-c28 -m64 -w00:45:00 -e "-A lt1_starter-245" '
                 command += f'--headless --timing {timing} --partition-size {partition_size} '
                 command += f'-d /local_scratch/ {o} scip.yml {paths}'
 

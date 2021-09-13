@@ -182,13 +182,6 @@ def main(
             name="raw"
         )
         
-        import ctypes
-        def trim_memory() -> int:
-            libc = ctypes.CDLL("libc.so.6")
-            return libc.malloc_trim(0)
-
-        context.client.run(trim_memory)
-
         masking_module = import_module('scip.segmentation.%s' % config["masking"]["method"])
         bags = masking_module.create_masks_on_bag(images, noisy_channels=[0])
         for k, v in bags.items():
