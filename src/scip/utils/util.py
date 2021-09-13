@@ -17,14 +17,15 @@ class ClientClusterContext:
             self,
             *,
             local=True,
-            n_workers=2,
-            n_processes=12,
+            n_workers=12,
+            n_nodes=1,
             port=8787,
             local_directory=None,
             memory=None,
             cores=None,
             job_extra=[],
-            walltime="01:00:00"
+            walltime="01:00:00",
+            threads_per_process=None
     ):
         """
         Sets up a cluster and client.
@@ -35,12 +36,13 @@ class ClientClusterContext:
         self.local = local
         self.n_workers = n_workers
         self.port = port
-        self.n_processes = n_processes
+        self.n_nodes = n_nodes
         self.local_directory = local_directory
         self.memory = memory
         self.cores = cores
         self.job_extra = job_extra
         self.walltime = walltime
+        self.threads_per_process = threads_per_process
 
     def __enter__(self):
         if self.local:
@@ -49,35 +51,38 @@ class ClientClusterContext:
             assert (Path.home() / "logs").exists(), "Make sure directory\
                  'logs' exists in your home dir"
 
-            nodes_needed = int(math.ceil(self.n_workers / self.n_processes))
+            extra=[]
+            if self.threads_per_process is not None:
+                extra = [f"--nthreads {self.threads_per_process}"]
+
             mb_needed = math.ceil(self.memory * 1073.74)
             self.cluster = PBSCluster(
                 cores=self.cores,
                 memory=f"{self.memory}GiB",
-                resource_spec=f"nodes={nodes_needed}:ppn={self.cores},mem={mb_needed}mb",
-                processes=self.n_processes,
+                processes=self.n_workers,
+                resource_spec=f"nodes={self.n_nodes}:ppn={self.cores},mem={mb_needed}mb",
                 project=None,
                 local_directory=self.local_directory,
                 walltime=self.walltime,
+                extra=extra,
                 job_extra=self.job_extra,
                 scheduler_options={
                     'dashboard_address': None if self.port is None else f':{self.port}'},
             )
 
-            self.cluster.scale(jobs=nodes_needed)
+            self.cluster.scale(jobs=self.n_nodes)
 
         self.client = Client(self.cluster)
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-
+        self.client.close()
+        self.cluster.close()
+        
         if exc_type is not None:
             logging.getLogger(__name__).error(
                 "Exception in context: %s, %s", exc_type, str(exc_value))
-            logging.getLogger(__name__).error(exc_traceback)
-
-        self.client.close()
-        self.cluster.close()
+            return False
 
 
 def load_yaml_config(path):

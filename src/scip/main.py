@@ -87,8 +87,9 @@ def main(
     config,
     partition_size,
     n_workers,
-    n_processes,
+    n_nodes,
     n_cores,
+    n_threads,
     memory,
     walltime,
     job_extra,
@@ -120,8 +121,10 @@ def main(
     util.configure_logging(output, debug)
     logger = logging.getLogger("scip")
     logger.info(f"Running pipeline for {','.join(paths)}")
-    logger.info(f"Running with {n_workers} workers/nodes and {n_processes} processes")
+    logger.info(f"Running with {n_workers} workers and {n_threads} threads per worker")
     logger.info(f"Local mode? {local}")
+    if not local:
+        logger.info(f"Provisining {n_nodes} nodes")
     logger.info(f"Output is saved in {str(output)}")
 
     config = util.load_yaml_config(config)
@@ -137,12 +140,13 @@ def main(
             n_workers=n_workers,
             local=local,
             port=port,
-            n_processes=n_processes,
+            n_nodes=n_nodes,
             local_directory=local_directory,
             cores=n_cores,
             memory=memory,
             walltime=walltime,
-            job_extra=job_extra
+            job_extra=job_extra,
+            threads_per_process=n_threads
     ) as context:
         logger.debug(f"Cluster ({context.cluster}) created")
         if not local:
@@ -177,6 +181,13 @@ def main(
             output=output,
             name="raw"
         )
+        
+        import ctypes
+        def trim_memory() -> int:
+            libc = ctypes.CDLL("libc.so.6")
+            return libc.malloc_trim(0)
+
+        context.client.run(trim_memory)
 
         masking_module = import_module('scip.segmentation.%s' % config["masking"]["method"])
         bags = masking_module.create_masks_on_bag(images, noisy_channels=[0])
@@ -253,11 +264,14 @@ def main(
     "--n-workers", "-j", type=int, default=-1,
     help="Number of workers in the LocalCluster, or number of provisioned nodes otherwise")
 @click.option(
-    "--n-processes", "-n", type=int, default=1,
-    help="Number of workers started per node in the PBSCluster")
+    "--n-nodes", "-n", type=int, default=1,
+    help="Number of nodes started")
 @click.option(
     "--n-cores", "-c", type=click.IntRange(min=1), default=1,
     help="Number of cores available per node in the cluster")
+@click.option(
+    "--n-threads", "-t", type=click.IntRange(min=1), default=1,
+    help="Number of threads per worker process")
 @click.option(
     "--memory", "-m", type=click.IntRange(min=1), default=4,
     help="Amount of memory available per node in the cluster")
