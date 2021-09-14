@@ -160,7 +160,7 @@ def report(
     def density(n, bins):
         s = n.sum(axis=0)
         s[s == 0] = 1
-        
+
         # density computation taken from numpy histogram source
         # https://github.com/numpy/numpy/blob/v1.21.0/numpy/lib/histograms.py#L678-L929
         db = np.diff(bins, axis=-1)

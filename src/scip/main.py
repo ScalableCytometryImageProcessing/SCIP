@@ -1,12 +1,3 @@
-import matplotlib
-matplotlib.use("Agg")
-
-from scip.utils import util
-from scip.normalization import quantile_normalization
-from scip.reports import feature_statistics, example_images, intensity_distribution, masks
-from scip.features import feature_extraction, cellprofiler
-from scip.segmentation.mask_apply import get_masked_intensities
-# from scip.analysis import fuzzy_c_mean
 import time
 import click
 import logging
@@ -14,11 +5,22 @@ import logging.config
 from pathlib import Path
 import dask.bag
 import dask.dataframe
-import shutil
 from functools import partial
 from importlib import import_module
 import numpy
 import os
+
+import matplotlib
+matplotlib.use("Agg")
+
+from scip.utils import util  # noqa: E402
+from scip.normalization import quantile_normalization  # noqa: E402
+from scip.reports import (  # noqa: E402
+    feature_statistics, example_images, intensity_distribution, masks
+)  # noqa: E402
+from scip.features import feature_extraction, cellprofiler  # noqa: E402
+from scip.segmentation import mask_apply  # noqa: E402
+# from scip.analysis import fuzzy_c_mean  # noqa: E402
 
 
 def flat_intensities_partition(part):
@@ -31,8 +33,9 @@ def flat_intensities_partition(part):
     return [get_flat_intensities(p) for p in part]
 
 
-def masked_intensities_partition(part):
-    return [get_masked_intensities(p) for p in part]
+def nonempty_mask_predicate(s):
+    flat = s["mask"].reshape(s["mask"].shape[0], -1)
+    return all(numpy.any(flat, axis=1))
 
 
 def get_images_bag(paths, channels, config, partition_size):
@@ -60,7 +63,9 @@ def preprocess_bag(bag):
     # images are loaded from directory and masked
     # after this operation the bag is persisted as it
     # will be reused several times throughout the pipeline
-    bag = bag.map_partitions(masked_intensities_partition)
+    bag = bag.filter(nonempty_mask_predicate)
+    bag = bag.map_partitions(mask_apply.crop_to_mask_partition)
+    bag = bag.map_partitions(mask_apply.masked_intensities_partition)
     bag = quantile_normalization.quantile_normalization(bag, 0, 1)
 
     return bag
@@ -101,22 +106,8 @@ def main(
     timing
 ):
 
-    # logic for creating output directory
-    should_remove = True
-
     output = Path(output)
-    if (not headless) and output.exists():
-        should_remove = click.prompt(
-            f"{str(output)} exists. Overwrite contents? [Y/n]",
-            type=str, show_default=False, default="Y"
-        ) == "Y"
-
-        if not should_remove:
-            raise FileExistsError(f"{str(output)} exists and should not be removed. Exiting.")
-    if should_remove and output.exists():
-        shutil.rmtree(output)
-    if not output.exists():
-        output.mkdir(parents=True)
+    util.make_output_dir(output)
 
     util.configure_logging(output, debug)
     logger = logging.getLogger("scip")
@@ -181,7 +172,7 @@ def main(
             output=output,
             name="raw"
         )
-        
+
         masking_module = import_module('scip.segmentation.%s' % config["masking"]["method"])
         bags = masking_module.create_masks_on_bag(images, noisy_channels=[0])
         for k, v in bags.items():
@@ -192,14 +183,9 @@ def main(
         #     pickle.dump(bags["otsu"].compute(), fh)
         # return
 
-        def nonempty_mask_predicate(s):
-            flat = s["mask"].reshape(s["mask"].shape[0], -1)
-            return all(numpy.any(flat, axis=1))
-        
         feature_dataframes = []
         for k, bag in bags.items():
-            
-            bag = bag.filter(nonempty_mask_predicate)
+
             bag = preprocess_bag(bag)
             bag = bag.persist()
 
@@ -228,13 +214,13 @@ def main(
 
         # memberships, membership_plot = fuzzy_c_mean.fuzzy_c_means(features, 5, 3, 10)
         # if output is not None:
-            # membership_plot.compute()
+        #    # membership_plot.compute()
 
         filename = config["export"]["filename"]
         features.compute().to_parquet(str(output / f"{filename}.parquet"))
         feature_statistics.report(
-            features, 
-            template_dir=template_dir, 
+            features,
+            template_dir=template_dir,
             template="feature_statistics.html",
             output=output
         )

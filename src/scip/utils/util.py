@@ -6,9 +6,9 @@ from pathlib import Path
 import yaml
 from pkg_resources import resource_stream
 import logging
-import time
 import math
-from dask.distributed import core
+import shutil
+import click
 
 
 class ClientClusterContext:
@@ -51,9 +51,9 @@ class ClientClusterContext:
             assert (Path.home() / "logs").exists(), "Make sure directory\
                  'logs' exists in your home dir"
 
-            extra=[]
+            extra = []
             if self.threads_per_process is not None:
-                extra = [f"--nthreads {self.threads_per_process}"]
+                extra = ["--nthreads", self.threads_per_process]
 
             mb_needed = math.ceil(self.memory * 1073.74)
             self.cluster = PBSCluster(
@@ -78,7 +78,7 @@ class ClientClusterContext:
     def __exit__(self, exc_type, exc_value, exc_traceback):
         self.client.close()
         self.cluster.close()
-        
+
         if exc_type is not None:
             logging.getLogger(__name__).error(
                 "Exception in context: %s, %s", exc_type, str(exc_value))
@@ -94,10 +94,27 @@ def configure_logging(output, debug):
     with resource_stream(__name__, 'logging.yml') as stream:
         loggingConfig = yaml.load(stream, Loader=yaml.FullLoader)
 
-    for k,v in loggingConfig["handlers"].items():
+    for k, v in loggingConfig["handlers"].items():
         if k == "file":
             v["filename"] = str(output / v["filename"])
         if (k == "console") and debug:
             v["level"] = "DEBUG"
 
     logging.config.dictConfig(loggingConfig)
+
+
+def make_output_dir(output, headless):
+    should_remove = True
+
+    if (not headless) and output.exists():
+        should_remove = click.prompt(
+            f"{str(output)} exists. Overwrite contents? [Y/n]",
+            type=str, show_default=False, default="Y"
+        ) == "Y"
+
+        if not should_remove:
+            raise FileExistsError(f"{str(output)} exists and should not be removed. Exiting.")
+    if should_remove and output.exists():
+        shutil.rmtree(output)
+    if not output.exists():
+        output.mkdir(parents=True)

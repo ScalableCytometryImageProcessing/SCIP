@@ -34,7 +34,6 @@ def report(
         flat_intensities = sample.get('flat')
         return np.array([len(i) == 0 for i in flat_intensities], dtype=int)
 
-
     @dask.delayed
     def plot(percentage):
 
@@ -52,7 +51,6 @@ def report(
         with open(str(output / f"{name}_mask_quality_control.html"), "w") as text_file:
             text_file.write('<header><h1>Amount of missing masks per channel</h1></header>')
             text_file.write(html_missing_masks)
-
 
     # Calculate the percentage per channel of blank masks
     blanks_sum = bag.map_partitions(blank_masks_partitions).fold(lambda A, B: A + B)

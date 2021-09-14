@@ -7,7 +7,7 @@ from scip.reports.util import get_jinja_template
 
 
 def plot_with_masks(images):
-    fig = plt.figure(figsize=(10,5), constrained_layout=False)
+    fig = plt.figure(figsize=(10, 5), constrained_layout=False)
     tmp = images[0]["pixels"]
     outer_grid = fig.add_gridspec(len(images), len(tmp), wspace=0.01, hspace=0.01)
 

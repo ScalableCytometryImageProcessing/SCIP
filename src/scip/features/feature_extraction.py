@@ -117,7 +117,7 @@ def texture_features(sample):
 
     # the amount of hog features depends on the size of the input image, which is not uniform
     # for most datasets. Therefore, we dynamically compute the HOG parameters so that there is
-    # always a 3x3 cell grid leading to a uniform length feature vector 
+    # always a 3x3 cell grid leading to a uniform length feature vector
     pixels_per_cell = img.shape[1] // 3, img.shape[2] // 3
 
     features_dict = {"idx": sample["idx"]}
