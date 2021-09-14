@@ -40,8 +40,8 @@ def report(df, *, template_dir, template, output):
                 nan=nan
             ))
 
-    var = df.var(axis=0, skipna=True)
-    mean = df.mean(axis=0, skipna=True)
+    var = df.var(axis=0, skipna=True, numeric_only=True)
+    mean = df.mean(axis=0, skipna=True, numeric_only=True)
 
     filtered_df, dropped_zero_variance, dropped_nan = filter_features(df, var)
 

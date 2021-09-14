@@ -4,9 +4,9 @@
 
 {% block body %}
         <h1>Feature statistics</h1>
-        {{ stats }}
+        {{ stats|safe }}
         <h1>Dropped columns: NaN</h1>
-        {{ nan }}
+        {{ nan|safe }}
         <h1>Dropped columns: Zero variance</h1>
-        {{ zero_variance }}
+        {{ zero_variance|safe }}
 {% endblock %}

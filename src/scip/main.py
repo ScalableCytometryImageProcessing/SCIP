@@ -152,7 +152,8 @@ def main(
 
         assert "channels" in config["loading"], "Please specify what channels to load"
         channels = config["loading"].get("channels")
-        channel_labels = [f'ch{i}' for i in channels]
+        channel_labels = config["loading"].get("channel_labels")
+        assert len(channels) == len(channel_labels), "Please specify a label for each channel"
 
         images = get_images_bag(paths, channels, config, partition_size)
         logger.debug("Loaded images")
@@ -175,8 +176,6 @@ def main(
 
         masking_module = import_module('scip.segmentation.%s' % config["masking"]["method"])
         bags = masking_module.create_masks_on_bag(images, noisy_channels=[0])
-        for k, v in bags.items():
-            masks.report(v, channel_labels=channel_labels, output=output, name=k)
 
         # with open("test/data/masked.pickle", "wb") as fh:
         #     import pickle
@@ -185,6 +184,15 @@ def main(
 
         feature_dataframes = []
         for k, bag in bags.items():
+            
+            masks.report(
+                bag,
+                template_dir=template_dir,
+                template="masks.html",
+                name=k,
+                output=output,
+                channel_labels=channel_labels
+            )
 
             bag = preprocess_bag(bag)
             bag = bag.persist()
