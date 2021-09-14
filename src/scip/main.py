@@ -107,7 +107,7 @@ def main(
 ):
 
     output = Path(output)
-    util.make_output_dir(output)
+    util.make_output_dir(output, headless=headless)
 
     util.configure_logging(output, debug)
     logger = logging.getLogger("scip")

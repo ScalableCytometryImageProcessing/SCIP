@@ -23,12 +23,15 @@ def get_mask(el):
         segmentation = watershed(elev_map, markers)
 
         # binarize
-        segmentation = segmentation == segmentation.max()
+        if segmentation.max() == 0:
+            mask[dim] = False
+        else:
+            segmentation = segmentation == segmentation.max()
 
-        # post process segmentation
-        segmentation = morphology.binary_dilation(segmentation, selem=morphology.disk(2))
+            # post process segmentation
+            segmentation = morphology.binary_dilation(segmentation, selem=morphology.disk(2))
 
-        mask[dim] = segmentation
+            mask[dim] = segmentation
 
     out = el.copy()
     out["intermediate"] = mask
