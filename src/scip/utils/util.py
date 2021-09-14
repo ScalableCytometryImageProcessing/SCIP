@@ -3,12 +3,14 @@
 from dask.distributed import (Client, LocalCluster)
 from dask_jobqueue import PBSCluster
 from pathlib import Path
+from distributed.client import DEFAULT_EXTENSIONS
 import yaml
 from pkg_resources import resource_stream
 import logging
 import time
 import math
 from dask.distributed import core
+from datetime import datetime, timedelta
 
 
 class ClientClusterContext:
@@ -51,9 +53,11 @@ class ClientClusterContext:
             assert (Path.home() / "logs").exists(), "Make sure directory\
                  'logs' exists in your home dir"
 
-            extra=[]
+            t = datetime.strptime(self.walltime,"%H:%M:%S")
+            seconds = timedelta(hours=t.hour, minutes=t.minute, seconds=t.second).total_seconds()
+            extra=["--lifetime", f"{seconds}s"]
             if self.threads_per_process is not None:
-                extra = [f"--nthreads {self.threads_per_process}"]
+                extra = ["--nthreads", self.threads_per_process]
 
             mb_needed = math.ceil(self.memory * 1073.74)
             self.cluster = PBSCluster(
