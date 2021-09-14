@@ -9,6 +9,7 @@ import logging
 import math
 import shutil
 import click
+from datetime import datetime, timedelta
 
 
 class ClientClusterContext:
@@ -51,7 +52,9 @@ class ClientClusterContext:
             assert (Path.home() / "logs").exists(), "Make sure directory\
                  'logs' exists in your home dir"
 
-            extra = []
+            t = datetime.strptime(self.walltime,"%H:%M:%S")
+            seconds = timedelta(hours=t.hour, minutes=t.minute, seconds=t.second).total_seconds()
+            extra=["--lifetime", f"{seconds}s"]
             if self.threads_per_process is not None:
                 extra = ["--nthreads", self.threads_per_process]
 
