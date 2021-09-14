@@ -47,15 +47,17 @@ def get_images_bag(paths, channels, config, partition_size):
         partition_size=partition_size)
 
     images = []
+    meta = []
     idx = 0
     for path in paths:
         assert Path(path).exists(), f"{path} does not exist."
         assert Path(path).is_dir(), f"{path} is not a directory."
         logging.info(f"Bagging {path}")
-        bag, idx = loader(path, idx)
+        bag, df, idx = loader(path, idx)
         images.append(bag)
+        meta.append(df)
 
-    return dask.bag.concat(images)
+    return dask.bag.concat(images), dask.dataframe.concat(meta)
 
 
 def preprocess_bag(bag):
@@ -155,7 +157,7 @@ def main(
         channel_labels = config["loading"].get("channel_labels")
         assert len(channels) == len(channel_labels), "Please specify a label for each channel"
 
-        images = get_images_bag(paths, channels, config, partition_size)
+        images, meta = get_images_bag(paths, channels, config, partition_size)
         logger.debug("Loaded images")
         example_images.report(
             images,
@@ -215,23 +217,23 @@ def main(
                 extent=numpy.array([(0, 1)] * len(channels))  # extent is known due to normalization
             )
 
-            feature_dataframes.append(compute_features(bag, channels, k))
+            df = compute_features(bag, channels, k)
+            df = df.rename(columns=lambda n: f"feat_{k}_{n}")
+            feature_dataframes.append(df)
 
         features = dask.dataframe.multi.concat(feature_dataframes, axis=1)
         features = features.persist()
-
-        # memberships, membership_plot = fuzzy_c_mean.fuzzy_c_means(features, 5, 3, 10)
-        # if output is not None:
-        #    # membership_plot.compute()
-
-        filename = config["export"]["filename"]
-        features.compute().to_parquet(str(output / f"{filename}.parquet"))
         feature_statistics.report(
             features,
             template_dir=template_dir,
             template="feature_statistics.html",
             output=output
         )
+
+        filename = config["export"]["filename"]
+        dask.dataframe.multi.concat(
+            [features, meta], axis=1
+        ).compute().to_parquet(str(output / f"{filename}.parquet"))
 
         if debug:
             context.client.profile(filename=str(output / "profile.html"))
