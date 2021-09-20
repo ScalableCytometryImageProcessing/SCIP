@@ -10,7 +10,7 @@ loading:
   loader_kwargs:
     regex: .*\/(?P<id>[0-9]+)_Ch(?P<channel>(1|4|6|7|11))\.ome\.tif$
 masking:
-  method: watershed
+  method: thresholdmean
 export:
   format: parquet
   filename: features
