@@ -52,4 +52,4 @@ def bag_from_directory(path, idx, channels, partition_size):
     bag = dask.bag.from_sequence(events, partition_size=partition_size)
     return bag.map_partitions(
         lambda partition: [load_image(event, channels) for event in partition]
-    ), meta, len(events)
+    ), meta

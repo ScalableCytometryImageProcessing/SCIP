@@ -1,0 +1,16 @@
+loading:
+  format: tiff
+  channels: [1, 4, 6, 7, 11]
+  channel_labels:
+    - BF1
+    - MCP
+    - SSC
+    - DAPI
+    - PSBA
+  loader_kwargs:
+    regex: .*\/(?P<id>[0-9]+)_Ch(?P<channel>(1|4|6|7|11))\.ome\.tif$
+masking:
+  method: watershed
+export:
+  format: parquet
+  filename: features

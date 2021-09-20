@@ -6,6 +6,7 @@ loading:
     - PI
     - DF
     - BF2
+  loader_kwargs:
 masking:
   method: watershed
 export:

@@ -44,7 +44,8 @@ def get_images_bag(paths, channels, config, partition_size):
     loader = partial(
         loader_module.bag_from_directory,
         channels=channels,
-        partition_size=partition_size)
+        partition_size=partition_size,
+        **config["loading"]["loader_kwargs"])
 
     images = []
     meta = []
@@ -53,7 +54,9 @@ def get_images_bag(paths, channels, config, partition_size):
         assert Path(path).exists(), f"{path} does not exist."
         assert Path(path).is_dir(), f"{path} is not a directory."
         logging.info(f"Bagging {path}")
-        bag, df, idx = loader(path, idx)
+        bag, df = loader(path=path, idx=idx)
+
+        idx += len(df)
         images.append(bag)
         meta.append(df)
 
