@@ -14,6 +14,8 @@ def load_image(event, channels):
 
 
 def bag_from_directory(*, path, idx, channels, partition_size, regex):
+
+    logger = logging.getLogger(__name__)
  
     def match(p):
         m = re.match(regex, str(p)).groupdict()
@@ -22,10 +24,19 @@ def bag_from_directory(*, path, idx, channels, partition_size, regex):
         else:
             return None
 
+    def load_image_partition(partition):
+        return [load_image(event, channels) for event in partition]
+
     path = Path(path)    
     
     matches = list(filter(lambda r: r is not None, map(match, path.glob("**/*.tif*"))))
     df = pandas.DataFrame.from_dict(matches)
+
+    pre_filter = len(df)
+    df = df.dropna(axis=0, how="any")
+    dropped = pre_filter - len(df)
+    logger.warning("Dropped %d rows, because of missing channel files." % dropped)
+
     df = df.pivot(index="id", columns="channel", values="path")
     df["idx"] = pandas.RangeIndex(start=idx, stop=idx+len(df))
 
@@ -33,6 +44,4 @@ def bag_from_directory(*, path, idx, channels, partition_size, regex):
 
     df = df.set_index("idx")
     df.columns = [f"meta_{c}" for c in df.columns]
-    return bag.map_partitions(
-        lambda partition: [load_image(event, channels) for event in partition]
-    ), df
+    return bag.map_partitions(load_image_partition), df
