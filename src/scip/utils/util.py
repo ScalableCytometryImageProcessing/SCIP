@@ -63,7 +63,7 @@ class ClientClusterContext:
                 cores=self.cores,
                 memory=f"{self.memory}GiB",
                 processes=self.n_workers,
-                resource_spec=f"nodes={self.n_nodes}:ppn={self.cores},mem={mb_needed}mb",
+                resource_spec=f"nodes=1:ppn={self.cores},mem={mb_needed}mb",
                 project=None,
                 local_directory=self.local_directory,
                 walltime=self.walltime,
@@ -86,6 +86,14 @@ class ClientClusterContext:
             logging.getLogger(__name__).error(
                 "Exception in context: %s, %s", exc_type, str(exc_value))
             return False
+
+    def wait(self):
+        if self.local:
+            n_workers = self.n_workers
+        else:
+            n_workers = self.n_workers * self.n_nodes
+
+        self.client.wait_for_workers(n_workers=n_workers)
 
 
 def load_yaml_config(path):

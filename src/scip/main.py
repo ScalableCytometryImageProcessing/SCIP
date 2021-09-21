@@ -151,7 +151,7 @@ def main(
         # if timing is set, wait for the cluster to be fully ready
         # to isolate cluster startup time from pipeline execution
         if timing is not None:
-            context.client.wait_for_workers(n_workers=n_workers)
+            context.wait()
 
         start = time.time()
 
@@ -262,7 +262,7 @@ def main(
     "--n-cores", "-c", type=click.IntRange(min=1), default=1,
     help="Number of cores available per node in the cluster")
 @click.option(
-    "--n-threads", "-t", type=click.IntRange(min=1), default=1,
+    "--n-threads", "-t", type=click.IntRange(min=1), default=None,
     help="Number of threads per worker process")
 @click.option(
     "--memory", "-m", type=click.IntRange(min=1), default=4,
