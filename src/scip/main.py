@@ -161,7 +161,8 @@ def main(
         assert len(channels) == len(channel_labels), "Please specify a label for each channel"
 
         images, meta = get_images_bag(paths, channels, config, partition_size)
-        logger.debug("Loaded images")
+        images = images.persist()
+        
         example_images.report(
             images,
             template_dir=template_dir,
@@ -182,6 +183,8 @@ def main(
         masking_module = import_module('scip.segmentation.%s' % config["masking"]["method"])
         bags = masking_module.create_masks_on_bag(images, noisy_channels=[0])
 
+        del images
+
         # with open("test/data/masked.pickle", "wb") as fh:
         #     import pickle
         #     pickle.dump(bags["otsu"].compute(), fh)
@@ -189,6 +192,8 @@ def main(
 
         feature_dataframes = []
         for k, bag in bags.items():
+
+            bag = bag.persist()
             
             masks.report(
                 bag,
@@ -225,7 +230,12 @@ def main(
             feature_dataframes.append(df)
 
         features = dask.dataframe.multi.concat(feature_dataframes, axis=1)
-        features = features.persist()
+
+        # once features are computed, pull to local
+        features = dask.dataframe.multi.concat(
+            [features, meta], axis=1
+        ).compute()
+
         feature_statistics.report(
             features,
             template_dir=template_dir,
@@ -234,9 +244,7 @@ def main(
         )
 
         filename = config["export"]["filename"]
-        dask.dataframe.multi.concat(
-            [features, meta], axis=1
-        ).compute().to_parquet(str(output / f"{filename}.parquet"))
+        features.to_parquet(str(output / f"{filename}.parquet"))
 
         if debug:
             context.client.profile(filename=str(output / "profile.html"))

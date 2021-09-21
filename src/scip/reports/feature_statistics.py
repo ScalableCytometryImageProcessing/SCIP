@@ -22,7 +22,8 @@ def filter_features(feature_df, var):
 
 def report(df, *, template_dir, template, output):
 
-    @dask.delayed
+    features, meta = df.filter(regex="^feat_"), df.filter(regex="^meta_")
+
     def feature_stats_to_html(var, mean, dropped_zero_variance, dropped_nan, output):
         df = pd.concat([mean, var], axis=1)
         df.columns = ['means', 'var']
@@ -40,10 +41,10 @@ def report(df, *, template_dir, template, output):
                 nan=nan
             ))
 
-    var = df.var(axis=0, skipna=True, numeric_only=True)
-    mean = df.mean(axis=0, skipna=True, numeric_only=True)
+    var = features.var(axis=0, skipna=True)
+    mean = features.mean(axis=0, skipna=True)
 
     filtered_df, dropped_zero_variance, dropped_nan = filter_features(df, var)
 
     return feature_stats_to_html(
-        var, mean, dropped_zero_variance, dropped_nan, output).compute()
+        var, mean, dropped_zero_variance, dropped_nan, output)
