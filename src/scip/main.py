@@ -254,7 +254,7 @@ def main(
     help="deploy app to Dask LocalCluster, otherwise deploy to dask-jobqueue PBSCluster")
 @click.option(
     "--n-workers", "-j", type=int, default=-1,
-    help="Number of workers in the LocalCluster, or number of provisioned nodes otherwise")
+    help="Number of workers in the LocalCluster or per node")
 @click.option(
     "--n-nodes", "-n", type=int, default=1,
     help="Number of nodes started")
