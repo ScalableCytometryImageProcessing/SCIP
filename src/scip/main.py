@@ -77,13 +77,21 @@ def compute_features(images, channels, prefix):
     skimage_features = feature_extraction.extract_features(images=images)
     cp_features = cellprofiler.extract_features(images=images, channels=channels)
     features = dask.dataframe.multi.concat([skimage_features, cp_features], axis=1)
+    features = features.rename(columns=lambda c: f"feat_{prefix}_{c}")
 
-    def name(c):
-        parts = c.split("_", 1)
-        return f"{parts[0]}_{prefix}_{parts[1]}"
-    features = features.rename(columns=name)
+    def to_bbox_df(el):
+        return dict(
+            idx=el["idx"],
+            bbox_minr=el["bbox"][0],
+            bbox_minc=el["bbox"][1],
+            bbox_maxr=el["bbox"][2],
+            bbox_maxc=el["bbox"][3]
+        )
+    bbox = images.map(to_bbox_df)
+    bbox = bbox.to_dataframe().set_index("idx")
+    bbox = bbox.rename(columns=lambda c: f"meta_{prefix}_{c}")
 
-    return features
+    return dask.dataframe.multi.concat([features, bbox], axis=1)
 
 
 def main(
@@ -222,7 +230,6 @@ def main(
             )
 
             df = compute_features(bag, channels, k)
-            df = df.rename(columns=lambda n: f"feat_{k}_{n}")
             feature_dataframes.append(df)
 
         features = dask.dataframe.multi.concat(feature_dataframes, axis=1)
