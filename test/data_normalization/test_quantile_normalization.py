@@ -1,7 +1,7 @@
 from scip.loading import multiframe_tiff
 from scip.segmentation import felzenswalb
 from scip.normalization import quantile_normalization
-from scip.segmentation.mask_apply import masked_intensities_partition
+from scip.segmentation.util import masked_intensities_partition
 import dask.bag
 import pickle
 import numpy

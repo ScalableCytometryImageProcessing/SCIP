@@ -33,23 +33,6 @@ def apply(sample, origin):
     return output
 
 
-def apply_masks_on_bag(bags):
-    """
-    Apply mask on the image data
-
-    Args:
-        bags ({dask.bag}): dict of bags containing dictionaries with pixel and mask data
-
-    Returns:
-        [dask.bag]: input bags including applied mask
-    """
-
-    def apply_mask_partition(part, origin):
-        return [apply(p, origin) for p in part]
-
-    return {k: bag.map_partitions(apply_mask_partition, "result") for k, bag in bags.items()}
-
-
 def masked_intensities_partition(part):
     return [get_masked_intensities(p) for p in part]
 

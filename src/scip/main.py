@@ -19,7 +19,7 @@ from scip.reports import (  # noqa: E402
     feature_statistics, example_images, intensity_distribution, masks
 )  # noqa: E402
 from scip.features import feature_extraction, cellprofiler  # noqa: E402
-from scip.segmentation import mask_apply  # noqa: E402
+from scip.segmentation import util  # noqa: E402
 # from scip.analysis import fuzzy_c_mean  # noqa: E402
 
 
@@ -69,8 +69,8 @@ def preprocess_bag(bag):
     # after this operation the bag is persisted as it
     # will be reused several times throughout the pipeline
     bag = bag.filter(nonempty_mask_predicate)
-    bag = bag.map_partitions(mask_apply.crop_to_mask_partition)
-    bag = bag.map_partitions(mask_apply.masked_intensities_partition)
+    bag = bag.map_partitions(util.crop_to_mask_partition)
+    bag = bag.map_partitions(util.masked_intensities_partition)
     bag = quantile_normalization.quantile_normalization(bag, 0, 1)
 
     return bag

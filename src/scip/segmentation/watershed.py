@@ -2,7 +2,7 @@ from skimage.segmentation import watershed
 from skimage.filters import sobel
 from skimage import morphology
 import numpy
-from scip.segmentation import mask_apply
+from scip.segmentation import util
 
 
 def get_mask(el):
@@ -45,6 +45,6 @@ def create_masks_on_bag(bag, **kwargs):
         return [get_mask(p) for p in partition]
 
     bag = bag.map_partitions(watershed_masking)
-    bag = bag.map_partitions(mask_apply.apply_mask_partition)
+    bag = bag.map_partitions(util.apply_mask_partition)
 
     return dict(watershed=bag)
