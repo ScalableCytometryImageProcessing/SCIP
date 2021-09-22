@@ -13,6 +13,7 @@ def get_mask(el):
     for dim in range(len(image)):
         # compute elevation map
         elev_map = sobel(image[dim])
+        closed = morphology.closing(elev_map, selem=morphology.disk(2))
 
         # select watershed markers
         markers = numpy.zeros_like(image[1])
@@ -20,7 +21,7 @@ def get_mask(el):
         markers[image[1] > numpy.quantile(image[dim], 0.95)] = 2
 
         # do watershed
-        segmentation = watershed(elev_map, markers)
+        segmentation = watershed(closed, markers)
 
         # binarize
         if segmentation.max() == 0:

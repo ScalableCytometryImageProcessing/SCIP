@@ -24,8 +24,8 @@ def load_image(event, channels=None):
         channels = range(im.n_frames)
 
     arr = numpy.empty(shape=(len(channels), im.height, im.width), dtype=float)
-    for i in channels:
-        im.seek(i)
+    for i, c in enumerate(channels):
+        im.seek(c)
         arr[i] = numpy.array(im)
     return dict(pixels=arr, path=event["path"], idx=event["idx"])
 
