@@ -40,7 +40,7 @@ def get_images_bag(paths, channels, config, partition_size):
         loader_module.bag_from_directory,
         channels=channels,
         partition_size=partition_size,
-        **config["loading"]["loader_kwargs"])
+        **(config["loading"]["loader_kwargs"] or dict()))
 
     images = []
     meta = []
