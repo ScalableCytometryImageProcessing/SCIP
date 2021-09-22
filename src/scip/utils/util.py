@@ -52,9 +52,9 @@ class ClientClusterContext:
             assert (Path.home() / "logs").exists(), "Make sure directory\
                  'logs' exists in your home dir"
 
-            t = datetime.strptime(self.walltime,"%H:%M:%S")
+            t = datetime.strptime(self.walltime, "%H:%M:%S")
             seconds = timedelta(hours=t.hour, minutes=t.minute, seconds=t.second).total_seconds()
-            extra=["--lifetime", f"{seconds}s"]
+            extra = ["--lifetime", f"{seconds}s"]
             if self.threads_per_process is not None:
                 extra = ["--nthreads", self.threads_per_process]
 

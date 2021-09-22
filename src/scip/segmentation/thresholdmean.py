@@ -18,7 +18,7 @@ def get_mask(el):
         elev = sobel(denoised)
 
         thresh = elev > threshold_mean(elev)
-        
+
         labeled = label(thresh)
 
         if numpy.max(labeled) > 1:

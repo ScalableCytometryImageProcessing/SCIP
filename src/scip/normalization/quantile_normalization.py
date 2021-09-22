@@ -21,7 +21,7 @@ def select_origin(partition, *, origin):
     return mapped
 
 
-def get_distributed_minmax(bag):
+def get_distributed_minmax(bag):  # noqa: C901
 
     def combine_extent_partition(a, b):
 
@@ -33,7 +33,7 @@ def get_distributed_minmax(bag):
 
         if hasattr(b, "shape"):
             a, b = b, a
-        
+
         out = np.empty(shape=a.shape)
         for i in range(len(b)):
             if b[i].size == 0:
@@ -65,7 +65,7 @@ def get_distributed_minmax(bag):
                 out[i, 0] = min(a[i, 0], b[i, 0])
                 out[i, 1] = max(a[i, 1], b[i, 1])
             return out
- 
+
         return combine_extent_partition(a, b)
 
     bag = bag.map_partitions(select_origin, origin="flat")

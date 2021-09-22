@@ -1,7 +1,5 @@
 import numpy as np
 import pandas as pd
-import dask
-
 from scip.reports.util import get_jinja_template
 
 
@@ -22,7 +20,7 @@ def filter_features(feature_df, var):
 
 def report(df, *, template_dir, template, output):
 
-    features, meta = df.filter(regex="^feat_"), df.filter(regex="^meta_")
+    features, _ = df.filter(regex="^feat_"), df.filter(regex="^meta_")
 
     def feature_stats_to_html(var, mean, dropped_zero_variance, dropped_nan, output):
         df = pd.concat([mean, var], axis=1)

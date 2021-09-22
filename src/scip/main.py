@@ -19,7 +19,7 @@ from scip.reports import (  # noqa: E402
     feature_statistics, example_images, intensity_distribution, masks
 )  # noqa: E402
 from scip.features import feature_extraction, cellprofiler  # noqa: E402
-from scip.segmentation import util  # noqa: E402
+from scip.segmentation import util as segmentation_util  # noqa: E402
 # from scip.analysis import fuzzy_c_mean  # noqa: E402
 
 
@@ -31,11 +31,6 @@ def flat_intensities_partition(part):
         return out
 
     return [get_flat_intensities(p) for p in part]
-
-
-def nonempty_mask_predicate(s):
-    flat = s["mask"].reshape(s["mask"].shape[0], -1)
-    return all(numpy.any(flat, axis=1))
 
 
 def get_images_bag(paths, channels, config, partition_size):
@@ -68,9 +63,10 @@ def preprocess_bag(bag):
     # images are loaded from directory and masked
     # after this operation the bag is persisted as it
     # will be reused several times throughout the pipeline
-    bag = bag.filter(nonempty_mask_predicate)
-    bag = bag.map_partitions(util.crop_to_mask_partition)
-    bag = bag.map_partitions(util.masked_intensities_partition)
+    bag = bag.filter(segmentation_util.nonempty_mask_predicate)
+    bag = bag.map_partitions(segmentation_util.bounding_box_partition)
+    bag = bag.map_partitions(segmentation_util.crop_to_mask_partition)
+    bag = bag.map_partitions(segmentation_util.masked_intensities_partition)
     bag = quantile_normalization.quantile_normalization(bag, 0, 1)
 
     return bag
@@ -162,7 +158,7 @@ def main(
 
         images, meta = get_images_bag(paths, channels, config, partition_size)
         images = images.persist()
-        
+
         example_images.report(
             images,
             template_dir=template_dir,
@@ -194,7 +190,7 @@ def main(
         for k, bag in bags.items():
 
             bag = bag.persist()
-            
+
             masks.report(
                 bag,
                 template_dir=template_dir,

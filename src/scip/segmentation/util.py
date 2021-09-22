@@ -1,5 +1,11 @@
 import numpy as np
 from skimage.measure import regionprops
+import numpy
+
+
+def nonempty_mask_predicate(s):
+    flat = s["mask"].reshape(s["mask"].shape[0], -1)
+    return all(numpy.any(flat, axis=1))
 
 
 def apply_mask_partition(part):
@@ -68,20 +74,32 @@ def crop_to_mask_partition(part):
 
 def crop_to_mask(d):
 
+    minr, minc, maxr, maxc = d["bbox"]
+
     d = d.copy()
-
-    mask = np.where(d["mask"], 1, 0)
-    minr, minc, maxr, maxc = d["pixels"].shape[1], d["pixels"].shape[2], 0, 0
-    for m in mask:
-        prop = regionprops(m)[0]
-        bbox = prop.bbox
-
-        minr = min(bbox[0], minr)
-        minc = min(bbox[1], minc)
-        maxr = max(bbox[2], maxr)
-        maxc = max(bbox[3], maxc)
-
     d["pixels"] = d["pixels"][:, minr:maxr, minc:maxc]
     d["mask"] = d["mask"][:, minr:maxr, minc:maxc]
 
     return d
+
+
+def bounding_box_partition(part):
+    return [get_bounding_box(event) for event in part]
+
+
+def get_bounding_box(event):
+    mask = np.where(event["mask"], 1, 0)
+    bbox = [event["pixels"].shape[1], event["pixels"].shape[2], 0, 0]
+    for m in mask:
+        prop = regionprops(m)[0]
+        tmp = prop.bbox
+
+        bbox[0] = min(bbox[0], tmp[0])
+        bbox[1] = min(bbox[1], tmp[1])
+        bbox[2] = max(bbox[2], tmp[2])
+        bbox[3] = max(bbox[3], tmp[3])
+
+    event = event.copy()
+    event["bbox"] = tuple(bbox)
+
+    return event

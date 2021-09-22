@@ -6,13 +6,15 @@ import base64
 
 from scip.reports.util import get_jinja_template
 
-    
+
 def blank_masks_partitions(part):
     return [get_blanks(p) for p in part]
+
 
 def get_blanks(s):
     flat = s["mask"].reshape(s["mask"].shape[0], -1)
     return ~np.any(flat, axis=1)
+
 
 @dask.delayed
 def plot(percentage, channel_labels):
@@ -22,6 +24,7 @@ def plot(percentage, channel_labels):
     ax.bar(channel_labels, percentage)
 
     return fig
+
 
 def report(
         bag,
