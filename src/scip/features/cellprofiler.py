@@ -19,7 +19,7 @@ def compute_measurements_on_partition(partition, *, modules, channels):
 
     cellprofiler_core.preferences.set_headless()
     pipeline = cellprofiler_core.pipeline.Pipeline()
-    measurements = cellprofiler_core.measurement.Measurements()
+    measurements = cellprofiler_core.measurement.Measurements(mode="memory", multithread=False)
     object_set = cellprofiler_core.object.ObjectSet()
     image_set_list = cellprofiler_core.image.ImageSetList()
 

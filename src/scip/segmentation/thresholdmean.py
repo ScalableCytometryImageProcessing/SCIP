@@ -1,4 +1,5 @@
 import numpy
+from skimage import morphology
 from skimage.restoration import denoise_wavelet, estimate_sigma
 from skimage.filters import sobel, threshold_mean
 from skimage.morphology import label, remove_small_objects, binary_closing, disk
@@ -16,8 +17,9 @@ def get_mask(el):
             img, method="VisuShrink", sigma=estimate_sigma(img), rescale_sigma=True)
 
         elev = sobel(denoised)
+        closed = morphology.closing(elev, selem=morphology.disk(2))
 
-        thresh = elev > threshold_mean(elev)
+        thresh = closed > threshold_mean(closed)
 
         labeled = label(thresh)
 
