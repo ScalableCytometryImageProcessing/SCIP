@@ -26,7 +26,8 @@ class ClientClusterContext:
             cores=None,
             job_extra=[],
             walltime="01:00:00",
-            threads_per_process=None
+            threads_per_process=None,
+            project=None
     ):
         """
         Sets up a cluster and client.
@@ -44,6 +45,7 @@ class ClientClusterContext:
         self.job_extra = job_extra
         self.walltime = walltime
         self.threads_per_process = threads_per_process
+        self.project = project
 
     def __enter__(self):
         if self.local:
@@ -64,13 +66,14 @@ class ClientClusterContext:
                 memory=f"{self.memory}GiB",
                 processes=self.n_workers,
                 resource_spec=f"nodes=1:ppn={self.cores},mem={mb_needed}mb",
-                project=None,
+                project=self.project,
                 local_directory=self.local_directory,
                 walltime=self.walltime,
                 extra=extra,
                 job_extra=self.job_extra,
                 scheduler_options={
                     'dashboard_address': None if self.port is None else f':{self.port}'},
+                death_timeout=10*60
             )
 
             self.cluster.scale(jobs=self.n_nodes)

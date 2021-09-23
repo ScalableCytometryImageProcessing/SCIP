@@ -106,6 +106,7 @@ def main(
     n_threads,
     memory,
     walltime,
+    project,
     job_extra,
     local,
     local_directory,
@@ -146,7 +147,8 @@ def main(
             memory=memory,
             walltime=walltime,
             job_extra=job_extra,
-            threads_per_process=n_threads
+            threads_per_process=n_threads,
+            project=project
     ) as context:
         logger.debug(f"Cluster ({context.cluster}) created")
         if not local:
@@ -281,6 +283,10 @@ def main(
 @click.option(
     "--walltime", "-w", type=str, default="01:00:00",
     help="Expected required walltime for the job to finish")
+@click.option(
+    "--project", "-p", type=str, default=None,
+    help="Project name for HPC cluster"
+)
 @click.option(
     "--job-extra", "-e", type=str, multiple=True, default=[],
     help="Extra arguments for job submission")
