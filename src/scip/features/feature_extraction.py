@@ -2,22 +2,16 @@ import dask
 import dask.bag
 import dask.dataframe
 import numpy as np
+import scipy.stats
 
 # Scikit image libraries
-from skimage.feature import hog
-from skimage.measure import label, regionprops
+from skimage.feature import hog, greycomatrix
+from skimage.measure import label, regionprops_table
 
 
 def shape_features(sample):
     """
-    Find following shape features based on the larges area mask:
-        - minor_axis
-        - major_axis
-        - area
-        - perimeter
-        - solidity
-        - regions
-
+        compute regionpropse
     Args:
         sample (dict): dictionary containing image data
 
@@ -28,30 +22,37 @@ def shape_features(sample):
 
     def channel_features(i):
         label_img = label(img[i])
-        regions = regionprops(label_img)
-        if len(regions) == 0:
-            return {f'minor_axis_{i}': 0.0,
-                    f'major_axis_length_{i}': 0.0,
-                    f'area_{i}': 0.0,
-                    f'perimeter_{i}': 0.0,
-                    f'solidity_{i}': 0.0,
-                    f'regions_{i}': 0}
+        props = regionprops_table(
+            label_image=label_img,
+            properties=(
+                "area",
+                "convex_area",
+                "eccentricity",
+                "equivalent_diameter",
+                "euler_number",
+                "feret_diameter_max",
+                "filled_area",
+                "inertia_tensor",
+                "inertia_tensor_eigvals",
+                "major_axis_length",
+                "minor_axis_length",
+                "moments_hu",
+                "orientation",
+                "perimeter",
+                "perimeter_crofton",
+                "solidity"
+            )
+        )
+        return props
 
-        main_part = regions[0]
-        return {f'minor_axis_{i}': main_part.minor_axis_length,
-                f'major_axis_length_{i}': main_part.major_axis_length,
-                f'area_{i}': float(main_part.area),
-                f'perimeter_{i}': main_part.perimeter,
-                f'solidity_{i}': main_part.solidity,
-                f'regions_{i}': len(regions)}
-
-    img = sample.get('pixels')
-    channels = img.shape[0]
+    img = sample.get('mask')
     features_dict = {"idx": sample["idx"]}
-    for i in range(channels):
-        features_dict.update(channel_features(i))
+    for i in range(len(img)):
+        props = channel_features(i)
+        props = {f"{k}_{i}": v[0] for k,v in props.items()}
+        features_dict.update(props)
 
-    return features_dict
+    return features_dict 
 
 
 def intensity_features(sample):
@@ -69,14 +70,20 @@ def intensity_features(sample):
     """
 
     def channel_features(i):
-        channel_img = img[i]
-        return {f'mean_{i}': np.mean(channel_img), f'max_{i}': np.mean(channel_img),
-                f'min_{i}': np.min(channel_img)}
+        return {
+            f'mean_{i}': np.mean(img[i]), 
+            f'max_{i}': np.mean(img[i]),
+            f'min_{i}': np.min(img[i]),
+            f'var_{i}': np.var(img[i]),
+            f'mad_{i}': scipy.stats.median_abs_deviation(img[i]),
+            f'diff_entropy_{i}': scipy.stats.differential_entropy(img[i]),
+            f'skewness_{i}': scipy.stats.skew(img[i]),
+            f'kurtosis_{i}': scipy.stats.kurtosis(img[i])
+        }
 
-    img = sample.get('pixels')
-    channels = img.shape[0]
+    img = sample.get('flat')
     features_dict = {"idx": sample["idx"]}
-    for i in range(channels):
+    for i in range(len(img)):
         features_dict.update(channel_features(i))
 
     return features_dict
@@ -96,20 +103,21 @@ def texture_features(sample):
     """
 
     def texture_features(i, pixels_per_cell):
-        channel_img = img[i]
         hog_features = hog(
-            channel_img,
+            img[i],
             orientations=4,
             pixels_per_cell=pixels_per_cell,
             cells_per_block=(1, 1),
             visualize=False
         )
 
-        hog_dict = {}
+        # graycomat = greycomatrix(img[i])
+
+        out = {}
 
         # put hog features in dictionary
         for j in range(len(hog_features)):
-            hog_dict.update({f'hog_ch_{i}_{j}': hog_features[j]})
+            out.update({f'hog_ch_{i}_{j}': hog_features[j]})
 
         return hog_dict
 

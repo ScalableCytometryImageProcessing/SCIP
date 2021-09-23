@@ -18,7 +18,7 @@ from scip.normalization import quantile_normalization  # noqa: E402
 from scip.reports import (  # noqa: E402
     feature_statistics, example_images, intensity_distribution, masks
 )  # noqa: E402
-from scip.features import feature_extraction, cellprofiler  # noqa: E402
+from scip.features import feature_extraction  # noqa: E402
 from scip.segmentation import util as segmentation_util  # noqa: E402
 # from scip.analysis import fuzzy_c_mean  # noqa: E402
 
