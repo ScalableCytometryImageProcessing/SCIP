@@ -74,9 +74,7 @@ def preprocess_bag(bag):
 
 def compute_features(images, channels, prefix):
 
-    skimage_features = feature_extraction.extract_features(images=images)
-    cp_features = cellprofiler.extract_features(images=images, channels=channels)
-    features = dask.dataframe.multi.concat([skimage_features, cp_features], axis=1)
+    features = feature_extraction.extract_features(images=images)
     features = features.rename(columns=lambda c: f"feat_{prefix}_{c}")
 
     def to_bbox_df(el):
