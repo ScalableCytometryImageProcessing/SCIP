@@ -1,12 +1,13 @@
 import dask
 import dask.bag
 import dask.dataframe
-import numpy as np
+import numpy
 import scipy.stats
 
 # Scikit image libraries
-from skimage.feature import hog, greycomatrix
+from skimage.feature import hog, greycomatrix, greycoprops
 from skimage.measure import label, regionprops_table
+import skimage
 
 
 def shape_features(sample):
@@ -71,10 +72,10 @@ def intensity_features(sample):
 
     def channel_features(i):
         return {
-            f'mean_{i}': np.mean(img[i]), 
-            f'max_{i}': np.mean(img[i]),
-            f'min_{i}': np.min(img[i]),
-            f'var_{i}': np.var(img[i]),
+            f'mean_{i}': numpy.mean(img[i]), 
+            f'max_{i}': numpy.mean(img[i]),
+            f'min_{i}': numpy.min(img[i]),
+            f'var_{i}': numpy.var(img[i]),
             f'mad_{i}': scipy.stats.median_abs_deviation(img[i]),
             f'diff_entropy_{i}': scipy.stats.differential_entropy(img[i]),
             f'skewness_{i}': scipy.stats.skew(img[i]),
@@ -111,15 +112,24 @@ def texture_features(sample):
             visualize=False
         )
 
-        # graycomat = greycomatrix(img[i])
+        distances = [1, 2]
+        angles = [0, numpy.pi/2]
+
+        int_img = skimage.img_as_ubyte(img[i])
+        glcm = greycomatrix(int_img, distances=distances, angles=angles, levels=256)
 
         out = {}
+        for prop in ['contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation', 'ASM']:
+            v = greycoprops(glcm, prop=prop)
+
+            for (n, m), p in numpy.ndenumerate(v):
+                out[f'glcm_{i}_{prop}_{n}_{m}'] = p
 
         # put hog features in dictionary
         for j in range(len(hog_features)):
             out.update({f'hog_ch_{i}_{j}': hog_features[j]})
 
-        return hog_dict
+        return out
 
     img = sample.get('pixels')
 
