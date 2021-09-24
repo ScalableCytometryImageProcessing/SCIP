@@ -2,7 +2,6 @@ import numpy
 from skimage import morphology
 from skimage.restoration import denoise_wavelet, estimate_sigma
 from skimage.filters import sobel, threshold_mean
-from skimage.morphology import label, remove_small_objects, binary_closing, disk
 from scip.segmentation import util
 
 
@@ -21,15 +20,7 @@ def get_mask(el):
 
         thresh = closed > threshold_mean(closed)
 
-        labeled = label(thresh)
-
-        if numpy.max(labeled) > 1:
-            labeled = remove_small_objects(labeled, min_size=30)
-
-        if numpy.max(labeled) > 1:
-            mask[dim] = False
-        else:
-            mask[dim] = binary_closing(labeled, selem=disk(2))
+        mask[dim] = util.mask_post_process(thresh)
 
     out = el.copy()
     out["intermediate"] = mask

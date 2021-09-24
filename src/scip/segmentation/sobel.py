@@ -15,18 +15,14 @@ def get_mask(el):
         elev_map = sobel(image[dim])
         closed = morphology.closing(elev_map, selem=morphology.disk(2))
 
-        markers = numpy.zeros_like(closed)
-        markers[closed < numpy.quantile(closed, 0.1)] = 1
-        markers[closed > numpy.quantile(closed, 0.9)] = 2
-
-        segmentation = watershed(closed, markers)
+        segmentation = numpy.full(shape=closed.shape, fill_value=False, dtype=bool)
+        segmentation[closed > numpy.quantile(closed, 0.9)] = True
 
         if segmentation.max() == 0:
             mask[dim] = False
         else:
             segmentation = segmentation == segmentation.max()
-            segmentation = morphology.binary_closing(segmentation, selem=morphology.disk(2))
-            mask[dim] = segmentation
+            mask[dim] = util.mask_post_process(segmentation)
 
     out = el.copy()
     out["intermediate"] = mask

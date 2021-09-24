@@ -7,7 +7,7 @@ loading:
     - BF2
   loader_kwargs:
 masking:
-  method: watershed
+  method: sobel
 export:
   format: parquet
   filename: features

@@ -1,6 +1,7 @@
 import numpy as np
 from skimage.measure import regionprops
 import numpy
+from skimage.morphology import label, remove_small_objects, binary_closing, disk
 
 
 def nonempty_mask_predicate(s):
@@ -89,14 +90,13 @@ def bounding_box_partition(part):
 
 def get_bounding_box(event):
     mask = np.where(event["mask"], 1, 0)
-    bbox = [event["pixels"].shape[1], event["pixels"].shape[2], 0, 0]
-    for m in mask:
+    bbox = list(regionprops(mask[0])[0].bbox)
+    for m in mask[1:]:
         if not numpy.any(m):
             bbox = None, None, None, None
             break
 
-        prop = regionprops(m)[0]
-        tmp = prop.bbox
+        tmp = regionprops(m)[0].bbox
 
         bbox[0] = min(bbox[0], tmp[0])
         bbox[1] = min(bbox[1], tmp[1])
@@ -107,3 +107,14 @@ def get_bounding_box(event):
     event["bbox"] = tuple(bbox)
 
     return event
+
+
+def mask_post_process(mask):
+    labeled = label(mask)
+
+    if numpy.max(labeled) > 1:
+        labeled = remove_small_objects(labeled, min_size=30)
+        if numpy.max(labeled) > 1:
+            return False
+    
+    return binary_closing(labeled, selem=disk(2)) 
