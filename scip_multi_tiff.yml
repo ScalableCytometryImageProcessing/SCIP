@@ -8,6 +8,8 @@ loading:
   loader_kwargs:
 masking:
   method: watershed
+  kwargs:
+    noisy_channels: [0]
 export:
   format: parquet
   filename: features

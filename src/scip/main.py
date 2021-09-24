@@ -185,7 +185,10 @@ def main(
         )
 
         masking_module = import_module('scip.segmentation.%s' % config["masking"]["method"])
-        bags = masking_module.create_masks_on_bag(images, noisy_channels=[0])
+        bags = masking_module.create_masks_on_bag(
+            images,
+            **(config["masking"]["kwargs"] or dict())
+        )
 
         del images
 

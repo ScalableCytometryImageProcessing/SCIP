@@ -1,16 +1,20 @@
 from skimage.segmentation import watershed
 from skimage.filters import sobel
 from skimage import morphology
+from skimage.restoration import denoise_nl_means
 import numpy
 from scip.segmentation import util
 
 
-def get_mask(el):
+def get_mask(el, noisy_channels):
 
-    image = el["pixels"]
+    image = el["pixels"].copy()
     mask = numpy.empty(shape=image.shape, dtype=bool)
 
     for dim in range(len(image)):
+
+        if dim in noisy_channels:
+            image[dim] = denoise_nl_means(image[dim], patch_size=2, patch_distance=1)
 
         elev_map = sobel(image[dim])
         closed = morphology.closing(elev_map, selem=morphology.disk(2))
@@ -33,10 +37,10 @@ def get_mask(el):
     return out
 
 
-def create_masks_on_bag(bag, **kwargs):
+def create_masks_on_bag(bag, noisy_channels):
 
     def watershed_masking(partition):
-        return [get_mask(p) for p in partition]
+        return [get_mask(p, noisy_channels) for p in partition]
 
     bag = bag.map_partitions(watershed_masking)
     bag = bag.map_partitions(util.apply_mask_partition)
