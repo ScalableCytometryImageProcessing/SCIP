@@ -91,6 +91,10 @@ def get_bounding_box(event):
     mask = np.where(event["mask"], 1, 0)
     bbox = [event["pixels"].shape[1], event["pixels"].shape[2], 0, 0]
     for m in mask:
+        if not numpy.any(m):
+            bbox = None, None, None, None
+            break
+
         prop = regionprops(m)[0]
         tmp = prop.bbox
 
