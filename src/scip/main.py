@@ -77,7 +77,7 @@ def preprocess_bag(bag, prefix, channels):
     bag = bag.map_partitions(segmentation_util.bounding_box_partition)
     bag = bag.map_partitions(segmentation_util.crop_to_mask_partition)
     bag = bag.map_partitions(segmentation_util.masked_intensities_partition)
-    bag = quantile_normalization.quantile_normalization(bag, 0, 1)
+    bag = quantile_normalization.quantile_normalization(bag, 0, 1, len(channels))
 
     return bag, meta
 

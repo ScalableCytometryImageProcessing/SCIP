@@ -21,19 +21,9 @@ def select_origin(partition, *, origin):
     return mapped
 
 
-def get_distributed_minmax(bag):  # noqa: C901
+def get_distributed_minmax(bag, nchannels):  # noqa: C901
 
     def combine_extent_partition(a, b):
-
-        if (not hasattr(b, "shape")) and (not hasattr(a, "shape")):
-            out = np.empty(shape=(len(a), 2))
-            out[:, 0] = np.inf
-            out[:, 1] = -np.inf
-            return out
-
-        if hasattr(b, "shape"):
-            a, b = b, a
-
         out = np.empty(shape=a.shape)
         for i in range(len(b)):
             if b[i].size == 0:
@@ -43,33 +33,19 @@ def get_distributed_minmax(bag):  # noqa: C901
                 out[i, 1] = max(a[i, 1], np.max(b[i]))
         return out
 
-    def partition_minmax(a, b):
-
-        # first combination, both a and b are lists of pixels
-        if (not hasattr(a, "shape")) and (not hasattr(b, "shape")):
-            out = np.empty(shape=(len(a), 2))
-            for i in range(len(a)):
-                tmp = np.concatenate((a[i], b[i]))
-                out[i, 0] = np.min(tmp)
-                out[i, 1] = np.max(tmp)
-            return out
-
-        return combine_extent_partition(a, b)
-
     def final_minmax(a, b):
-
-        # both inputs are numpy arrays containg min-max values
-        if hasattr(a, "shape") and hasattr(b, "shape"):
-            out = np.empty(shape=a.shape)
-            for i in range(len(a)):
-                out[i, 0] = min(a[i, 0], b[i, 0])
-                out[i, 1] = max(a[i, 1], b[i, 1])
-            return out
-
-        return combine_extent_partition(a, b)
+        out = np.empty(shape=a.shape)
+        for i in range(len(a)):
+            out[i, 0] = min(a[i, 0], b[i, 0])
+            out[i, 1] = max(a[i, 1], b[i, 1])
+        return out
 
     bag = bag.map_partitions(select_origin, origin="flat")
-    out = bag.fold(binop=partition_minmax, combine=final_minmax)
+
+    init = np.empty(shape=(nchannels, 2))
+    init[:, 0] = np.inf
+    init[:, 1] = -np.inf
+    out = bag.fold(binop=combine_extent_partition, combine=final_minmax, initial=init)
 
     return out
 
@@ -135,7 +111,7 @@ def sample_normalization(sample, qq):
     return sample
 
 
-def quantile_normalization(images: dask.bag.Bag, lower, upper):
+def quantile_normalization(images: dask.bag.Bag, lower, upper, nchannels):
     """
     Apply min-max normalization on all images, both on original pixel data and masked pixel data
 
@@ -153,7 +129,7 @@ def quantile_normalization(images: dask.bag.Bag, lower, upper):
         return [sample_normalization(p, quantiles) for p in part]
 
     if lower == 0 and upper == 1:
-        quantiles = get_distributed_minmax(images)
+        quantiles = get_distributed_minmax(images, nchannels)
     else:
         quantiles = get_distributed_partitioned_quantile(images, lower, upper)
     return images.map_partitions(normalize_partition, quantiles)
