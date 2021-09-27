@@ -1,6 +1,6 @@
 loading:
   format: multiframe_tiff
-  channels: [0, 2, 3]
+  channels: [0, 1, 2, 3]
   channel_labels:
     - BF1
     - DF
