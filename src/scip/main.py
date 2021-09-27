@@ -58,7 +58,17 @@ def get_images_bag(paths, channels, config, partition_size):
     return dask.bag.concat(images), dask.dataframe.concat(meta)
 
 
-def preprocess_bag(bag):
+def preprocess_bag(bag, prefix, channels):
+    
+    def to_df(el): 
+        d = {
+            f"connected_components_{channels[i]}":v 
+            for i, v in enumerate(el["connected_components"]) 
+        }
+        d["idx"] = el["idx"]
+        return d
+    meta = bag.map(to_df).to_dataframe().set_index("idx")
+    meta = meta.rename(columns=lambda c: f"meta_{prefix}_{c}")
 
     # images are loaded from directory and masked
     # after this operation the bag is persisted as it
@@ -69,23 +79,24 @@ def preprocess_bag(bag):
     bag = bag.map_partitions(segmentation_util.masked_intensities_partition)
     bag = quantile_normalization.quantile_normalization(bag, 0, 1)
 
-    return bag
+    return bag, meta
 
 
-def compute_features(images, channels, prefix):
+def compute_features(images, prefix):
 
     features = feature_extraction.extract_features(images=images)
     features = features.rename(columns=lambda c: f"feat_{prefix}_{c}")
 
-    def to_bbox_df(el):
-        return dict(
+    def to_meta_df(el):
+        d = dict(
             idx=el["idx"],
             bbox_minr=el["bbox"][0],
             bbox_minc=el["bbox"][1],
             bbox_maxr=el["bbox"][2],
-            bbox_maxc=el["bbox"][3]
-        )
-    bbox = images.map(to_bbox_df)
+            bbox_maxc=el["bbox"][3],
+        ) 
+        return d
+    bbox = images.map(to_meta_df)
     bbox = bbox.to_dataframe().set_index("idx")
     bbox = bbox.rename(columns=lambda c: f"meta_{prefix}_{c}")
 
@@ -209,7 +220,7 @@ def main(
                 channel_labels=channel_labels
             )
 
-            bag = preprocess_bag(bag)
+            bag, bag_meta = preprocess_bag(bag, k, channels)
             bag = bag.persist()
 
             example_images.report(
@@ -230,8 +241,8 @@ def main(
                 extent=numpy.array([(0, 1)] * len(channels))  # extent is known due to normalization
             )
 
-            df = compute_features(bag, channels, k)
-            feature_dataframes.append(df)
+            bag_df = compute_features(bag, k)
+            feature_dataframes.append(dask.dataframe.multi.concat([bag_df, bag_meta], axis=1))
 
         features = dask.dataframe.multi.concat(feature_dataframes, axis=1)
 
