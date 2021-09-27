@@ -63,7 +63,7 @@ def preprocess_bag(bag):
     # images are loaded from directory and masked
     # after this operation the bag is persisted as it
     # will be reused several times throughout the pipeline
-    bag = bag.filter(segmentation_util.nonempty_mask_predicate)
+    bag = bag.filter(segmentation_util.mask_predicate)
     bag = bag.map_partitions(segmentation_util.bounding_box_partition)
     bag = bag.map_partitions(segmentation_util.crop_to_mask_partition)
     bag = bag.map_partitions(segmentation_util.masked_intensities_partition)

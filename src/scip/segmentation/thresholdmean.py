@@ -8,6 +8,7 @@ from scip.segmentation import util
 def get_mask(el):
 
     mask = numpy.empty(shape=el["pixels"].shape, dtype=bool)
+    connected_components = []
 
     for dim in range(len(el["pixels"])):
         img = el["pixels"][dim]
@@ -17,13 +18,14 @@ def get_mask(el):
 
         elev = sobel(denoised)
         closed = morphology.closing(elev, selem=morphology.disk(2))
-
         thresh = closed > threshold_mean(closed)
 
-        mask[dim] = util.mask_post_process(thresh)
+        mask[dim], cc = util.mask_post_process(thresh)
+        connected_components.append(cc)
 
     out = el.copy()
     out["intermediate"] = mask
+    out["connected_components"] = connected_components
 
     return out
 

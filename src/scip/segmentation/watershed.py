@@ -10,6 +10,7 @@ def get_mask(el, noisy_channels):
 
     image = el["pixels"].copy()
     mask = numpy.empty(shape=image.shape, dtype=bool)
+    connected_components = []
 
     for dim in range(len(image)):
 
@@ -27,12 +28,14 @@ def get_mask(el, noisy_channels):
 
         if segmentation.max() == 0:
             mask[dim] = False
+            connected_components.append(0)
         else:
-            segmentation = segmentation == segmentation.max()
-            mask[dim] = util.mask_post_process(segmentation)
+            mask[dim], cc = util.mask_post_process(segmentation == segmentation.max())
+            connected_components.append(cc)
 
     out = el.copy()
     out["intermediate"] = mask
+    out["connected_components"] = connected_components
 
     return out
 

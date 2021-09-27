@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import dask
 from io import BytesIO
 import base64
-
+from collections import Counter
 from scip.reports.util import get_jinja_template
 
 
@@ -17,12 +17,17 @@ def get_blanks(s):
 
 
 @dask.delayed
-def plot(percentage, channel_labels):
-
+def plot1(percentage, channel_labels):
     # Missing mask bar plot
     fig, ax = plt.subplots()
     ax.bar(channel_labels, percentage)
+    return fig
 
+@dask.delayed
+def plot2(cc_counts, channel_labels):
+    fig, axes = plt.subplots(1, len(channel_labels), sharey=True)
+    for counts, ax in zip(cc_counts, axes):
+        ax.bar(counts.keys(), counts.values())
     return fig
 
 
@@ -53,16 +58,36 @@ def report(
     # Calculate the percentage per channel of blank masks
     blanks_sum = bag.map_partitions(blank_masks_partitions).fold(lambda A, B: A + B)
 
+    def add_to_count_dict(count_dicts, values):
+        for count_dict, value in zip(count_dicts, values):
+            count_dict[value] += 1
+        return count_dicts
+    def merge_count_dicts(l1, l2):
+        return [a + b for a, b in zip(l1, l2)]
+    cc_counts = bag.map_partitions(lambda part: [p["connected_components"] for p in part])
+    cc_counts = cc_counts.fold(
+        binop=add_to_count_dict, 
+        combine=merge_count_dicts, 
+        initial=[Counter()]*len(channel_labels)
+    )
+
     total = bag.count()
     percentage = dask.delayed(lambda v, t: v / t)(blanks_sum, total)
 
-    fig = plot(percentage, channel_labels).compute()
-
+    fig = plot1(percentage, channel_labels).compute()
     stream = BytesIO()
     fig.savefig(stream, format='png')
-    encoded = base64.b64encode(stream.getvalue()).decode('utf-8')
+    encoded_missing = base64.b64encode(stream.getvalue()).decode('utf-8')
+    
+    fig = plot2(cc_counts, channel_labels).compute()
+    stream = BytesIO()
+    fig.savefig(stream, format='png')
+    encoded_cc = base64.b64encode(stream.getvalue()).decode('utf-8')
 
     # Write HTML
     filename = str("mask_quality_control_%s.html" % name)
     with open(str(output / filename), "w") as fh:
-        fh.write(get_jinja_template(template_dir, template).render(image=encoded, name=name))
+        fh.write(get_jinja_template(template_dir, template).render(
+            name=name,
+            image_missing=encoded_missing,
+            image_cc=encoded_cc))

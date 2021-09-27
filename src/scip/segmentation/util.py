@@ -1,10 +1,14 @@
 import numpy as np
 from skimage.measure import regionprops
 import numpy
-from skimage.morphology import label, remove_small_objects, binary_closing, disk
+from skimage.morphology import closing, remove_small_objects, label, disk
 
 
-def nonempty_mask_predicate(s):
+def mask_predicate(s):
+
+    if not all(c == 1 for c in s["connected_components"]):
+        return False
+
     flat = s["mask"].reshape(s["mask"].shape[0], -1)
     return all(numpy.any(flat, axis=1))
 
@@ -113,12 +117,12 @@ def get_bounding_box(event):
     return event
 
 
-def mask_post_process(mask, max_allowed_objects=1):
-    labeled = label(mask)
+def mask_post_process(mask):
+    mask = label(mask)
 
-    if numpy.max(labeled) > 1:
-        labeled = remove_small_objects(labeled, min_size=30)
-        if numpy.max(labeled) > max_allowed_objects:
-            return False
+    if numpy.max(mask) > 1:
+        mask = remove_small_objects(mask, min_size=30)
+
+    mask = closing(mask, selem=disk(2)) 
     
-    return binary_closing(labeled, selem=disk(2)) 
+    return mask > 0, mask.max()
