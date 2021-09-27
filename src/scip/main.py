@@ -190,8 +190,6 @@ def main(
             **(config["masking"]["kwargs"] or dict())
         )
 
-        del images
-
         # with open("test/data/masked.pickle", "wb") as fh:
         #     import pickle
         #     pickle.dump(bags["otsu"].compute(), fh)
