@@ -34,7 +34,7 @@ def bag_from_directory(*, path, idx, channels, partition_size, regex):
 
     path = Path(path)
 
-    matches = list(filter(lambda r: r is not None, map(match, path.glob("**/*.tif*"))))
+    matches = list(filter(lambda r: r is not None, map(match, path.glob("*.tif*"))))
     df = pandas.DataFrame.from_dict(matches)
 
     df = df.pivot(index="id", columns="channel", values="path")
