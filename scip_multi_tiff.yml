@@ -3,6 +3,7 @@ loading:
   channels: [0, 1, 2, 3]
   channel_labels:
     - BF1
+    - PI
     - DF
     - BF2
   loader_kwargs:
