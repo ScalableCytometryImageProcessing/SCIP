@@ -8,7 +8,9 @@ from scip.segmentation import util
 
 def get_mask(el, noisy_channels):
 
-    image = el["pixels"].copy()
+    out = el.copy()
+
+    image = out["pixels"]
     mask = numpy.empty(shape=image.shape, dtype=bool)
     connected_components = []
 
@@ -33,7 +35,6 @@ def get_mask(el, noisy_channels):
             mask[dim], cc = util.mask_post_process(segmentation == segmentation.max())
             connected_components.append(cc)
 
-    out = el.copy()
     out["intermediate"] = mask
     out["connected_components"] = connected_components
 
