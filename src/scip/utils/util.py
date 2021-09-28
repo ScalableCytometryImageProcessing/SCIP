@@ -1,7 +1,6 @@
 # Contains methods for administrative tasks
 
-from dask.distributed import (Client, LocalCluster)
-from dask_jobqueue import PBSCluster
+from dask.distributed import Client
 from pathlib import Path
 import yaml
 from pkg_resources import resource_stream
@@ -11,13 +10,15 @@ import shutil
 import click
 from datetime import datetime, timedelta
 
+MODES = ["local", "jobqueue", "mpi"]
+
 
 class ClientClusterContext:
 
     def __init__(
             self,
             *,
-            local=True,
+            mode="local",
             n_workers=12,
             n_nodes=1,
             port=8787,
@@ -35,7 +36,7 @@ class ClientClusterContext:
         local (bool): If true, sets up a LocalCluster, otherwise a PBSCluster
         n_workers (int): Defines the amount of workers the cluster will create
         """
-        self.local = local
+        self.mode = mode
         self.n_workers = n_workers
         self.port = port
         self.n_nodes = n_nodes
@@ -48,11 +49,15 @@ class ClientClusterContext:
         self.project = project
 
     def __enter__(self):
-        if self.local:
+        if self.mode == "local":
+            from dask.distributed import LocalCluster
             self.cluster = LocalCluster(
                 n_workers=self.n_workers, threads_per_worker=self.threads_per_process
             )
-        else:
+            self.client = Client(self.cluster)
+        elif self.mode == "jobqueue":
+            from dask_jobqueue import PBSCluster
+            
             assert (Path.home() / "logs").exists(), "Make sure directory\
                  'logs' exists in your home dir"
 
@@ -79,13 +84,25 @@ class ClientClusterContext:
             )
 
             self.cluster.scale(jobs=self.n_nodes)
+            self.client = Client(self.cluster)
+        elif self.mode == "mpi":
+            import dask_mpi
 
-        self.client = Client(self.cluster)
+            dask_mpi.initialize(
+                dashboard=True,
+                dashboard_address=None if self.port is None else f':{self.port}',
+                interface="ib0",
+                nthreads=self.threads_per_process,
+                local_directory=self.local_directory,
+                nanny=True,
+                memory_limit=self.memory*1e9
+            )
+            self.client = Client()
+             
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         self.client.close()
-        self.cluster.close()
 
         if exc_type is not None:
             logging.getLogger(__name__).error(
@@ -93,9 +110,9 @@ class ClientClusterContext:
             return False
 
     def wait(self):
-        if self.local:
+        if self.mode == "local":
             n_workers = self.n_workers
-        else:
+        elif self.mode == "jobqueue":
             n_workers = self.n_workers * self.n_nodes
 
         self.client.wait_for_workers(n_workers=n_workers)

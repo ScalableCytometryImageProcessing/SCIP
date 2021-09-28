@@ -9,6 +9,7 @@ from functools import partial
 from importlib import import_module
 import numpy
 import os
+import socket
 
 import matplotlib
 matplotlib.use("Agg")
@@ -117,38 +118,16 @@ def main(
     walltime,
     project,
     job_extra,
-    local,
+    mode,
     local_directory,
     headless,
     port,
     debug,
     timing
 ):
-
-    output = Path(output)
-    util.make_output_dir(output, headless=headless)
-
-    util.configure_logging(output, debug)
-    logger = logging.getLogger("scip")
-    logger.info(f"Running pipeline for {','.join(paths)}")
-    logger.info(f"Running with {n_workers} workers and {n_threads} threads per worker")
-    logger.info(f"Local mode? {local}")
-    if not local:
-        logger.info(f"Provisining {n_nodes} nodes")
-    logger.info(f"Output is saved in {str(output)}")
-
-    config = util.load_yaml_config(config)
-    logger.info(f"Running with following config: {config}")
-
-    template_dir = os.path.dirname(__file__) + "/reports/templates"
-
-    # ClientClusterContext creates cluster
-    # and registers Client as default client for this session
-    logger.debug("Starting Dask cluster")
-    logger.debug(walltime)
     with util.ClientClusterContext(
             n_workers=n_workers,
-            local=local,
+            mode=mode,
             port=port,
             n_nodes=n_nodes,
             local_directory=local_directory,
@@ -159,14 +138,30 @@ def main(
             threads_per_process=n_threads,
             project=project
     ) as context:
-        logger.debug(f"Cluster ({context.cluster}) created")
-        if not local:
-            logger.debug(context.cluster.job_script())
+
+        output = Path(output)
+        util.make_output_dir(output, headless=headless)
+
+        util.configure_logging(output, debug)
+        logger = logging.getLogger("scip")
+        logger.info(f"Running pipeline for {','.join(paths)}")
+        logger.info(f"Running with {n_workers} workers and {n_threads} threads per worker")
+        logger.info(f"Mode? {mode}")
+        logger.info(f"Output is saved in {str(output)}")
+        
+        config = util.load_yaml_config(config)
+        logger.info(f"Running with following config: {config}")
+        
+        host = context.client.run_on_scheduler(socket.gethostname)
+        port = context.client.scheduler_info()['services']['dashboard']
+        logger.info(f"Dashboard -> ssh -N -L {port}:{host}:{port}")
+
+        template_dir = os.path.dirname(__file__) + "/reports/templates"
 
         # if timing is set, wait for the cluster to be fully ready
         # to isolate cluster startup time from pipeline execution
-        if timing is not None:
-            context.wait()
+        # if timing is not None:
+        #     context.wait()
 
         start = time.time()
 
@@ -270,11 +265,11 @@ def main(
 
 
 @click.command(name="Scalable imaging pipeline")
-@click.option("--port", "-p", type=int, default=None, help="dask dashboard port")
+@click.option("--port", "-d", type=int, default=None, help="dask dashboard port")
 @click.option("--debug", envvar="DEBUG", is_flag=True, help="sets logging level to debug")
 @click.option(
-    "--local/--no-local", default=True,
-    help="deploy app to Dask LocalCluster, otherwise deploy to dask-jobqueue PBSCluster")
+    "--mode", default="local", type=click.Choice(util.MODES),
+    help="In which mode to run Dask")
 @click.option(
     "--n-workers", "-j", type=int, default=-1,
     help="Number of workers in the LocalCluster or per node")
@@ -308,7 +303,7 @@ def main(
     help="Set partition size")
 @click.option("--timing", default=None, type=click.Path(dir_okay=False))
 @click.option(
-    "--local-directory", "-d", default=None, type=click.Path(file_okay=False, exists=True))
+    "--local-directory", "-l", default=None, type=click.Path(file_okay=False, exists=True))
 @click.argument("output", type=click.Path(file_okay=False))
 @click.argument("config", type=click.Path(dir_okay=False, exists=True))
 @click.argument("paths", nargs=-1, type=click.Path(exists=True, file_okay=False))
