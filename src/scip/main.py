@@ -59,30 +59,6 @@ def get_images_bag(paths, channels, config, partition_size):
     return dask.bag.concat(images), dask.dataframe.concat(meta)
 
 
-def preprocess_bag(bag, prefix, channels):
-    
-    def to_df(el): 
-        d = {
-            f"connected_components_{channels[i]}":v 
-            for i, v in enumerate(el["connected_components"]) 
-        }
-        d["idx"] = el["idx"]
-        return d
-    meta = bag.map(to_df).to_dataframe().set_index("idx")
-    meta = meta.rename(columns=lambda c: f"meta_{prefix}_{c}")
-
-    # images are loaded from directory and masked
-    # after this operation the bag is persisted as it
-    # will be reused several times throughout the pipeline
-    bag = bag.filter(segmentation_util.mask_predicate)
-    bag = bag.map_partitions(segmentation_util.bounding_box_partition)
-    bag = bag.map_partitions(segmentation_util.crop_to_mask_partition)
-    bag = bag.map_partitions(segmentation_util.masked_intensities_partition)
-    bag = quantile_normalization.quantile_normalization(bag, 0, 1, len(channels))
-
-    return bag, meta
-
-
 def compute_features(images, prefix):
 
     features = feature_extraction.extract_features(images=images)
@@ -190,24 +166,32 @@ def main(
             name="raw"
         )
 
+        images.visualize(filename=str(output / "images.svg"))
+
         masking_module = import_module('scip.segmentation.%s' % config["masking"]["method"])
         bags = masking_module.create_masks_on_bag(
             images,
             **(config["masking"]["kwargs"] or dict())
         )
 
-        # with open("test/data/masked.pickle", "wb") as fh:
-        #     import pickle
-        #     pickle.dump(bags["otsu"].compute(), fh)
-        # return
+        # images are no longer needed and may be released to free up memory
+        del images
+
+        def to_meta_df(el): 
+            d = {
+                f"connected_components_{channels[i]}":v 
+                for i, v in enumerate(el["connected_components"]) 
+            }
+            d["idx"] = el["idx"]
+            return d
 
         feature_dataframes = []
-        for k, bag in bags.items():
+        for k in bags.keys():
 
-            bag = bag.persist()
+            bags[k] = bags[k].persist()
 
             masks.report(
-                bag,
+                bags[k],
                 template_dir=template_dir,
                 template="masks.html",
                 name=k,
@@ -215,18 +199,25 @@ def main(
                 channel_labels=channel_labels
             )
 
-            bag, bag_meta = preprocess_bag(bag, k, channels)
-            bag = bag.persist()
+            bag_meta = bags[k].map(to_meta_df).to_dataframe().set_index("idx")
+            bag_meta = meta.rename(columns=lambda c: f"meta_{k}_{c}")
+
+            bags[k] = bags[k].filter(segmentation_util.mask_predicate)
+            bags[k] = bags[k].map_partitions(segmentation_util.bounding_box_partition)
+            bags[k] = bags[k].map_partitions(segmentation_util.crop_to_mask_partition)
+            bags[k] = bags[k].map_partitions(segmentation_util.masked_intensities_partition)
+            bags[k] = quantile_normalization.quantile_normalization(bags[k], 0, 1, len(channels))
+            bags[k] = bags[k].persist()
 
             example_images.report(
-                bag,
+                bags[k],
                 template_dir=template_dir,
                 template="example_images.html",
                 name=k,
                 output=output
             )
             intensity_distribution.report(
-                bag,
+                bags[k],
                 template_dir=template_dir,
                 template="intensity_distribution.html",
                 bin_amount=100,
@@ -236,8 +227,10 @@ def main(
                 extent=numpy.array([(0, 1)] * len(channels))  # extent is known due to normalization
             )
 
-            bag_df = compute_features(bag, k)
+            bag_df = compute_features(bags[k], k)
             feature_dataframes.append(dask.dataframe.multi.concat([bag_df, bag_meta], axis=1))
+
+        del bags
 
         features = dask.dataframe.multi.concat(feature_dataframes, axis=1)
 
