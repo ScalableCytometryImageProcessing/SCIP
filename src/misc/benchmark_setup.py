@@ -13,7 +13,7 @@ def main():
     iterations = 3
     total_mem = 128
 
-    args_fmt = "--timing %s -j%d -m%d -s%d %s"
+    args_fmt = '"--timing %s -j%d -m%d -s%d %s"'
 
     commands = []
     np = []
@@ -40,8 +40,8 @@ def main():
     with open(str(output / "qsub.pbs"), "w") as fh:
         fh.write(jinja_template.render(
             number_of_configs=len(commands),
-            np_args=",".join([str(c) for c in np]), 
-            args=",".join(commands)
+            np_args=" ".join([str(c) for c in np]), 
+            args=" ".join(commands)
         ))
 
 

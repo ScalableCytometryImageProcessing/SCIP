@@ -14,7 +14,7 @@ conda activate scip
 DATA_PATH=/vsc-mounts/gent-user/420/vsc42015/vsc_data_vo/datasets/weizmann/EhV/high_time_res/High/images/*
 CONFIG_PATH=/vsc-mounts/gent-user/420/vsc42015/vsc_data_vo/datasets/weizmann/EhV/high_time_res/scip_tiff.yml
 
-NP_ARR = [{{ np_args }}]
-ARGS_ARR = [{{ args }}]
+NP_ARR=({{ np_args }})
+ARGS_ARR=({{ args }})
 
-mpiexec -np ${NP_ARR[$PBS_ARRAYID]} scip --headless --mode mpi -l /local_scratch/ ${ARGS_ARR[$PBS_ARRAYID]} $CONFIG_PATH $DATA_PATH
+mpiexec -np ${NP_ARR[$PBS_ARRAYID-1]} scip -t1 --headless --mode mpi -l /local_scratch/ ${ARGS_ARR[$PBS_ARRAYID-1]} $CONFIG_PATH $DATA_PATH
