@@ -166,8 +166,6 @@ def main(
             name="raw"
         )
 
-        images.visualize(filename=str(output / "images.svg"))
-
         masking_module = import_module('scip.segmentation.%s' % config["masking"]["method"])
         bags = masking_module.create_masks_on_bag(
             images,
