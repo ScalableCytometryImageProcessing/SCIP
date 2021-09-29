@@ -198,7 +198,7 @@ def main(
             )
 
             bag_meta = bags[k].map(to_meta_df).to_dataframe().set_index("idx")
-            bag_meta = meta.rename(columns=lambda c: f"meta_{k}_{c}")
+            bag_meta = bag_meta.rename(columns=lambda c: f"meta_{k}_{c}")
 
             bags[k] = bags[k].filter(segmentation_util.mask_predicate)
             bags[k] = bags[k].map_partitions(segmentation_util.bounding_box_partition)
