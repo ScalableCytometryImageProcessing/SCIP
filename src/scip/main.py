@@ -9,6 +9,7 @@ from functools import partial
 from importlib import import_module
 import numpy
 import os
+import socket
 
 import matplotlib
 matplotlib.use("Agg")
@@ -58,30 +59,6 @@ def get_images_bag(paths, channels, config, partition_size):
     return dask.bag.concat(images), dask.dataframe.concat(meta)
 
 
-def preprocess_bag(bag, prefix, channels):
-    
-    def to_df(el): 
-        d = {
-            f"connected_components_{channels[i]}":v 
-            for i, v in enumerate(el["connected_components"]) 
-        }
-        d["idx"] = el["idx"]
-        return d
-    meta = bag.map(to_df).to_dataframe().set_index("idx")
-    meta = meta.rename(columns=lambda c: f"meta_{prefix}_{c}")
-
-    # images are loaded from directory and masked
-    # after this operation the bag is persisted as it
-    # will be reused several times throughout the pipeline
-    bag = bag.filter(segmentation_util.mask_predicate)
-    bag = bag.map_partitions(segmentation_util.bounding_box_partition)
-    bag = bag.map_partitions(segmentation_util.crop_to_mask_partition)
-    bag = bag.map_partitions(segmentation_util.masked_intensities_partition)
-    bag = quantile_normalization.quantile_normalization(bag, 0, 1, len(channels))
-
-    return bag, meta
-
-
 def compute_features(images, prefix):
 
     features = feature_extraction.extract_features(images=images)
@@ -117,38 +94,16 @@ def main(
     walltime,
     project,
     job_extra,
-    local,
+    mode,
     local_directory,
     headless,
     port,
     debug,
     timing
 ):
-
-    output = Path(output)
-    util.make_output_dir(output, headless=headless)
-
-    util.configure_logging(output, debug)
-    logger = logging.getLogger("scip")
-    logger.info(f"Running pipeline for {','.join(paths)}")
-    logger.info(f"Running with {n_workers} workers and {n_threads} threads per worker")
-    logger.info(f"Local mode? {local}")
-    if not local:
-        logger.info(f"Provisining {n_nodes} nodes")
-    logger.info(f"Output is saved in {str(output)}")
-
-    config = util.load_yaml_config(config)
-    logger.info(f"Running with following config: {config}")
-
-    template_dir = os.path.dirname(__file__) + "/reports/templates"
-
-    # ClientClusterContext creates cluster
-    # and registers Client as default client for this session
-    logger.debug("Starting Dask cluster")
-    logger.debug(walltime)
     with util.ClientClusterContext(
             n_workers=n_workers,
-            local=local,
+            mode=mode,
             port=port,
             n_nodes=n_nodes,
             local_directory=local_directory,
@@ -159,14 +114,30 @@ def main(
             threads_per_process=n_threads,
             project=project
     ) as context:
-        logger.debug(f"Cluster ({context.cluster}) created")
-        if not local:
-            logger.debug(context.cluster.job_script())
+
+        output = Path(output)
+        util.make_output_dir(output, headless=headless)
+
+        util.configure_logging(output, debug)
+        logger = logging.getLogger("scip")
+        logger.info(f"Running pipeline for {','.join(paths)}")
+        logger.info(f"Running with {n_workers} workers and {n_threads} threads per worker")
+        logger.info(f"Mode? {mode}")
+        logger.info(f"Output is saved in {str(output)}")
+        
+        config = util.load_yaml_config(config)
+        logger.info(f"Running with following config: {config}")
+        
+        host = context.client.run_on_scheduler(socket.gethostname)
+        port = context.client.scheduler_info()['services']['dashboard']
+        logger.info(f"Dashboard -> ssh -N -L {port}:{host}:{port}")
+
+        template_dir = os.path.dirname(__file__) + "/reports/templates"
 
         # if timing is set, wait for the cluster to be fully ready
         # to isolate cluster startup time from pipeline execution
-        if timing is not None:
-            context.wait()
+        # if timing is not None:
+        #     context.wait()
 
         start = time.time()
 
@@ -195,24 +166,32 @@ def main(
             name="raw"
         )
 
+        images.visualize(filename=str(output / "images.svg"))
+
         masking_module = import_module('scip.segmentation.%s' % config["masking"]["method"])
         bags = masking_module.create_masks_on_bag(
             images,
             **(config["masking"]["kwargs"] or dict())
         )
 
-        # with open("test/data/masked.pickle", "wb") as fh:
-        #     import pickle
-        #     pickle.dump(bags["otsu"].compute(), fh)
-        # return
+        # images are no longer needed and may be released to free up memory
+        del images
+
+        def to_meta_df(el): 
+            d = {
+                f"connected_components_{channels[i]}":v 
+                for i, v in enumerate(el["connected_components"]) 
+            }
+            d["idx"] = el["idx"]
+            return d
 
         feature_dataframes = []
-        for k, bag in bags.items():
+        for k in bags.keys():
 
-            bag = bag.persist()
+            bags[k] = bags[k].persist()
 
             masks.report(
-                bag,
+                bags[k],
                 template_dir=template_dir,
                 template="masks.html",
                 name=k,
@@ -220,18 +199,25 @@ def main(
                 channel_labels=channel_labels
             )
 
-            bag, bag_meta = preprocess_bag(bag, k, channels)
-            bag = bag.persist()
+            bag_meta = bags[k].map(to_meta_df).to_dataframe().set_index("idx")
+            bag_meta = meta.rename(columns=lambda c: f"meta_{k}_{c}")
+
+            bags[k] = bags[k].filter(segmentation_util.mask_predicate)
+            bags[k] = bags[k].map_partitions(segmentation_util.bounding_box_partition)
+            bags[k] = bags[k].map_partitions(segmentation_util.crop_to_mask_partition)
+            bags[k] = bags[k].map_partitions(segmentation_util.masked_intensities_partition)
+            bags[k] = quantile_normalization.quantile_normalization(bags[k], 0, 1, len(channels))
+            bags[k] = bags[k].persist()
 
             example_images.report(
-                bag,
+                bags[k],
                 template_dir=template_dir,
                 template="example_images.html",
                 name=k,
                 output=output
             )
             intensity_distribution.report(
-                bag,
+                bags[k],
                 template_dir=template_dir,
                 template="intensity_distribution.html",
                 bin_amount=100,
@@ -241,8 +227,10 @@ def main(
                 extent=numpy.array([(0, 1)] * len(channels))  # extent is known due to normalization
             )
 
-            bag_df = compute_features(bag, k)
+            bag_df = compute_features(bags[k], k)
             feature_dataframes.append(dask.dataframe.multi.concat([bag_df, bag_meta], axis=1))
+
+        del bags
 
         features = dask.dataframe.multi.concat(feature_dataframes, axis=1)
 
@@ -270,11 +258,11 @@ def main(
 
 
 @click.command(name="Scalable imaging pipeline")
-@click.option("--port", "-p", type=int, default=None, help="dask dashboard port")
+@click.option("--port", "-d", type=int, default=None, help="dask dashboard port")
 @click.option("--debug", envvar="DEBUG", is_flag=True, help="sets logging level to debug")
 @click.option(
-    "--local/--no-local", default=True,
-    help="deploy app to Dask LocalCluster, otherwise deploy to dask-jobqueue PBSCluster")
+    "--mode", default="local", type=click.Choice(util.MODES),
+    help="In which mode to run Dask")
 @click.option(
     "--n-workers", "-j", type=int, default=-1,
     help="Number of workers in the LocalCluster or per node")
@@ -308,7 +296,7 @@ def main(
     help="Set partition size")
 @click.option("--timing", default=None, type=click.Path(dir_okay=False))
 @click.option(
-    "--local-directory", "-d", default=None, type=click.Path(file_okay=False, exists=True))
+    "--local-directory", "-l", default=None, type=click.Path(file_okay=False, exists=True))
 @click.argument("output", type=click.Path(file_okay=False))
 @click.argument("config", type=click.Path(dir_okay=False, exists=True))
 @click.argument("paths", nargs=-1, type=click.Path(exists=True, file_okay=False))
