@@ -148,11 +148,6 @@ def main(
         assert len(channels) == len(channel_labels), "Please specify a label for each channel"
 
         images, meta = get_images_bag(paths, channels, config, partition_size)
-
-        if limit is not None:
-            images = images.take(k=limit, npartitions=-1)
-            meta = meta.take(k=limit, npartitions=-1)
-
         images = images.persist()
 
         example_images.report(
