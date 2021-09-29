@@ -1,5 +1,5 @@
 from skimage.segmentation import watershed
-from skimage.filters import sobel
+from skimage.filters import sobel, threshold_otsu
 from skimage import morphology
 from skimage.restoration import denoise_nl_means
 import numpy
@@ -22,9 +22,13 @@ def get_mask(el, noisy_channels):
         elev_map = sobel(image[dim])
         closed = morphology.closing(elev_map, selem=morphology.disk(2))
 
+        # markers = numpy.zeros_like(image[dim])
+        # markers[closed < numpy.quantile(closed, 0.7)] = 1
+        # markers[closed > numpy.quantile(closed, 0.95)] = 2
         markers = numpy.zeros_like(image[dim])
-        markers[closed < numpy.quantile(closed, 0.7)] = 1
-        markers[closed > numpy.quantile(closed, 0.95)] = 2
+        thresh = threshold_otsu(closed)
+        markers[closed < thresh-thresh*0.5] = 1
+        markers[closed > thresh+thresh*0.5] = 2
 
         segmentation = watershed(image[dim], markers, compactness=1)
 
