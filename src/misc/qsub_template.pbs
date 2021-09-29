@@ -1,0 +1,20 @@
+#!/bin/bash
+
+#PBS -A lt1_starter-245
+#PBS -l walltime=00:59:00
+#PBS -l nodes=1:ppn=28
+#PBS -l mem=128gb
+#PBS -t 1-{{ number_of_configs }}
+
+module load intel/2019b
+
+. $CONDA_PREFIX/etc/profile.d/conda.sh
+conda activate scip
+
+DATA_PATH=/vsc-mounts/gent-user/420/vsc42015/vsc_data_vo/datasets/weizmann/EhV/high_time_res/High/images/*
+CONFIG_PATH=/vsc-mounts/gent-user/420/vsc42015/vsc_data_vo/datasets/weizmann/EhV/high_time_res/scip_tiff.yml
+
+NP_ARR = [{{ np_args }}]
+ARGS_ARR = [{{ args }}]
+
+mpiexec -np ${NP_ARR[$PBS_ARRAYID]} scip --headless --mode mpi -l /local_scratch/ ${ARGS_ARR[$PBS_ARRAYID]} $CONFIG_PATH $DATA_PATH
