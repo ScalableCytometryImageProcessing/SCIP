@@ -13,12 +13,13 @@ def main():
     iterations = 3
     total_mem = 128
 
-    args_fmt = '"--timing %s -j%d -m%d -s%d %s"'
+    args_fmt = '"--timing %s -j%d -m%d -s%d -l%d %s"'
 
     commands = []
     np = []
-    for partition_size in [10, 50, 100]:
+    for partition_size in [100, 200, 400, 800]:
         for n_workers in [1, 2, 4, 8, 16, 28]:
+            for limit in [10000, 20000, 40000, 50000]
             for _ in range(iterations):
                 ident = uuid.uuid4()
 
@@ -26,11 +27,9 @@ def main():
                 o = str(output / "results" / str(ident))
                 
                 commands.append(
-                    args_fmt % (timing, n_workers, total_mem // n_workers, partition_size, o)
+                    args_fmt % (timing, n_workers, total_mem // n_workers, partition_size, limit, o)
                 )
                 np.append(n_workers)
-
-
 
     jinja_env = Environment(
         loader=FileSystemLoader("src/misc"),

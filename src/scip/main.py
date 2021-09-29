@@ -99,7 +99,8 @@ def main(
     headless,
     port,
     debug,
-    timing
+    timing,
+    limit
 ):
     with util.ClientClusterContext(
             n_workers=n_workers,
@@ -147,6 +148,11 @@ def main(
         assert len(channels) == len(channel_labels), "Please specify a label for each channel"
 
         images, meta = get_images_bag(paths, channels, config, partition_size)
+
+        if limit is not None:
+            images = images.take(k=limit, npartitions=-1)
+            meta = meta.take(k=limit, npartitions=-1)
+
         images = images.persist()
 
         example_images.report(
@@ -293,6 +299,7 @@ def main(
     "--partition-size", "-s", default=50, type=click.IntRange(min=1),
     help="Set partition size")
 @click.option("--timing", default=None, type=click.Path(dir_okay=False))
+@click.option("--limit", default=None, type=click.IntRange(min=1))
 @click.option(
     "--local-directory", "-l", default=None, type=click.Path(file_okay=False, exists=True))
 @click.argument("output", type=click.Path(file_okay=False))
