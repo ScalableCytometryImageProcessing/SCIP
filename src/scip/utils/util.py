@@ -110,7 +110,7 @@ class ClientClusterContext:
             return False
 
     def wait(self):
-        if self.mode == "local":
+        if self.mode in ["local", "mpi"]:
             n_workers = self.n_workers
         elif self.mode == "jobqueue":
             n_workers = self.n_workers * self.n_nodes

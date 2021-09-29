@@ -136,8 +136,8 @@ def main(
 
         # if timing is set, wait for the cluster to be fully ready
         # to isolate cluster startup time from pipeline execution
-        # if timing is not None:
-        #     context.wait()
+        if timing is not None:
+            context.wait()
 
         start = time.time()
 
