@@ -6,7 +6,8 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 def main():
 
-    output = Path.cwd() / Path("benchmark_%s" % datetime.now().strftime("%Y%m%d%H%M%S"))
+    output = Path("/vsc-mounts/gent-user/420/vsc42015/vsc_data_vo/results/scip_benchmark")
+    output = output / Path("benchmark_%s" % datetime.now().strftime("%Y%m%d%H%M%S"))
     output.mkdir()
     (output / "results").mkdir()
 
@@ -18,17 +19,19 @@ def main():
     commands = []
     np = []
     for partition_size in [100, 200, 400, 800]:
-        for n_workers in [1, 2, 4, 8, 16, 28]:
+        for n_workers in [1, 2, 4, 8, 16, 26]:
             for _ in range(iterations):
                 ident = uuid.uuid4()
 
                 timing = str(output / ("%s.json" % ident))
                 o = str(output / "results" / str(ident))
-                
+
                 commands.append(
                     args_fmt % (timing, n_workers, total_mem // n_workers, partition_size, o)
                 )
-                np.append(n_workers)
+                
+                # increment n_workers with 2 to accomodate for the client and scheduler process 
+                np.append(n_workers+2)
 
     jinja_env = Environment(
         loader=FileSystemLoader("src/misc"),
