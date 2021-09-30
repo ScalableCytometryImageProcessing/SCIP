@@ -86,16 +86,16 @@ class ClientClusterContext:
             self.cluster.scale(jobs=self.n_nodes)
             self.client = Client(self.cluster)
         elif self.mode == "mpi":
-            import dask_mpi
+            import dask_mpi.core
 
-            dask_mpi.initialize(
+            dask_mpi.core.initialize(
                 dashboard=True,
                 dashboard_address=None if self.port is None else f':{self.port}',
                 interface="ib0",
                 nthreads=self.threads_per_process,
                 local_directory=self.local_directory,
-                nanny=True,
-                memory_limit=self.memory*1e9
+                memory_limit=int(self.memory*1e9),
+                nanny=True
             )
             self.client = Client()
              
