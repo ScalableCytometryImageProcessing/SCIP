@@ -10,6 +10,7 @@ from importlib import import_module
 import numpy
 import os
 import socket
+import pandas
 
 import matplotlib
 matplotlib.use("Agg")
@@ -219,16 +220,18 @@ def main(
             )
 
             bag_df = compute_features(bags[k], k)
-            feature_dataframes.append(dask.dataframe.multi.concat([bag_df, bag_meta], axis=1))
+            feature_dataframes.append(
+                dask.dataframe.multi.concat([
+                    bag_df.persist(),
+                    bag_meta.persist()
+                ], axis=1))
 
         del bags
 
         features = dask.dataframe.multi.concat(feature_dataframes, axis=1)
 
         # once features are computed, pull to local
-        features = dask.dataframe.multi.concat(
-            [features, meta], axis=1
-        ).compute()
+        features = features.compute()
 
         feature_statistics.report(
             features,
@@ -236,6 +239,10 @@ def main(
             template="feature_statistics.html",
             output=output
         )
+        
+        meta = meta.compute()
+
+        features = pandas.concat([features, meta], axis=1)
 
         filename = config["export"]["filename"]
         features.to_parquet(str(output / f"{filename}.parquet"))
