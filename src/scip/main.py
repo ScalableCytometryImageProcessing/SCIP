@@ -61,23 +61,15 @@ def get_images_bag(paths, channels, config, partition_size):
 
 def compute_features(images, prefix):
 
+    def rename(c):
+        if "bbox" in c:
+            return f"meta_{prefix}_{c}"
+        else:
+            return f"feat_{prefix}_{c}"
+
     features = feature_extraction.extract_features(images=images)
-    features = features.rename(columns=lambda c: f"feat_{prefix}_{c}")
-
-    def to_meta_df(el):
-        d = dict(
-            idx=el["idx"],
-            bbox_minr=el["bbox"][0],
-            bbox_minc=el["bbox"][1],
-            bbox_maxr=el["bbox"][2],
-            bbox_maxc=el["bbox"][3],
-        ) 
-        return d
-    bbox = images.map(to_meta_df)
-    bbox = bbox.to_dataframe().set_index("idx")
-    bbox = bbox.rename(columns=lambda c: f"meta_{prefix}_{c}")
-
-    return dask.dataframe.multi.concat([features, bbox], axis=1)
+    features = features.rename(columns=rename)
+    return features
 
 
 def main(

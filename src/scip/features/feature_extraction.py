@@ -145,6 +145,15 @@ def texture_features(sample):
     return features_dict
 
 
+def bbox_features(p):
+    return {
+        "bbox_minr": p["bbox"][0],
+        "bbox_minc": p["bbox"][1],
+        "bbox_maxr": p["bbox"][2],
+        "bbox_maxc": p["bbox"][3],
+    }
+
+
 def extract_features(*, images: dask.bag.Bag):
     """
     Extract features from pixel data
@@ -159,12 +168,13 @@ def extract_features(*, images: dask.bag.Bag):
     def features_partition(part):
         return [{
             "idx": p["idx"],
+            **bbox_features(p),
             **shape_features(p),
             **intensity_features(p),
             **texture_features(p)
         } for p in part]
 
-    images = images.map_partittions(features_partition)
+    images = images.map_partitions(features_partition)
     images = images.to_dataframe()
     # setting the index causes partition divisions to be known for Dask
     # making concatenation fast
