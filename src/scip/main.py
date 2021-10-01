@@ -10,6 +10,7 @@ from importlib import import_module
 import numpy
 import os
 import socket
+import pandas
 
 import matplotlib
 matplotlib.use("Agg")
@@ -61,23 +62,15 @@ def get_images_bag(paths, channels, config, partition_size):
 
 def compute_features(images, prefix):
 
+    def rename(c):
+        if "bbox" in c:
+            return f"meta_{prefix}_{c}"
+        else:
+            return f"feat_{prefix}_{c}"
+
     features = feature_extraction.extract_features(images=images)
-    features = features.rename(columns=lambda c: f"feat_{prefix}_{c}")
-
-    def to_meta_df(el):
-        d = dict(
-            idx=el["idx"],
-            bbox_minr=el["bbox"][0],
-            bbox_minc=el["bbox"][1],
-            bbox_maxr=el["bbox"][2],
-            bbox_maxc=el["bbox"][3],
-        ) 
-        return d
-    bbox = images.map(to_meta_df)
-    bbox = bbox.to_dataframe().set_index("idx")
-    bbox = bbox.rename(columns=lambda c: f"meta_{prefix}_{c}")
-
-    return dask.dataframe.multi.concat([features, bbox], axis=1)
+    features = features.rename(columns=rename)
+    return features
 
 
 def main(
@@ -227,16 +220,18 @@ def main(
             )
 
             bag_df = compute_features(bags[k], k)
-            feature_dataframes.append(dask.dataframe.multi.concat([bag_df, bag_meta], axis=1))
+            feature_dataframes.append(
+                dask.dataframe.multi.concat([
+                    bag_df.persist(),
+                    bag_meta.persist()
+                ], axis=1))
 
         del bags
 
         features = dask.dataframe.multi.concat(feature_dataframes, axis=1)
 
         # once features are computed, pull to local
-        features = dask.dataframe.multi.concat(
-            [features, meta], axis=1
-        ).compute()
+        features = features.compute()
 
         feature_statistics.report(
             features,
@@ -244,6 +239,10 @@ def main(
             template="feature_statistics.html",
             output=output
         )
+        
+        meta = meta.compute()
+
+        features = pandas.concat([features, meta], axis=1)
 
         filename = config["export"]["filename"]
         features.to_parquet(str(output / f"{filename}.parquet"))
