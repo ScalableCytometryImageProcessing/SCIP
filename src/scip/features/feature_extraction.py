@@ -47,7 +47,7 @@ def shape_features(sample):
         return props
 
     img = sample.get('mask')
-    features_dict = {"idx": sample["idx"]}
+    features_dict = {}
     for i in range(len(img)):
         props = channel_features(i)
         props = {f"{k}_{i}": v[0] for k,v in props.items()}
@@ -83,7 +83,7 @@ def intensity_features(sample):
         }
 
     img = sample.get('flat')
-    features_dict = {"idx": sample["idx"]}
+    features_dict = {}
     for i in range(len(img)):
         features_dict.update(channel_features(i))
 
@@ -138,7 +138,7 @@ def texture_features(sample):
     # always a 3x3 cell grid leading to a uniform length feature vector
     pixels_per_cell = img.shape[1] // 3, img.shape[2] // 3
 
-    features_dict = {"idx": sample["idx"]}
+    features_dict = {}
     for i in range(len(img)):
         features_dict.update(texture_features(i, pixels_per_cell))
 
@@ -156,27 +156,18 @@ def extract_features(*, images: dask.bag.Bag):
         dask.bag: bag containing dictionaries of image features
     """
 
-    def shape_partition(part):
-        return [shape_features(p) for p in part]
+    def features_partition(part):
+        return [{
+            "idx": p["idx"],
+            **shape_features(p),
+            **intensity_features(p),
+            **texture_features(p)
+        } for p in part]
 
-    def intensity_partition(part):
-        return [intensity_features(p) for p in part]
+    images = images.map_partittions(features_partition)
+    images = images.to_dataframe()
+    # setting the index causes partition divisions to be known for Dask
+    # making concatenation fast
+    images = images.set_index("idx")
 
-    def texture_partition(part):
-        return [texture_features(p) for p in part]
-
-    def to_dataframe(bag):
-        bag = bag.persist()
-        df = bag.to_dataframe()
-
-        # setting the index causes partition divisions to be known for Dask
-        # making concatenation fast
-        df = df.set_index("idx")
-        return df
-
-    shape_df = to_dataframe(images.map_partitions(shape_partition))
-    intensity_df = to_dataframe(images.map_partitions(intensity_partition))
-    texture_df = to_dataframe(images.map_partitions(texture_partition))
-
-    return dask.dataframe.multi.concat(
-        [shape_df, intensity_df, texture_df], axis=1)
+    return images
