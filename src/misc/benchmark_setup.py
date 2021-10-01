@@ -11,7 +11,7 @@ def main():
     output.mkdir()
     (output / "results").mkdir()
 
-    iterations = 3
+    iterations = 5
     total_mem = 120
 
     args_fmt = '"--timing %s -j%d -m%d -s%d %s"'
