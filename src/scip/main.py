@@ -131,8 +131,10 @@ def main(
         # if timing is set, wait for the cluster to be fully ready
         # to isolate cluster startup time from pipeline execution
         if timing is not None:
+            logger.debug("waiting for all workers")
             context.wait()
 
+        logger.debug("timer started")
         start = time.time()
 
         assert "channels" in config["loading"], "Please specify what channels to load"
@@ -140,10 +142,13 @@ def main(
         channel_labels = config["loading"].get("channel_labels")
         assert len(channels) == len(channel_labels), "Please specify a label for each channel"
 
+        logger.debug("loading images in to bags")
         images, meta = get_images_bag(paths, channels, config, partition_size)
         images = images.persist()
+        logger.debug("images persisted")
 
         if report:
+            logger.debug("reporting example images")
             example_images.report(
                 images,
                 template_dir=template_dir,
@@ -151,6 +156,7 @@ def main(
                 name="raw",
                 output=output
             )
+            logger.debug("reporting on image distributions")
             intensity_distribution.report(
                 images.map_partitions(flat_intensities_partition),
                 template_dir=template_dir,
@@ -162,6 +168,7 @@ def main(
             )
 
         masking_module = import_module('scip.segmentation.%s' % config["masking"]["method"])
+        logger.debug("creating masks on bag")
         bags = masking_module.create_masks_on_bag(
             images,
             **(config["masking"]["kwargs"] or dict())
@@ -180,6 +187,7 @@ def main(
 
         feature_dataframes = []
         for k in bags.keys():
+            logger.debug(f"processing bag {k}")
 
             bags[k] = bags[k].persist()
 
@@ -193,17 +201,22 @@ def main(
                     channel_labels=channel_labels
                 )
 
+            logger.debug("extracting meta data from bag")
             bag_meta = bags[k].map(to_meta_df).to_dataframe().set_index("idx")
             bag_meta = bag_meta.rename(columns=lambda c: f"meta_{k}_{c}")
 
+            logger.debug("preparing bag for feature extraction")
             bags[k] = bags[k].filter(segmentation_util.mask_predicate)
             bags[k] = bags[k].map_partitions(segmentation_util.bounding_box_partition)
             bags[k] = bags[k].map_partitions(segmentation_util.crop_to_mask_partition)
             bags[k] = bags[k].map_partitions(segmentation_util.masked_intensities_partition)
+
+            logger.debug("performing normalization")
             bags[k] = quantile_normalization.quantile_normalization(bags[k], 0, 1, len(channels))
             bags[k] = bags[k].persist()
 
             if report:
+                logger.debug("reporting example masked images")
                 example_images.report(
                     bags[k],
                     template_dir=template_dir,
@@ -211,6 +224,7 @@ def main(
                     name=k,
                     output=output
                 )
+                logger.debug("reporting distribution of masked images")
                 intensity_distribution.report(
                     bags[k],
                     template_dir=template_dir,
@@ -222,6 +236,7 @@ def main(
                     extent=numpy.array([(0, 1)] * len(channels))  # extent is known
                 )
 
+            logger.debug("computing features")
             bag_df = compute_features(bags[k], k)
             feature_dataframes.append(
                 dask.dataframe.multi.concat([
@@ -234,21 +249,25 @@ def main(
         features = dask.dataframe.multi.concat(feature_dataframes, axis=1)
 
         # once features are computed, pull to local
+        logger.debug("computing features locally")
         features = features.compute()
 
         if report:
+            logger.debug("reporting feature statistics")
             feature_statistics.report(
                 features,
                 template_dir=template_dir,
                 template="feature_statistics.html",
                 output=output
             )
-        
+
+        logger.debug("computing meta data locally") 
         meta = meta.compute()
 
         features = pandas.concat([features, meta], axis=1)
 
         filename = config["export"]["filename"]
+        logger.debug(f"writing features to {filename}.parquet")
         features.to_parquet(str(output / f"{filename}.parquet"))
 
         if debug:
