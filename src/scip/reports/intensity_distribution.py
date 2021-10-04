@@ -77,12 +77,13 @@ def get_counts(sample, bins):
     """
 
     # Count the intensities before masking
-    image = sample.get('flat')
+    img = sample.get('pixels')
+    img = np.reshape(img, newshape=(img.shape[0], -1))
     counts = np.empty(shape=(len(bins), bins.shape[1] - 1), dtype=float)
 
     # For every channel
-    for i in range(len(image)):
-        counts[i] = np.histogram(image[i].flatten(), bins[i])[0]
+    for i in range(len(img)):
+        counts[i] = np.histogram(img[i], bins[i])[0]
 
     return counts
 

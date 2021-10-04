@@ -25,16 +25,6 @@ from scip.segmentation import util as segmentation_util  # noqa: E402
 # from scip.analysis import fuzzy_c_mean  # noqa: E402
 
 
-def flat_intensities_partition(part):
-
-    def get_flat_intensities(p):
-        out = p.copy()
-        out["flat"] = p["pixels"].reshape(p["pixels"].shape[0], -1)
-        return out
-
-    return [get_flat_intensities(p) for p in part]
-
-
 def get_images_bag(paths, channels, config, partition_size):
 
     loader_module = import_module('scip.loading.%s' % config["loading"]["format"])
@@ -158,7 +148,7 @@ def main(
             )
             logger.debug("reporting on image distributions")
             intensity_distribution.report(
-                images.map_partitions(flat_intensities_partition),
+                images,
                 template_dir=template_dir,
                 template="intensity_distribution.html",
                 bin_amount=100,

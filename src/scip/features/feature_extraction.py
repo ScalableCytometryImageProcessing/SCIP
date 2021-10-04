@@ -82,7 +82,8 @@ def intensity_features(sample):
             f'kurtosis_{i}': scipy.stats.kurtosis(img[i])
         }
 
-    img = sample.get('flat')
+    img = sample.get('pixels')
+    img = numpy.reshape(img, newshape=(img.shape[0], -1))
     features_dict = {}
     for i in range(len(img)):
         features_dict.update(channel_features(i))

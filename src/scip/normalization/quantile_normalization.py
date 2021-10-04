@@ -40,8 +40,6 @@ def get_distributed_minmax(bag, nchannels):  # noqa: C901
             out[i, 1] = max(a[i, 1], b[i, 1])
         return out
 
-    bag = bag.map_partitions(select_origin, origin="flat")
-
     init = np.empty(shape=(nchannels, 2))
     init[:, 0] = np.inf
     init[:, 1] = -np.inf
