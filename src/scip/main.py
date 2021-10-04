@@ -93,7 +93,7 @@ def main(
     port,
     debug,
     timing,
-    limit
+    report
 ):
     with util.ClientClusterContext(
             n_workers=n_workers,
@@ -143,22 +143,23 @@ def main(
         images, meta = get_images_bag(paths, channels, config, partition_size)
         images = images.persist()
 
-        example_images.report(
-            images,
-            template_dir=template_dir,
-            template="example_images.html",
-            name="raw",
-            output=output
-        )
-        intensity_distribution.report(
-            images.map_partitions(flat_intensities_partition),
-            template_dir=template_dir,
-            template="intensity_distribution.html",
-            bin_amount=100,
-            channel_labels=channel_labels,
-            output=output,
-            name="raw"
-        )
+        if report:
+            example_images.report(
+                images,
+                template_dir=template_dir,
+                template="example_images.html",
+                name="raw",
+                output=output
+            )
+            intensity_distribution.report(
+                images.map_partitions(flat_intensities_partition),
+                template_dir=template_dir,
+                template="intensity_distribution.html",
+                bin_amount=100,
+                channel_labels=channel_labels,
+                output=output,
+                name="raw"
+            )
 
         masking_module = import_module('scip.segmentation.%s' % config["masking"]["method"])
         bags = masking_module.create_masks_on_bag(
@@ -182,14 +183,15 @@ def main(
 
             bags[k] = bags[k].persist()
 
-            masks.report(
-                bags[k],
-                template_dir=template_dir,
-                template="masks.html",
-                name=k,
-                output=output,
-                channel_labels=channel_labels
-            )
+            if report:
+                masks.report(
+                    bags[k],
+                    template_dir=template_dir,
+                    template="masks.html",
+                    name=k,
+                    output=output,
+                    channel_labels=channel_labels
+                )
 
             bag_meta = bags[k].map(to_meta_df).to_dataframe().set_index("idx")
             bag_meta = bag_meta.rename(columns=lambda c: f"meta_{k}_{c}")
@@ -201,23 +203,24 @@ def main(
             bags[k] = quantile_normalization.quantile_normalization(bags[k], 0, 1, len(channels))
             bags[k] = bags[k].persist()
 
-            example_images.report(
-                bags[k],
-                template_dir=template_dir,
-                template="example_images.html",
-                name=k,
-                output=output
-            )
-            intensity_distribution.report(
-                bags[k],
-                template_dir=template_dir,
-                template="intensity_distribution.html",
-                bin_amount=100,
-                channel_labels=channel_labels,
-                output=output,
-                name=k,
-                extent=numpy.array([(0, 1)] * len(channels))  # extent is known due to normalization
-            )
+            if report:
+                example_images.report(
+                    bags[k],
+                    template_dir=template_dir,
+                    template="example_images.html",
+                    name=k,
+                    output=output
+                )
+                intensity_distribution.report(
+                    bags[k],
+                    template_dir=template_dir,
+                    template="intensity_distribution.html",
+                    bin_amount=100,
+                    channel_labels=channel_labels,
+                    output=output,
+                    name=k,
+                    extent=numpy.array([(0, 1)] * len(channels))  # extent is known
+                )
 
             bag_df = compute_features(bags[k], k)
             feature_dataframes.append(
@@ -233,12 +236,13 @@ def main(
         # once features are computed, pull to local
         features = features.compute()
 
-        feature_statistics.report(
-            features,
-            template_dir=template_dir,
-            template="feature_statistics.html",
-            output=output
-        )
+        if report:
+            feature_statistics.report(
+                features,
+                template_dir=template_dir,
+                template="feature_statistics.html",
+                output=output
+            )
         
         meta = meta.compute()
 
@@ -293,7 +297,7 @@ def main(
     "--partition-size", "-s", default=50, type=click.IntRange(min=1),
     help="Set partition size")
 @click.option("--timing", default=None, type=click.Path(dir_okay=False))
-@click.option("--limit", default=None, type=click.IntRange(min=1))
+@click.option("--report/--no-report", default=True, is_flag=True, type=bool)
 @click.option(
     "--local-directory", "-l", default=None, type=click.Path(file_okay=False, exists=True))
 @click.argument("output", type=click.Path(file_okay=False))
