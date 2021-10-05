@@ -29,6 +29,7 @@ def plot_no_masks(images):
     fig, axes = plt.subplots(len(images), len(images[0]["pixels"]), figsize=(10, 5))
     for (i, j), ax in numpy.ndenumerate(axes):
         ax.imshow(images[i]["pixels"][j])
+        ax.set_axis_off()
 
     return fig
 

@@ -3,42 +3,9 @@ import matplotlib.pyplot as plt
 import dask
 from io import BytesIO
 import base64
+from scip.normalization.quantile_normalization import get_distributed_minmax
 
 from scip.reports.util import get_jinja_template
-
-
-def get_min_max(sample, origin):
-    """
-    Find minima and maxima for every channel
-
-    Args:
-        sample (dict): dictionary containing image data
-        origin (str): key of image data for which min and max will be calculated
-
-    Returns:
-        (ndarray, ndarray): maxima and minima of every channel
-    """
-
-    image = sample.get(origin)
-    channels = len(image)
-
-    extent = np.empty(shape=(channels, 2))
-
-    for i in range(channels):
-        if len(image[i] > 0):
-            extent[i] = [np.min(image[i]), np.max(image[i])]
-        else:
-            extent[i] = np.nan
-
-    return extent
-
-
-def reduce_minmax(A, B):
-    C = np.concatenate([A[:, 0, np.newaxis], B[:, 0, np.newaxis]], axis=1)
-    A[:, 0] = np.nanmin(C, axis=1)
-    C = np.concatenate([A[:, 1, np.newaxis], B[:, 1, np.newaxis]], axis=1)
-    A[:, 1] = np.nanmax(C, axis=1)
-    return A
 
 
 @dask.delayed
@@ -114,9 +81,6 @@ def report(
                       to force function execution
     """
 
-    def min_max_partition(part, origin):
-        return [get_min_max(p, origin) for p in part]
-
     def counts_partition(part, bins):
         return [get_counts(p, bins) for p in part]
 
@@ -149,7 +113,7 @@ def report(
             fh.write(get_jinja_template(template_dir, template).render(name=name, image=encoded))
 
     if extent is None:
-        extent = bag.map_partitions(min_max_partition, origin='flat').fold(reduce_minmax)
+        extent = get_distributed_minmax(bag, len(channel_labels))
 
     # Get bins from the extrema
     bins = get_bin_edges(extent, bin_amount=bin_amount)

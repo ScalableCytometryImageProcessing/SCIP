@@ -199,7 +199,6 @@ def main(
             bags[k] = bags[k].filter(segmentation_util.mask_predicate)
             bags[k] = bags[k].map_partitions(segmentation_util.bounding_box_partition)
             bags[k] = bags[k].map_partitions(segmentation_util.crop_to_mask_partition)
-            bags[k] = bags[k].map_partitions(segmentation_util.masked_intensities_partition)
 
             logger.debug("performing normalization")
             bags[k] = quantile_normalization.quantile_normalization(bags[k], 0, 1, len(channels))

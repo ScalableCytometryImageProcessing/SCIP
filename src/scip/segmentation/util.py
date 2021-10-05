@@ -44,35 +44,6 @@ def apply(sample, origin):
     return output
 
 
-def masked_intensities_partition(part):
-    return [get_masked_intensities(p) for p in part]
-
-
-def get_masked_intensities(sample):
-    """
-    Find the intensities for every channel inside the masks
-
-    Args:
-        sample (dict): dictionary containing image data
-
-    Returns:
-        dict: dictiory including flatmask (only the intensities inside mask)
-    """
-
-    img = sample.get("pixels")
-    mask = sample.get("mask")
-
-    masked_intensities = list()
-
-    # Filter the intensities with the mask
-    for i in range(len(img)):
-        masked_intensities.append(img[i][mask[i]])
-
-    output = sample.copy()
-    output["flat"] = masked_intensities
-    return output
-
-
 def crop_to_mask_partition(part):
     return [crop_to_mask(p) for p in part]
 

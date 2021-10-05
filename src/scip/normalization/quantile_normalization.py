@@ -3,27 +3,12 @@ import dask
 import dask.bag
 
 
-def select_origin(partition, *, origin):
-    """
-    Maps each element in the partition to the requested and flattened origin values
-    """
-
-    mapped = []
-    for el in partition:
-
-        # values cannot be a numpy array as not all channels are required to have the same
-        # amount of values for one element (due to masking)
-        values = []
-        for v in el[origin]:
-            values.append(v.flatten())
-        mapped.append(values)
-
-    return mapped
-
-
 def get_distributed_minmax(bag, nchannels):  # noqa: C901
 
     def combine_extent_partition(a, b):
+
+        b = b["pixels"]
+
         out = np.empty(shape=a.shape)
         for i in range(len(b)):
             if b[i].size == 0:
@@ -61,7 +46,7 @@ def get_distributed_partitioned_quantile(bag, lower, upper):
         Concatenates the numpy vectors in list a and b element-wise
         """
         for i in range(len(b)):
-            a[i] = np.concatenate((a[i], b[i]))
+            a[i] = np.concatenate((a[i].flatten(), b[i].flatten()))
 
         return a
 
@@ -75,8 +60,7 @@ def get_distributed_partitioned_quantile(bag, lower, upper):
         b = np.array([np.quantile(v, (lower, upper)) for v in b])[..., np.newaxis]
         return np.concatenate([a, b], axis=-1)
 
-    qq = bag.map_partitions(select_origin, origin="flat")
-    qq = qq.fold(concatenate_lists, reduce_quantiles)
+    qq = bag.fold(concatenate_lists, reduce_quantiles)
 
     def quantiles(a):
         out = np.empty(shape=(len(a), 2))
@@ -103,9 +87,9 @@ def sample_normalization(sample, qq):
 
     sample = sample.copy()
     for i in range(len(sample["pixels"])):
-        sample["flat"][i] = np.clip((sample["flat"][i] - qq[i, 0]) / (qq[i, 1] - qq[i, 0]), 0, 1)
-        sample["pixels"][i][sample["mask"][i]] = sample["flat"][i]
-
+        flat = sample["pixels"][i][sample["mask"][i]]
+        sample["pixels"][i][sample["mask"][i]] = np.clip(
+            (flat - qq[i, 0]) / (qq[i, 1] - qq[i, 0]), 0, 1)
     return sample
 
 
