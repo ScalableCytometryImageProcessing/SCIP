@@ -6,7 +6,7 @@ import scipy.stats
 
 # Scikit image libraries
 from skimage.feature import hog, greycomatrix, greycoprops
-from skimage.measure import label, regionprops_table
+from skimage.measure import label, regionprops_table, shannon_entropy
 import skimage
 
 
@@ -128,6 +128,8 @@ def texture_features(sample):
         # put hog features in dictionary
         for j in range(len(hog_features)):
             out.update({f'hog_ch_{i}_{j}': hog_features[j]})
+
+        out["shannon_entropy_{i}"] = shannon_entropy(img[i])
 
         return out
 
