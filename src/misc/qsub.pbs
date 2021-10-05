@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #PBS -A lt1_starter-245
-#PBS -l walltime=10:00:00
+#PBS -l walltime=24:00:00
 #PBS -l nodes=1:ppn=28
 #PBS -l mem=128gb
 
@@ -15,8 +15,7 @@ source <(aenv --data data.csv)
 . $CONDA_PREFIX/etc/profile.d/conda.sh
 conda activate scip
 
-# DATA_PATH=/vsc-mounts/gent-user/420/vsc42015/vsc_data_vo/datasets/weizmann/EhV/high_time_res/High/images/*
-DATA_PATH=/vsc-mounts/gent-user/420/vsc42015/vsc_data_vo/datasets/H1_T8_1
+DATA_PATH=/vsc-mounts/gent-user/420/vsc42015/vsc_data_vo/datasets/weizmann/EhV/high_time_res/High/images/*
 CONFIG_PATH=/vsc-mounts/gent-user/420/vsc42015/vsc_data_vo/datasets/weizmann/EhV/high_time_res/scip_tiff.yml
 
-mpiexec -np $np scip --timing "${prefix}/${PBS_ARRAYID}.json" -t1 --headless --mode mpi -l /local_scratch/ -j $n_workers -m $memory -s $partition_size $output $CONFIG_PATH $DATA_PATH
+mpiexec -np $np scip --no-report --timing "${prefix}/${PBS_ARRAYID}.json" -t1 --headless --mode mpi -l /local_scratch/ -j $n_workers -m $memory -s $partition_size $output $CONFIG_PATH $DATA_PATH

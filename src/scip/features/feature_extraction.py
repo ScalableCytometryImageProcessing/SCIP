@@ -6,7 +6,7 @@ import scipy.stats
 
 # Scikit image libraries
 from skimage.feature import hog, greycomatrix, greycoprops
-from skimage.measure import label, regionprops_table
+from skimage.measure import label, regionprops_table, shannon_entropy
 import skimage
 
 
@@ -130,6 +130,8 @@ def texture_features(sample):
         for j in range(len(hog_features)):
             out.update({f'hog_ch_{i}_{j}': hog_features[j]})
 
+        out["shannon_entropy_{i}"] = shannon_entropy(img[i])
+
         return out
 
     img = sample.get('pixels')
@@ -175,7 +177,7 @@ def extract_features(*, images: dask.bag.Bag):
             **texture_features(p)
         } for p in part]
 
-    images = images.map_partitions(features_partition)
+    images = images.map_partitions(features_partition).persist()
     images = images.to_dataframe()
     # setting the index causes partition divisions to be known for Dask
     # making concatenation fast
