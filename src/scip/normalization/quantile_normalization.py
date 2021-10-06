@@ -114,4 +114,7 @@ def quantile_normalization(images: dask.bag.Bag, lower, upper, nchannels):
         quantiles = get_distributed_minmax(images, nchannels)
     else:
         quantiles = get_distributed_partitioned_quantile(images, lower, upper)
-    return images.map_partitions(normalize_partition, quantiles)
+
+    images = images.map_partitions(normalize_partition, quantiles)
+
+    return images

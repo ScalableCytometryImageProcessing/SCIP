@@ -206,7 +206,7 @@ def main(
 
             logger.debug("extracting meta data from bag")
 
-            bag_meta_meta = {f"connected_components_{i}": int for i in range(len(channels))}
+            bag_meta_meta = {f"connected_components_{i}": float for i in range(len(channels))}
             bag_meta_meta["idx"] = int
             bag_meta = bags[k].map(to_meta_df).to_dataframe(meta=bag_meta_meta).set_index("idx")
             bag_meta = bag_meta.rename(columns=lambda c: f"meta_{k}_{c}")

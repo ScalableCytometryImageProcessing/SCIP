@@ -204,10 +204,10 @@ def texture_features(sample):
 
 def bbox_features_meta():
     return {
-        "bbox_minr": int,
-        "bbox_minc": int,
-        "bbox_maxr": int,
-        "bbox_maxc": int
+        "bbox_minr": float,
+        "bbox_minc": float,
+        "bbox_maxr": float,
+        "bbox_maxc": float
     }
 
 
