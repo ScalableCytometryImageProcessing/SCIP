@@ -98,7 +98,8 @@ def main(
     port,
     debug,
     timing,
-    report
+    report,
+    fits
 ):
     with util.ClientClusterContext(
             n_workers=n_workers,
@@ -190,7 +191,7 @@ def main(
         for k in bags.keys():
             logger.debug(f"processing bag {k}")
         
-            if config["loading"]["fits_in_memory"]:
+            if fits:
                 bags[k] = bags[k].persist()
 
             if report:
@@ -215,7 +216,7 @@ def main(
             logger.debug("performing normalization")
             bags[k] = quantile_normalization.quantile_normalization(bags[k], 0, 1, len(channels))
             
-            if config["loading"]["fits_in_memory"]:
+            if fits:
                 bags[k] = bags[k].persist()
 
             if report:
@@ -287,6 +288,9 @@ def main(
 @click.option(
     "--memory", "-m", type=click.IntRange(min=1), default=4,
     help="Amount of memory available per node in the cluster")
+@click.option(
+    "--fits", "-f", type=bool, default=False, is_flag=True,
+    help="If set, the program assumes the full dataset can fit in the total available memory")
 @click.option(
     "--walltime", "-w", type=str, default="01:00:00",
     help="Expected required walltime for the job to finish")

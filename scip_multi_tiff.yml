@@ -1,5 +1,4 @@
 loading:
-  fits_in_memory: true
   format: multiframe_tiff
   channels: [0, 1, 2, 3]
   channel_labels:
