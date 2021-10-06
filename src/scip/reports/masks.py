@@ -31,6 +31,28 @@ def plot2(cc_counts, channel_labels):
     return fig
 
 
+@dask.delayed
+def write_plots(fig1, fig2, name, template_dir, template, output):
+    
+    stream = BytesIO()
+    fig1.savefig(stream, format='png')
+    encoded_missing = base64.b64encode(stream.getvalue()).decode('utf-8')
+    
+    stream = BytesIO()
+    fig2.savefig(stream, format='png')
+    encoded_cc = base64.b64encode(stream.getvalue()).decode('utf-8')
+    
+    # Write HTML
+    filename = str("mask_quality_control_%s.html" % name)
+    with open(str(output / filename), "w") as fh:
+        fh.write(get_jinja_template(template_dir, template).render(
+            name=name,
+            image_missing=encoded_missing,
+            image_cc=encoded_cc))
+
+    return True
+
+
 def report(
         bag,
         *,
@@ -74,20 +96,15 @@ def report(
     total = bag.count()
     percentage = dask.delayed(lambda v, t: v / t)(blanks_sum, total)
 
-    fig = plot1(percentage, channel_labels).compute()
-    stream = BytesIO()
-    fig.savefig(stream, format='png')
-    encoded_missing = base64.b64encode(stream.getvalue()).decode('utf-8')
-    
-    fig = plot2(cc_counts, channel_labels).compute()
-    stream = BytesIO()
-    fig.savefig(stream, format='png')
-    encoded_cc = base64.b64encode(stream.getvalue()).decode('utf-8')
+    fig1 = plot1(percentage, channel_labels) 
+    fig2 = plot2(cc_counts, channel_labels)
 
-    # Write HTML
-    filename = str("mask_quality_control_%s.html" % name)
-    with open(str(output / filename), "w") as fh:
-        fh.write(get_jinja_template(template_dir, template).render(
-            name=name,
-            image_missing=encoded_missing,
-            image_cc=encoded_cc))
+    return write_plots(
+        fig1=fig1,
+        fig2=fig2,
+        name=name,
+        template_dir=template_dir,
+        template=template,
+        output=output
+    )
+

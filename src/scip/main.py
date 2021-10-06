@@ -61,6 +61,21 @@ def compute_features(images, prefix):
     features = feature_extraction.extract_features(images=images)
     features = features.rename(columns=rename)
     return features
+        
+        
+@dask.delayed
+def final(features, meta, reports, *, config, template_dir, output):
+    if (len(reports) > 0) and (all(reports)):
+        feature_statistics.report(
+            features,
+            template_dir=template_dir,
+            template="feature_statistics.html",
+            output=output
+        )
+
+    features = pandas.concat([features, meta], axis=1)
+    filename = config["export"]["filename"]
+    features.to_parquet(str(output / f"{filename}.parquet"))
 
 
 def main(
@@ -134,20 +149,19 @@ def main(
 
         logger.debug("loading images in to bags")
         images, meta = get_images_bag(paths, channels, config, partition_size)
-        images = images.persist()
-        logger.debug("images persisted")
 
+        reports = []
         if report:
             logger.debug("reporting example images")
-            example_images.report(
+            reports.append(example_images.report(
                 images,
                 template_dir=template_dir,
                 template="example_images.html",
                 name="raw",
                 output=output
-            )
+            ))
             logger.debug("reporting on image distributions")
-            intensity_distribution.report(
+            reports.append(intensity_distribution.report(
                 images,
                 template_dir=template_dir,
                 template="intensity_distribution.html",
@@ -155,7 +169,7 @@ def main(
                 channel_labels=channel_labels,
                 output=output,
                 name="raw"
-            )
+            ))
 
         masking_module = import_module('scip.segmentation.%s' % config["masking"]["method"])
         logger.debug("creating masks on bag")
@@ -163,9 +177,6 @@ def main(
             images,
             **(config["masking"]["kwargs"] or dict())
         )
-
-        # images are no longer needed and may be released to free up memory
-        del images
 
         def to_meta_df(el): 
             d = {
@@ -178,18 +189,19 @@ def main(
         feature_dataframes = []
         for k in bags.keys():
             logger.debug(f"processing bag {k}")
-
-            bags[k] = bags[k].persist()
+        
+            if config["loading"]["fits_in_memory"]:
+                bags[k] = bags[k].persist()
 
             if report:
-                masks.report(
+                reports.append(masks.report(
                     bags[k],
                     template_dir=template_dir,
                     template="masks.html",
                     name=k,
                     output=output,
                     channel_labels=channel_labels
-                )
+                ))
 
             logger.debug("extracting meta data from bag")
             bag_meta = bags[k].map(to_meta_df).to_dataframe().set_index("idx")
@@ -202,19 +214,21 @@ def main(
 
             logger.debug("performing normalization")
             bags[k] = quantile_normalization.quantile_normalization(bags[k], 0, 1, len(channels))
-            bags[k] = bags[k].persist()
+            
+            if config["loading"]["fits_in_memory"]:
+                bags[k] = bags[k].persist()
 
             if report:
                 logger.debug("reporting example masked images")
-                example_images.report(
+                reports.append(example_images.report(
                     bags[k],
                     template_dir=template_dir,
                     template="example_images.html",
                     name=k,
                     output=output
-                )
+                ))
                 logger.debug("reporting distribution of masked images")
-                intensity_distribution.report(
+                reports.append(intensity_distribution.report(
                     bags[k],
                     template_dir=template_dir,
                     template="intensity_distribution.html",
@@ -223,43 +237,28 @@ def main(
                     output=output,
                     name=k,
                     extent=numpy.array([(0, 1)] * len(channels))  # extent is known
-                )
+                ))
 
             logger.debug("computing features")
             bag_df = compute_features(bags[k], k)
             feature_dataframes.append(
                 dask.dataframe.multi.concat([
-                    bag_df.persist(),
-                    bag_meta.persist()
+                    bag_df,
+                    bag_meta
                 ], axis=1))
-
-        del bags
 
         features = dask.dataframe.multi.concat(feature_dataframes, axis=1)
 
-        # once features are computed, pull to local
-        logger.debug("computing features locally")
-        features = features.compute()
-
-        if report:
-            logger.debug("reporting feature statistics")
-            feature_statistics.report(
-                features,
-                template_dir=template_dir,
-                template="feature_statistics.html",
-                output=output
-            )
-
-        logger.debug("computing meta data locally") 
-        meta = meta.compute()
-
-        features = pandas.concat([features, meta], axis=1)
-
-        filename = config["export"]["filename"]
-        logger.debug(f"writing features to {filename}.parquet")
-        features.to_parquet(str(output / f"{filename}.parquet"))
-
+        f = final(
+            features, meta, reports,
+            config=config,
+            output=output,
+            template_dir=template_dir
+        )
+        f.compute()
+ 
         if debug:
+            f.visualize(filename=str(output / "final.svg"))
             context.client.profile(filename=str(output / "profile.html"))
 
     runtime = time.time() - start

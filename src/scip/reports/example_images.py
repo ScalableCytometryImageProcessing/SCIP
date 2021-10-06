@@ -2,6 +2,7 @@ import base64
 from io import BytesIO
 import matplotlib.pyplot as plt
 import numpy
+import dask
 
 from scip.reports.util import get_jinja_template
 
@@ -34,9 +35,10 @@ def plot_no_masks(images):
     return fig
 
 
-def report(bag, *, template_dir, template, name, output):
+@dask.delayed
+def report(images, *, template_dir, template, name, output):
 
-    images = bag.take(5)
+    images = images[:5]
 
     if "mask" in images[0]:
         fig = plot_with_masks(images)
@@ -51,3 +53,5 @@ def report(bag, *, template_dir, template, name, output):
     filename = str("example_images_%s.html" % name)
     with open(str(output / filename), "w") as fh:
         fh.write(get_jinja_template(template_dir, template).render(image=encoded, name=name))
+
+    return True

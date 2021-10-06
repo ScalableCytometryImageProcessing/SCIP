@@ -112,6 +112,8 @@ def report(
         with open(str(output / f"intensity_{name}_quality_control.html"), "w") as fh:
             fh.write(get_jinja_template(template_dir, template).render(name=name, image=encoded))
 
+        return True
+
     if extent is None:
         extent = get_distributed_minmax(bag, len(channel_labels))
 
@@ -134,4 +136,4 @@ def report(
     counts = dask.delayed(density)(counts, bins)
 
     # return intensity_count, masked_intensity_count, bins, masked_bins
-    plot_pixel_distribution(counts, bins).compute()
+    return plot_pixel_distribution(counts, bins)

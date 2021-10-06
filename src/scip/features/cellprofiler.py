@@ -83,4 +83,4 @@ def extract_features(*, images, channels):
         compute_measurements_on_partition,
         modules=modules,
         channels=channels
-    ).persist().to_dataframe().set_index("idx")
+    ).to_dataframe().set_index("idx")

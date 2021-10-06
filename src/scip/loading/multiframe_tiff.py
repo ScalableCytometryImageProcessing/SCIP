@@ -41,6 +41,9 @@ def bag_from_directory(path, idx, channels, partition_size):
         dask.bag: bag containing dictionaries with image data
     """
 
+    def load_image_partition(partition):
+        return [load_image(event, channels) for event in partition]
+
     events = []
     for i, p in enumerate(Path(path).glob("**/*.tiff")):
         events.append(dict(path=str(p), idx=idx + i))
@@ -50,6 +53,6 @@ def bag_from_directory(path, idx, channels, partition_size):
     meta = dask.dataframe.from_pandas(meta, chunksize=partition_size)
 
     bag = dask.bag.from_sequence(events, partition_size=partition_size)
-    return bag.map_partitions(
-        lambda partition: [load_image(event, channels) for event in partition]
-    ), meta
+    bag = bag.map_partitions(load_image_partition)
+
+    return bag, meta

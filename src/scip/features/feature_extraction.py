@@ -177,10 +177,10 @@ def extract_features(*, images: dask.bag.Bag):
             **texture_features(p)
         } for p in part]
 
-    images = images.map_partitions(features_partition).persist()
-    images = images.to_dataframe()
+    images = images.map_partitions(features_partition)
+    images_df = images.to_dataframe()
     # setting the index causes partition divisions to be known for Dask
     # making concatenation fast
-    images = images.set_index("idx")
+    images_df = images_df.set_index("idx")
 
-    return images
+    return images_df

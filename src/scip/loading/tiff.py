@@ -48,10 +48,9 @@ def bag_from_directory(*, path, idx, channels, partition_size, regex):
     df["idx"] = pandas.RangeIndex(start=idx, stop=idx + len(df))
 
     bag = dask.bag.from_sequence(df.to_dict(orient="records"), partition_size=partition_size)
+    bag = bag.map_partitions(load_image_partition)
 
     df = df.set_index("idx")
     df.columns = [f"meta_{c}" for c in df.columns]
-    return (
-        bag.map_partitions(load_image_partition), 
-        dask.dataframe.from_pandas(df, chunksize=partition_size)
-    )
+    meta = dask.dataframe.from_pandas(df, chunksize=partition_size)
+    return bag, meta
