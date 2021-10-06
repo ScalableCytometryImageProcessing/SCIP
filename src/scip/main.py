@@ -50,7 +50,7 @@ def get_images_bag(paths, channels, config, partition_size):
     return dask.bag.concat(images), dask.dataframe.concat(meta)
 
 
-def compute_features(images, prefix):
+def compute_features(images, prefix, nchannels):
 
     def rename(c):
         if "bbox" in c:
@@ -58,7 +58,7 @@ def compute_features(images, prefix):
         else:
             return f"feat_{prefix}_{c}"
 
-    features = feature_extraction.extract_features(images=images)
+    features = feature_extraction.extract_features(images=images, nchannels=nchannels)
     features = features.rename(columns=rename)
     return features
         
@@ -205,7 +205,10 @@ def main(
                 ))
 
             logger.debug("extracting meta data from bag")
-            bag_meta = bags[k].map(to_meta_df).to_dataframe().set_index("idx")
+
+            bag_meta_meta = {f"connected_components_{i}": int for i in range(len(channels))}
+            bag_meta_meta["idx"] = int
+            bag_meta = bags[k].map(to_meta_df).to_dataframe(meta=bag_meta_meta).set_index("idx")
             bag_meta = bag_meta.rename(columns=lambda c: f"meta_{k}_{c}")
 
             logger.debug("preparing bag for feature extraction")
@@ -241,7 +244,7 @@ def main(
                 ))
 
             logger.debug("computing features")
-            bag_df = compute_features(bags[k], k)
+            bag_df = compute_features(bags[k], k, len(channels))
             feature_dataframes.append(
                 dask.dataframe.multi.concat([
                     bag_df,

@@ -3,11 +3,34 @@ import dask.bag
 import dask.dataframe
 import numpy
 import scipy.stats
-
-# Scikit image libraries
 from skimage.feature import hog, greycomatrix, greycoprops
 from skimage.measure import label, regionprops_table, shannon_entropy
 import skimage
+
+
+def shape_features_meta(nchannels):
+    props = [
+        "area",
+        "convex_area",
+        "eccentricity",
+        "equivalent_diameter",
+        "euler_number",
+        "feret_diameter_max",
+        "filled_area",
+        "inertia_tensor",
+        "inertia_tensor_eigvals",
+        "major_axis_length",
+        "minor_axis_length",
+        "moments_hu",
+        "orientation",
+        "perimeter",
+        "perimeter_crofton",
+        "solidity"
+    ]
+    out = {}
+    for i in range(nchannels):
+        out.update({f"{p}_{i}": float for p in props})
+    return out
 
 
 def shape_features(sample):
@@ -56,6 +79,23 @@ def shape_features(sample):
     return features_dict 
 
 
+def intensity_features_meta(nchannels):
+    props = [
+        'mean'
+        'max'
+        'min'
+        'var'
+        'mad'
+        'diff_entropy'
+        'skewness'
+        'kurtosis'
+    ]
+    out = {}
+    for i in range(nchannels):
+        out.update({f"{p}_{i}": float for p in props})
+    return out
+
+
 def intensity_features(sample):
     """
     Find following intensity features based on normalized masked pixel data:
@@ -91,6 +131,20 @@ def intensity_features(sample):
     return features_dict
 
 
+def texture_features_meta(nchannels):
+    greycoprops = ['contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation', 'ASM']
+    nhog = 36
+
+    out = {}
+    for i in range(nchannels):
+        for n in range(2):
+            for m in range(2):
+                out.update({f"glcm_{p}_{n}_{m}_{i}": float for p in greycoprops})
+        out.update({f"hog_{j}_{i}": float for j in range(nhog)})
+        out[f"shannon_entropy_{i}"] = float
+    return out
+
+
 def texture_features(sample):
     """
     Find texture features based normalized largest area masked pixel data:
@@ -124,11 +178,11 @@ def texture_features(sample):
             v = greycoprops(glcm, prop=prop)
 
             for (n, m), p in numpy.ndenumerate(v):
-                out[f'glcm_{i}_{prop}_{n}_{m}'] = p
+                out[f'glcm_{prop}_{n}_{m}_{i}'] = p
 
         # put hog features in dictionary
         for j in range(len(hog_features)):
-            out.update({f'hog_ch_{i}_{j}': hog_features[j]})
+            out.update({f'hog_{j}_{i}': hog_features[j]})
 
         out["shannon_entropy_{i}"] = shannon_entropy(img[i])
 
@@ -148,6 +202,15 @@ def texture_features(sample):
     return features_dict
 
 
+def bbox_features_meta():
+    return {
+        "bbox_minr": int,
+        "bbox_minc": int,
+        "bbox_maxr": int,
+        "bbox_maxc": int
+    }
+
+
 def bbox_features(p):
     return {
         "bbox_minr": p["bbox"][0],
@@ -157,7 +220,7 @@ def bbox_features(p):
     }
 
 
-def extract_features(*, images: dask.bag.Bag):
+def extract_features(*, images: dask.bag.Bag, nchannels: int):
     """
     Extract features from pixel data
 
@@ -177,8 +240,17 @@ def extract_features(*, images: dask.bag.Bag):
             **texture_features(p)
         } for p in part]
 
+
     images = images.map_partitions(features_partition)
-    images_df = images.to_dataframe()
+    images_df = images.to_dataframe(
+        meta={
+            "idx": int,
+            **bbox_features_meta(),
+            **shape_features_meta(nchannels),
+            **intensity_features_meta(nchannels),
+            **texture_features_meta(nchannels)
+        }
+    )
     # setting the index causes partition divisions to be known for Dask
     # making concatenation fast
     images_df = images_df.set_index("idx")
