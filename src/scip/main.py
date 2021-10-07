@@ -37,6 +37,7 @@ def get_images_bag(paths, channels, config, partition_size):
     images = []
     meta = []
     idx = 0
+
     for path in paths:
         assert Path(path).exists(), f"{path} does not exist."
         assert Path(path).is_dir(), f"{path} is not a directory."
@@ -47,7 +48,22 @@ def get_images_bag(paths, channels, config, partition_size):
         images.append(bag)
         meta.append(df)
 
-    return dask.bag.concat(images), dask.dataframe.concat(meta)
+    images, meta = dask.bag.concat(images), dask.dataframe.concat(meta)
+
+    def add_to_set(a, b):
+        a.add(b["group"])
+        return a
+    groups = images.fold(binop=add_to_set, combine=set.union, initial=set()).apply(list)
+
+    def set_groupidx_partition(part, groups):
+        def set_groupidx(p):
+            newp = p.copy()
+            newp["groupidx"] = groups.index(p["group"])
+            return newp
+        return [set_groupidx(p) for p in part]
+    images = images.map_partitions(set_groupidx_partition, groups)
+
+    return images, meta, groups
 
 
 def compute_features(images, prefix, nchannels):
@@ -149,7 +165,7 @@ def main(
         assert len(channels) == len(channel_labels), "Please specify a label for each channel"
 
         logger.debug("loading images in to bags")
-        images, meta = get_images_bag(paths, channels, config, partition_size)
+        images, meta, groups = get_images_bag(paths, channels, config, partition_size)
 
         reports = []
         if report:
@@ -232,6 +248,8 @@ def main(
                     output=output
                 ))
                 logger.debug("reporting distribution of masked images")
+
+                tmp = numpy.array([(0, 1)] * len(channels))
                 reports.append(intensity_distribution.report(
                     bags[k],
                     template_dir=template_dir,
@@ -240,7 +258,8 @@ def main(
                     channel_labels=channel_labels,
                     output=output,
                     name=k,
-                    extent=numpy.array([(0, 1)] * len(channels))  # extent is known
+                    extent=groups.apply(
+                        lambda a: [(i, tmp) for i in range(len(a))])
                 ))
 
             logger.debug("computing features")

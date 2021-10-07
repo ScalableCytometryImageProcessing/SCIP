@@ -28,7 +28,12 @@ def get_distributed_minmax(bag, nchannels):  # noqa: C901
     init = np.empty(shape=(nchannels, 2))
     init[:, 0] = np.inf
     init[:, 1] = -np.inf
-    out = bag.fold(binop=combine_extent_partition, combine=final_minmax, initial=init)
+    out = bag.foldby(
+        key="groupidx",
+        binop=combine_extent_partition, 
+        combine=final_minmax, 
+        initial=init
+    )
 
     return out
 
@@ -73,7 +78,7 @@ def get_distributed_partitioned_quantile(bag, lower, upper):
     return qq
 
 
-def sample_normalization(sample, qq):
+def sample_normalization(sample, quantiles):
     """
     Perform min-max normalization using quantiles on original pixel data,
     masked pixel data and flat masked intensities list
@@ -84,6 +89,8 @@ def sample_normalization(sample, qq):
     Returns:
         dict: dictionary including normalized data
     """
+
+    qq = dict(quantiles)[sample["groupidx"]]
 
     sample = sample.copy()
     for i in range(len(sample["pixels"])):
@@ -115,6 +122,7 @@ def quantile_normalization(images: dask.bag.Bag, lower, upper, nchannels):
     else:
         quantiles = get_distributed_partitioned_quantile(images, lower, upper)
 
-    images = images.map_partitions(normalize_partition, quantiles)
+    images = images.map_partitions(
+        normalize_partition, quantiles.to_delayed()[0])
 
     return images

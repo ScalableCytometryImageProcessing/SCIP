@@ -12,7 +12,10 @@ def load_image(event, channels):
     try:
         paths = [event[str(c)] for c in channels]
         arr = tifffile.imread(paths) / 2**12
-        return dict(pixels=arr, path=paths, idx=event["idx"])
+
+        newevent = event.copy()
+        newevent["pixels"] = arr
+        return newevent
     except TypeError as e:
         logging.getLogger(__name__).exception(e)
         logging.getLogger(__name__).error(paths)
@@ -26,7 +29,7 @@ def bag_from_directory(*, path, idx, channels, partition_size, regex):
     def match(p):
         m = re.match(regex, str(p)).groupdict()
         if m is not None:
-            return {**m, **dict(path=str(p))}
+            return {**m, **dict(path=str(p), group=str(p.parent))}
         else:
             return None
 
@@ -37,8 +40,11 @@ def bag_from_directory(*, path, idx, channels, partition_size, regex):
 
     matches = list(filter(lambda r: r is not None, map(match, path.glob("*.tif*"))))
     df = pandas.DataFrame.from_dict(matches)
+    df1 = df.pivot(index="id", columns="channel", values="path")
+    df = df.set_index("id")
+    df2 = df.loc[~df.index.duplicated(keep='first'), "group"]
 
-    df = df.pivot(index="id", columns="channel", values="path")
+    df = pandas.concat([df1, df2], axis=1)
 
     pre_filter = len(df)
     df = df.dropna(axis=0, how="any")

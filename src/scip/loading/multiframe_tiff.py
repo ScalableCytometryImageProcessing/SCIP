@@ -27,7 +27,10 @@ def load_image(event, channels=None):
     for i, c in enumerate(channels):
         im.seek(c)
         arr[i] = numpy.array(im)
-    return dict(pixels=arr, path=event["path"], idx=event["idx"])
+
+    newevent = event.copy()
+    newevent["pixels"] = arr
+    return newevent
 
 
 def bag_from_directory(path, idx, channels, partition_size):
@@ -46,7 +49,7 @@ def bag_from_directory(path, idx, channels, partition_size):
 
     events = []
     for i, p in enumerate(Path(path).glob("**/*.tiff")):
-        events.append(dict(path=str(p), idx=idx + i))
+        events.append(dict(path=str(p), idx=idx + i, group=str(p.parent)))
 
     meta = pandas.DataFrame.from_records(data=events, index="idx")
     meta.columns = [f"meta_{c}" for c in meta.columns]
