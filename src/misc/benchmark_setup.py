@@ -15,8 +15,8 @@ def main():
     total_mem = 120
 
     commands = []
-    for partition_size in [100, 200, 400, 800]:
-        for n_workers in [4, 8, 16, 26]:
+    for partition_size in [100, 200, 400, 800, 1600]:
+        for n_workers in [1, 2, 4, 8, 16, 26]:
             for _ in range(iterations):
                 ident = uuid.uuid4()
 
