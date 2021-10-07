@@ -18,4 +18,4 @@ conda activate scip
 DATA_PATH=/vsc-mounts/gent-user/420/vsc42015/vsc_data_vo/datasets/weizmann/EhV/high_time_res/High/images/*
 CONFIG_PATH=/vsc-mounts/gent-user/420/vsc42015/vsc_data_vo/datasets/weizmann/EhV/high_time_res/scip_tiff.yml
 
-mpiexec -np $np scip -p9104 --no-report --timing "${prefix}/${PBS_ARRAYID}.json" -t1 --headless --mode mpi -l /local_scratch/ -j $n_workers -m $memory -s $partition_size $output $CONFIG_PATH $DATA_PATH
+mpiexec -np $np scip -p9104 --fits --no-report --timing "${prefix}/${PBS_ARRAYID}.json" -t1 --headless --mode mpi -l /local_scratch/ -j $n_workers -m $memory -s $partition_size $output $CONFIG_PATH $DATA_PATH
