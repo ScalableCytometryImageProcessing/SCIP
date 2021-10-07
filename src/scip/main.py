@@ -25,6 +25,14 @@ from scip.segmentation import util as segmentation_util  # noqa: E402
 # from scip.analysis import fuzzy_c_mean  # noqa: E402
 
 
+def set_groupidx_partition(part, groups):
+    def set_groupidx(p):
+        newp = p.copy()
+        newp["groupidx"] = groups.index(p["group"])
+        return newp
+    return [set_groupidx(p) for p in part]
+
+
 def get_images_bag(paths, channels, config, partition_size):
 
     loader_module = import_module('scip.loading.%s' % config["loading"]["format"])
@@ -50,17 +58,12 @@ def get_images_bag(paths, channels, config, partition_size):
 
     images, meta = dask.bag.concat(images), dask.dataframe.concat(meta)
 
-    def add_to_set(a, b):
-        a.add(b["group"])
-        return a
-    groups = images.fold(binop=add_to_set, combine=set.union, initial=set()).apply(list)
-
-    def set_groupidx_partition(part, groups):
-        def set_groupidx(p):
-            newp = p.copy()
-            newp["groupidx"] = groups.index(p["group"])
-            return newp
-        return [set_groupidx(p) for p in part]
+    def add_to_list(a, b):
+        a.append(b["group"])
+        return sorted(list(set(a)))
+    def merge_lists(a, b):
+        return sorted(list(set(a.extend(b))))
+    groups = images.fold(binop=add_to_list, combine=merge_lists, initial=list())
     images = images.map_partitions(set_groupidx_partition, groups)
 
     return images, meta, groups
