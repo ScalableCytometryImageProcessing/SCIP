@@ -32,7 +32,8 @@ def get_distributed_minmax(bag, nchannels):  # noqa: C901
         key="groupidx",
         binop=combine_extent_partition, 
         combine=final_minmax, 
-        initial=init
+        initial=init,
+        combine_initial=init
     )
 
     return out
