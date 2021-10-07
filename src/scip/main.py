@@ -62,7 +62,8 @@ def get_images_bag(paths, channels, config, partition_size):
         a.append(b["group"])
         return sorted(list(set(a)))
     def merge_lists(a, b):
-        return sorted(list(set(a.extend(b))))
+        a.extend(b)
+        return sorted(list(set(a)))
     groups = images.fold(binop=add_to_list, combine=merge_lists, initial=list())
     images = images.map_partitions(set_groupidx_partition, groups)
 

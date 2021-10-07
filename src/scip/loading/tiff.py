@@ -11,7 +11,7 @@ logging.getLogger("tifffile").setLevel(logging.ERROR)
 def load_image(event, channels):
     try:
         paths = [event[str(c)] for c in channels]
-        arr = tifffile.imread(paths) / 2**12
+        arr = tifffile.imread(paths)
 
         newevent = event.copy()
         newevent["pixels"] = arr
