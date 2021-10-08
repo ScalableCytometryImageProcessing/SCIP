@@ -36,9 +36,9 @@ def plot_no_masks(images):
 
 
 @dask.delayed
-def report(images, *, template_dir, template, name, output):
+def report(bag, *, template_dir, template, name, output):
 
-    images = images[:5]
+    images = bag[:5]
 
     if "mask" in images[0]:
         fig = plot_with_masks(images)

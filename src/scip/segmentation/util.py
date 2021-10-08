@@ -82,10 +82,10 @@ def get_bounding_box(event):
     else:
         bbox = None, None, None, None
 
-    event = event.copy()
-    event["bbox"] = tuple(bbox)
+    newevent = event.copy()
+    newevent["bbox"] = tuple(bbox)
 
-    return event
+    return newevent
 
 
 def mask_post_process(mask):
