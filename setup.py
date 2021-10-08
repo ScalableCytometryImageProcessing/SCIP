@@ -18,7 +18,6 @@ setuptools.setup(
         'scikit-image',
         'pyyaml',
         'graphviz',
-        'cellprofiler',
         'pyarrow',
         'umap-learn',
     ],
