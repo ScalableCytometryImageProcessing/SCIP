@@ -5,16 +5,22 @@ import dask.bag
 import dask.dataframe
 import tifffile
 import logging
+import numpy
 logging.getLogger("tifffile").setLevel(logging.ERROR)
 
 
 def load_image(event, channels):
     try:
         paths = [event[str(c)] for c in channels]
-        arr = tifffile.imread(paths)
+        arr = numpy.clip(tifffile.imread(paths), 0, 4096)
+
+        # tifffile collapses axis with size 1
+        # occurrs when only one path is passed
+        if len(arr.shape) < 3:
+            arr = arr[numpy.newaxis, ...]
 
         newevent = event.copy()
-        newevent["pixels"] = arr
+        newevent["pixels"] = arr.astype(float)
         return newevent
     except TypeError as e:
         logging.getLogger(__name__).exception(e)

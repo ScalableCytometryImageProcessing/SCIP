@@ -7,10 +7,13 @@ def get_distributed_minmax(bag, nchannels):  # noqa: C901
 
     def combine_extent_partition(a, b):
 
-        b = b["pixels"]
+        if "mask" in b:
+            b = [b["pixels"][i][b["mask"][i]] for i in range(nchannels)]
+        else:
+            b = b["pixels"]
 
         out = np.empty(shape=a.shape)
-        for i in range(len(b)):
+        for i in range(nchannels):
             if b[i].size == 0:
                 out[i] = a[i]
             else:
@@ -20,7 +23,7 @@ def get_distributed_minmax(bag, nchannels):  # noqa: C901
 
     def final_minmax(a, b):
         out = np.empty(shape=a.shape)
-        for i in range(len(a)):
+        for i in range(nchannels):
             out[i, 0] = min(a[i, 0], b[i, 0])
             out[i, 1] = max(a[i, 1], b[i, 1])
         return out
@@ -93,12 +96,12 @@ def sample_normalization(sample, quantiles):
 
     qq = dict(quantiles)[sample["groupidx"]]
 
-    sample = sample.copy()
+    newsample = sample.copy()
     for i in range(len(sample["pixels"])):
         flat = sample["pixels"][i][sample["mask"][i]]
-        sample["pixels"][i][sample["mask"][i]] = np.clip(
+        newsample["pixels"][i][sample["mask"][i]] = np.clip(
             (flat - qq[i, 0]) / (qq[i, 1] - qq[i, 0]), 0, 1)
-    return sample
+    return newsample
 
 
 def quantile_normalization(images: dask.bag.Bag, lower, upper, nchannels):

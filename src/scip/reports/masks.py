@@ -25,7 +25,8 @@ def plot1(percentage, channel_labels):
 
 @dask.delayed
 def plot2(cc_counts, channel_labels):
-    fig, axes = plt.subplots(1, len(channel_labels), sharey=True)
+    fig, axes = plt.subplots(1, len(channel_labels), squeeze=False, sharey=True)
+    axes = axes.ravel()
     for counts, ax in zip(cc_counts, axes):
         ax.bar(counts.keys(), counts.values())
     return fig

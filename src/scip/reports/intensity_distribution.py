@@ -49,13 +49,15 @@ def get_counts(sample, bins_per_group):
     # Count the intensities before masking
     bins = bins_per_group[sample["groupidx"]]
 
-    img = sample.get('pixels')
-    img = np.reshape(img, newshape=(img.shape[0], -1))
+    if "mask" in sample:
+        img = [sample["pixels"][i][sample["mask"][i]] for i in range(len(sample["pixels"]))]
+    else:
+        img = sample["pixels"]
     counts = np.empty(shape=(len(bins), bins.shape[1] - 1), dtype=float)
 
     # For every channel
     for i in range(len(img)):
-        counts[i] = np.histogram(img[i], bins[i])[0]
+        counts[i] = np.histogram(img[i].flatten(), bins[i])[0]
 
     out = {}
     out[sample["groupidx"]] = counts
@@ -105,14 +107,15 @@ def report(
             output (str): string of output file
         """
 
-        fig, axes = plt.subplots(len(counts_per_group), len(channel_labels), figsize=(10, 5))
+        fig, axes = plt.subplots(
+            len(counts_per_group), len(channel_labels), squeeze=False, figsize=(10, 5))
         for i, k in enumerate(counts_per_group.keys()):
             counts = counts_per_group[k]
             bins = bins_per_group[k]
 
-            for i in range(len(channel_labels)):
-                axes[i].title.set_text(channel_labels[i])
-                axes[i].bar(
+            for j in range(len(channel_labels)):
+                axes[i, j].set_title(channel_labels[j])
+                axes[i, j].bar(
                     bins[i, :-1], counts[i], width=(bins[i, -1] - bins[i, 0]) / bin_amount)
 
         # Encode to include in HTML
