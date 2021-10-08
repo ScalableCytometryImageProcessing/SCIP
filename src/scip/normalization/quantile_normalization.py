@@ -129,4 +129,4 @@ def quantile_normalization(images: dask.bag.Bag, lower, upper, nchannels):
     images = images.map_partitions(
         normalize_partition, quantiles.to_delayed()[0])
 
-    return images
+    return images, quantiles

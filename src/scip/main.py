@@ -84,7 +84,7 @@ def compute_features(images, prefix, nchannels):
         
         
 @dask.delayed
-def final(features, meta, reports, *, config, template_dir, output):
+def final(features, meta, reports, quantiles, groups, *, config, template_dir, output):
     if (len(reports) > 0) and (all(reports)):
         feature_statistics.report(
             features,
@@ -96,6 +96,17 @@ def final(features, meta, reports, *, config, template_dir, output):
     features = pandas.concat([features, meta], axis=1)
     filename = config["export"]["filename"]
     features.to_parquet(str(output / f"{filename}.parquet"))
+
+    data = []
+    index = []
+    for k, v in quantiles:
+        index.append(groups[k])
+        out = {}
+        for channel, r in zip(config["loading"]["channel_labels"], v):
+            out[f"{channel}_min"] = r[0]
+            out[f"{channel}_max"] = r[1]
+        data.append(out)
+    pandas.DataFrame(data=data, index=index).to_csv(str(output / "channel_boundaries.csv"))
 
 
 def main(
@@ -237,8 +248,9 @@ def main(
             bags[k] = bags[k].map_partitions(segmentation_util.crop_to_mask_partition)
 
             logger.debug("performing normalization")
-            bags[k] = quantile_normalization.quantile_normalization(bags[k], 0, 1, len(channels))
-            
+            bags[k], quantiles = quantile_normalization.quantile_normalization(
+                bags[k], 0, 1, len(channels))
+ 
             if fits:
                 bags[k] = bags[k].persist()
 
@@ -277,7 +289,7 @@ def main(
         features = dask.dataframe.multi.concat(feature_dataframes, axis=1)
 
         f = final(
-            features, meta, reports,
+            features, meta, reports, quantiles, groups,
             config=config,
             output=output,
             template_dir=template_dir

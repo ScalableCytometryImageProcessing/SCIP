@@ -9,10 +9,13 @@ import numpy
 logging.getLogger("tifffile").setLevel(logging.ERROR)
 
 
-def load_image(event, channels):
+def load_image(event, channels, clip):
     try:
         paths = [event[str(c)] for c in channels]
-        arr = numpy.clip(tifffile.imread(paths), 0, 4096)
+        arr = tifffile.imread(paths)
+
+        if clip is not None:
+            arr = numpy.clip(arr, 0, clip)
 
         # tifffile collapses axis with size 1
         # occurrs when only one path is passed
@@ -28,7 +31,7 @@ def load_image(event, channels):
         raise e
 
 
-def bag_from_directory(*, path, idx, channels, partition_size, regex):
+def bag_from_directory(*, path, idx, channels, partition_size, regex, clip):
 
     logger = logging.getLogger(__name__)
 
@@ -40,7 +43,7 @@ def bag_from_directory(*, path, idx, channels, partition_size, regex):
             return None
 
     def load_image_partition(partition):
-        return [load_image(event, channels) for event in partition]
+        return [load_image(event, channels, clip) for event in partition]
 
     path = Path(path)
 

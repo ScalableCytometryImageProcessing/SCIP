@@ -116,7 +116,7 @@ def report(
             for j in range(len(channel_labels)):
                 axes[i, j].set_title(channel_labels[j])
                 axes[i, j].bar(
-                    bins[i, :-1], counts[i], width=(bins[i, -1] - bins[i, 0]) / bin_amount)
+                    bins[j, :-1], counts[j], width=(bins[j, -1] - bins[j, 0]) / bin_amount)
 
         # Encode to include in HTML
         stream = BytesIO()
