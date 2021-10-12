@@ -267,8 +267,4 @@ def extract_features(*, images: dask.bag.Bag, nchannels: int, types: list):
         meta.update(texture_features_meta(nchannels))
     images_df = images.to_dataframe(meta=meta)
 
-    # setting the index causes partition divisions to be known for Dask
-    # making concatenation fast
-    images_df = images_df.set_index("idx")
-
     return images_df

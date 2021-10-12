@@ -73,7 +73,9 @@ def get_images_bag(paths, channels, config, partition_size):
 def compute_features(images, prefix, nchannels, types):
 
     def rename(c):
-        if "bbox" in c:
+        if c == "idx":
+            return c
+        elif "bbox" in c:
             return f"meta_{prefix}_{c}"
         else:
             return f"feat_{prefix}_{c}"
@@ -84,7 +86,7 @@ def compute_features(images, prefix, nchannels, types):
         
         
 @dask.delayed
-def final(features, meta, reports, quantiles, groups, *, config, template_dir, output):
+def final(features, meta1, meta2, reports, quantiles, groups, *, config, template_dir, output):
     if (len(reports) > 0) and (all(reports)):
         feature_statistics.report(
             features,
@@ -93,7 +95,10 @@ def final(features, meta, reports, quantiles, groups, *, config, template_dir, o
             output=output
         )
 
-    features = pandas.concat([features, meta], axis=1)
+    features = features.set_index("idx")
+    meta1 = meta1.set_index("idx")
+
+    features = pandas.concat([features, meta1, meta2], axis=1)
     filename = config["export"]["filename"]
     features.to_parquet(str(output / f"{filename}.parquet"))
 
@@ -202,7 +207,7 @@ def main(
                 output=output,
                 name="raw"
             ))
-
+        
         masking_module = import_module('scip.segmentation.%s' % config["masking"]["method"])
         logger.debug("creating masks on bag")
         bags = masking_module.create_masks_on_bag(
@@ -218,83 +223,77 @@ def main(
             d["idx"] = el["idx"]
             return d
 
-        feature_dataframes = []
-        for k in bags.keys():
-            logger.debug(f"processing bag {k}")
-        
-            if fits:
-                bags[k] = bags[k].persist()
+        k = list(bags.keys())[0]
 
-            if report:
-                reports.append(masks.report(
-                    bags[k],
-                    template_dir=template_dir,
-                    template="masks.html",
-                    name=k,
-                    output=output,
-                    channel_labels=channel_labels
-                ))
+        logger.debug(f"processing bag {k}")
+    
+        if report:
+            reports.append(masks.report(
+                bags[k],
+                template_dir=template_dir,
+                template="masks.html",
+                name=k,
+                output=output,
+                channel_labels=channel_labels
+            ))
 
-            logger.debug("extracting meta data from bag")
+        logger.debug("extracting meta data from bag")
+    
+        bag_meta_meta = {f"connected_components_{i}": float for i in range(len(channels))}
+        bag_meta_meta["idx"] = int
+        bag_meta = bags[k].map(to_meta_df)
+        bag_meta = bag_meta.to_dataframe(meta=bag_meta_meta)
 
-            bag_meta_meta = {f"connected_components_{i}": float for i in range(len(channels))}
-            bag_meta_meta["idx"] = int
-            bag_meta = bags[k].map(to_meta_df).to_dataframe(meta=bag_meta_meta).set_index("idx")
-            bag_meta = bag_meta.rename(columns=lambda c: f"meta_{k}_{c}")
+        def rename(c):
+            if c == "idx":
+                return c
+            else:
+                return f"meta_{k}_{c}"
+        bag_meta = bag_meta.rename(columns=rename) 
 
-            logger.debug("preparing bag for feature extraction")
-            bags[k] = bags[k].filter(segmentation_util.mask_predicate)
-            bags[k] = bags[k].map_partitions(segmentation_util.bounding_box_partition)
-            bags[k] = bags[k].map_partitions(segmentation_util.crop_to_mask_partition)
+        logger.debug("preparing bag for feature extraction")
+        bags[k] = bags[k].filter(segmentation_util.mask_predicate)
+        bags[k] = bags[k].map_partitions(segmentation_util.bounding_box_partition)
+        bags[k] = bags[k].map_partitions(segmentation_util.crop_to_mask_partition)
 
-            logger.debug("performing normalization")
-            bags[k], quantiles = quantile_normalization.quantile_normalization(
-                bags[k], 0, 1, len(channels))
- 
-            if fits:
-                bags[k] = bags[k].persist()
+        logger.debug("performing normalization")
+        bags[k], quantiles = quantile_normalization.quantile_normalization(
+            bags[k], 0, 1, len(channels))
 
-            if report:
-                logger.debug("reporting example masked images")
-                reports.append(example_images.report(
-                    bags[k],
-                    template_dir=template_dir,
-                    template="example_images.html",
-                    name=k,
-                    output=output
-                ))
-                logger.debug("reporting distribution of masked images")
+        if report:
+            logger.debug("reporting example masked images")
+            reports.append(example_images.report(
+                bags[k],
+                template_dir=template_dir,
+                template="example_images.html",
+                name=k,
+                output=output
+            ))
+            logger.debug("reporting distribution of masked images")
 
-                tmp = numpy.array([(0, 1)] * len(channels))
-                reports.append(intensity_distribution.report(
-                    bags[k],
-                    template_dir=template_dir,
-                    template="intensity_distribution.html",
-                    bin_amount=100,
-                    channel_labels=channel_labels,
-                    output=output,
-                    name=k,
-                    extent=groups.apply(
-                        lambda a: [(i, tmp) for i in range(len(a))])
-                ))
+            tmp = numpy.array([(0, 1)] * len(channels))
+            reports.append(intensity_distribution.report(
+                bags[k],
+                template_dir=template_dir,
+                template="intensity_distribution.html",
+                bin_amount=100,
+                channel_labels=channel_labels,
+                output=output,
+                name=k,
+                extent=groups.apply(
+                    lambda a: [(i, tmp) for i in range(len(a))])
+            ))
 
-            logger.debug("computing features")
-            bag_df = compute_features(
-                images=bags[k], 
-                prefix=k, 
-                nchannels=len(channels), 
-                types=config["feature_extraction"]["types"]
-            )
-            feature_dataframes.append(
-                dask.dataframe.multi.concat([
-                    bag_df,
-                    bag_meta
-                ], axis=1))
-
-        features = dask.dataframe.multi.concat(feature_dataframes, axis=1)
+        logger.debug("computing features")
+        bag_df = compute_features(
+            images=bags[k], 
+            prefix=k, 
+            nchannels=len(channels), 
+            types=config["feature_extraction"]["types"]
+        )
 
         f = final(
-            features, meta, reports, quantiles, groups,
+            bag_df, bag_meta, meta, reports, quantiles, groups,
             config=config,
             output=output,
             template_dir=template_dir
