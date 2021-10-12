@@ -81,13 +81,13 @@ def shape_features(sample):
 
 def intensity_features_meta(nchannels):
     props = [
-        'mean'
-        'max'
-        'min'
-        'var'
-        'mad'
-        'diff_entropy'
-        'skewness'
+        'mean',
+        'max',
+        'min',
+        'var',
+        'mad',
+        'diff_entropy',
+        'skewness',
         'kurtosis'
     ]
     out = {}
@@ -111,6 +111,8 @@ def intensity_features(sample):
     """
 
     def channel_features(i):
+        
+        quartiles = numpy.quantile(img[i], q=(0.25, 0.75))
         return {
             f'mean_{i}': numpy.mean(img[i]), 
             f'max_{i}': numpy.mean(img[i]),
@@ -119,7 +121,9 @@ def intensity_features(sample):
             f'mad_{i}': scipy.stats.median_abs_deviation(img[i]),
             f'diff_entropy_{i}': scipy.stats.differential_entropy(img[i]),
             f'skewness_{i}': scipy.stats.skew(img[i]),
-            f'kurtosis_{i}': scipy.stats.kurtosis(img[i])
+            f'kurtosis_{i}': scipy.stats.kurtosis(img[i]),
+            f'lower_quartile_{i}': quartiles[0],
+            f'upper_quartile_{i}': quartiles[1]
         }
 
     img = sample.get('pixels')
@@ -220,7 +224,7 @@ def bbox_features(p):
     }
 
 
-def extract_features(*, images: dask.bag.Bag, nchannels: int):
+def extract_features(*, images: dask.bag.Bag, nchannels: int, types: list):
     """
     Extract features from pixel data
 
@@ -232,25 +236,37 @@ def extract_features(*, images: dask.bag.Bag, nchannels: int):
     """
 
     def features_partition(part):
-        return [{
-            "idx": p["idx"],
-            **bbox_features(p),
-            **shape_features(p),
-            **intensity_features(p),
-            **texture_features(p)
-        } for p in part]
+        data = []
+        for p in part:
+            type_dicts = []
+            if "bbox" in types:
+                type_dicts.append(bbox_features(p))
+            if "shape" in types:
+                type_dicts.append(shape_features(p))
+            if "intensity" in types:
+                type_dicts.append(intensity_features(p))
+            if "texture" in types:
+                type_dicts.append(texture_features(p))
 
+            out = {"idx": p["idx"]}
+            for type_dict in type_dicts:
+                out.update(type_dict)
+            data.append(out)
+        return data
 
     images = images.map_partitions(features_partition)
-    images_df = images.to_dataframe(
-        meta={
-            "idx": int,
-            **bbox_features_meta(),
-            **shape_features_meta(nchannels),
-            **intensity_features_meta(nchannels),
-            **texture_features_meta(nchannels)
-        }
-    )
+
+    meta = {"idx":int}
+    if "bbox" in types:
+        meta.update(bbox_features_meta())
+    if "shape" in types:
+        meta.update(shape_features_meta(nchannels))
+    if "intensity" in types:
+        meta.update(intensity_features_meta(nchannels))
+    if "texture" in types:
+        meta.update(texture_features_meta(nchannels))
+    images_df = images.to_dataframe(meta=meta)
+
     # setting the index causes partition divisions to be known for Dask
     # making concatenation fast
     images_df = images_df.set_index("idx")
