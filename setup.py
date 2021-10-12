@@ -20,6 +20,7 @@ setuptools.setup(
         'graphviz',
         'pyarrow',
         'umap-learn',
+        'dask_mpi'
     ],
     entry_points={
         'console_scripts': [
