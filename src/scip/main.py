@@ -83,8 +83,8 @@ def compute_features(images, prefix, nchannels, types):
     features = feature_extraction.extract_features(images=images, nchannels=nchannels, types=types)
     features = features.rename(columns=rename)
     return features
-        
-        
+
+
 @dask.delayed
 def final(features, meta1, meta2, reports, quantiles, groups, *, config, template_dir, output):
     if (len(reports) > 0) and (all(reports)):
@@ -216,6 +216,7 @@ def main(
         )
  
         if report:
+            logger.debug("mask report")
             reports.append(masks.report(
                 images,
                 template_dir=template_dir,
@@ -251,11 +252,20 @@ def main(
         images = images.filter(segmentation_util.mask_predicate)
         images = images.map_partitions(segmentation_util.bounding_box_partition)
         images = images.map_partitions(segmentation_util.crop_to_mask_partition)
+        images = images.map_partitions(segmentation_util.apply_mask_partition)
 
         logger.debug("performing normalization")
         images, quantiles = quantile_normalization.quantile_normalization(
             images, 0, 1, len(channels))
 
+        logger.debug("computing features")
+        bag_df = compute_features(
+            images=images, 
+            prefix=config["masking"]["method"],
+            nchannels=len(channels), 
+            types=config["feature_extraction"]["types"]
+        )
+        
         if report:
             logger.debug("reporting example masked images")
             reports.append(example_images.report(
@@ -265,8 +275,8 @@ def main(
                 name=config["masking"]["method"],
                 output=output
             ))
-            logger.debug("reporting distribution of masked images")
 
+            logger.debug("reporting distribution of masked images")
             tmp = numpy.array([(0, 1)] * len(channels))
             reports.append(intensity_distribution.report(
                 images,
@@ -280,14 +290,6 @@ def main(
                     lambda a: [(i, tmp) for i in range(len(a))])
             ))
 
-        logger.debug("computing features")
-        bag_df = compute_features(
-            images=images, 
-            prefix=config["masking"]["method"],
-            nchannels=len(channels), 
-            types=config["feature_extraction"]["types"]
-        )
-
         f = final(
             bag_df, bag_meta, meta, reports, quantiles, groups,
             config=config,
@@ -297,7 +299,7 @@ def main(
         f.compute()
  
         if debug:
-            f.visualize(filename=str(output / "final.svg"), color="order", optimize_graph=True)
+            f.visualize(filename=str(output / "final.svg"))
             context.client.profile(filename=str(output / "profile.html"))
 
     runtime = time.time() - start

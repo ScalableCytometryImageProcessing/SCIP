@@ -106,7 +106,7 @@ def largest_blob_detection(sample: dict):
         else:
             largest_blob[i] = np.where(label_img == (largest_region(regions) + 1), 1, 0)
 
-    sample["intermediate"] = largest_blob.astype(bool)
+    sample["mask"] = largest_blob.astype(bool)
     return sample
 
 
@@ -146,7 +146,6 @@ def create_masks_on_bag(images, noisy_channels):
         .map_partitions(felzenswalb_segment_partition)
         .map_partitions(otsu_threshold_partition)
         .map_partitions(largest_blob_partition)
-        .map_partitions(util.apply_mask_partition)
     )
 
     return dict(otsu=otsu)
