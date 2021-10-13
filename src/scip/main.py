@@ -86,7 +86,7 @@ def compute_features(images, prefix, nchannels, types):
         
         
 @dask.delayed
-def final(features, meta1, meta2, reports, quantiles, groups, *, config, template_dir, output):
+def final(features, meta, reports, quantiles, groups, *, config, template_dir, output):
     if (len(reports) > 0) and (all(reports)):
         feature_statistics.report(
             features,
@@ -96,9 +96,7 @@ def final(features, meta1, meta2, reports, quantiles, groups, *, config, templat
         )
 
     features = features.set_index("idx")
-    meta1 = meta1.set_index("idx")
-
-    features = pandas.concat([features, meta1, meta2], axis=1)
+    features = pandas.concat([features, meta], axis=1)
     filename = config["export"]["filename"]
     features.to_parquet(str(output / f"{filename}.parquet"))
 
@@ -224,28 +222,8 @@ def main(
                 output=output,
                 channel_labels=channel_labels
             ))
-
-        logger.debug("extracting meta data from bag")
-        
-        def to_meta_df(el): 
-            d = {
-                f"connected_components_{channels[i]}":v 
-                for i, v in enumerate(el["connected_components"]) 
-            }
-            d["idx"] = el["idx"]
-            return d 
-        bag_meta_meta = {f"connected_components_{i}": float for i in range(len(channels))}
-        bag_meta_meta["idx"] = int
-        bag_meta = images.map(to_meta_df)
-        bag_meta = bag_meta.to_dataframe(meta=bag_meta_meta)
-
+ 
         method = config["masking"]["method"]
-        def rename(c):
-            if c == "idx":
-                return c
-            else:
-                return f"meta_{method}_{c}"
-        bag_meta = bag_meta.rename(columns=rename) 
 
         logger.debug("preparing bag for feature extraction")
         images = images.filter(segmentation_util.mask_predicate)
@@ -262,7 +240,7 @@ def main(
                 images,
                 template_dir=template_dir,
                 template="example_images.html",
-                name=config["masking"]["method"],
+                name=method,
                 output=output
             ))
             logger.debug("reporting distribution of masked images")
@@ -289,7 +267,7 @@ def main(
         )
 
         f = final(
-            bag_df, bag_meta, meta, reports, quantiles, groups,
+            bag_df, meta, reports, quantiles, groups,
             config=config,
             output=output,
             template_dir=template_dir
