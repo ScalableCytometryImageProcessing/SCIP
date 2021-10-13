@@ -14,7 +14,7 @@ def mask_predicate(s):
 
 
 def apply_mask_partition(part):
-    return [apply(p, "intermediate") for p in part]
+    return [apply(p, "mask") for p in part]
 
 
 def apply(sample, origin):
@@ -29,8 +29,8 @@ def apply(sample, origin):
         dict: dictionary including applied mask
     """
 
-    img = sample.get("pixels")
-    mask = sample.get(origin)
+    img = sample["pixels"]
+    mask = sample[origin]
     masked_img = np.empty(img.shape, dtype=float)
 
     # Multiply image with mask to set background to zero
@@ -38,7 +38,6 @@ def apply(sample, origin):
         masked_img[i] = img[i] * mask[i]
 
     output = sample.copy()
-    del output["intermediate"]
     output["pixels"] = masked_img
     output["mask"] = mask
     return output
@@ -48,15 +47,15 @@ def crop_to_mask_partition(part):
     return [crop_to_mask(p) for p in part]
 
 
-def crop_to_mask(d):
+def crop_to_mask(sample):
 
-    minr, minc, maxr, maxc = d["bbox"]
+    minr, minc, maxr, maxc = sample["bbox"]
 
-    d = d.copy()
-    d["pixels"] = d["pixels"][:, minr:maxr, minc:maxc]
-    d["mask"] = d["mask"][:, minr:maxr, minc:maxc]
+    newsample = sample.copy()
+    newsample["pixels"] = sample["pixels"][:, minr:maxr, minc:maxc]
+    newsample["mask"] = sample["mask"][:, minr:maxr, minc:maxc]
 
-    return d
+    return newsample
 
 
 def bounding_box_partition(part):

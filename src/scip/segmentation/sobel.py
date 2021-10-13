@@ -25,7 +25,7 @@ def get_mask(el):
             mask[dim] = util.mask_post_process(segmentation)
 
     out = el.copy()
-    out["intermediate"] = mask
+    out["mask"] = mask
 
     return out
 
@@ -36,6 +36,5 @@ def create_masks_on_bag(bag, **kwargs):
         return [get_mask(p) for p in partition]
 
     bag = bag.map_partitions(watershed_masking)
-    bag = bag.map_partitions(util.apply_mask_partition)
 
     return dict(watershed=bag)

@@ -24,7 +24,7 @@ def get_mask(el):
         connected_components.append(cc)
 
     out = el.copy()
-    out["intermediate"] = mask
+    out["mask"] = mask
     out["connected_components"] = connected_components
 
     return out
@@ -36,6 +36,5 @@ def create_masks_on_bag(bag, **kwargs):
         return [get_mask(p) for p in partition]
 
     bag = bag.map_partitions(threshold_masking)
-    bag = bag.map_partitions(util.apply_mask_partition)
 
     return dict(threshold=bag)

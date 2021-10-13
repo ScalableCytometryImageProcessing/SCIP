@@ -39,7 +39,7 @@ def get_mask(el, noisy_channels):
             mask[dim], cc = util.mask_post_process(segmentation == segmentation.max())
             connected_components.append(cc)
 
-    out["intermediate"] = mask
+    out["mask"] = mask
     out["connected_components"] = connected_components
 
     return out
@@ -51,6 +51,5 @@ def create_masks_on_bag(bag, noisy_channels):
         return [get_mask(p, noisy_channels) for p in partition]
 
     bag = bag.map_partitions(watershed_masking)
-    bag = bag.map_partitions(util.apply_mask_partition)
 
     return bag
