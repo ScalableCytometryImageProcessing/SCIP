@@ -210,84 +210,80 @@ def main(
         
         masking_module = import_module('scip.segmentation.%s' % config["masking"]["method"])
         logger.debug("creating masks on bag")
-        bags = masking_module.create_masks_on_bag(
+        images = masking_module.create_masks_on_bag(
             images,
             **(config["masking"]["kwargs"] or dict())
         )
+ 
+        if report:
+            reports.append(masks.report(
+                images,
+                template_dir=template_dir,
+                template="masks.html",
+                name=config["masking"]["method"],
+                output=output,
+                channel_labels=channel_labels
+            ))
 
+        logger.debug("extracting meta data from bag")
+        
         def to_meta_df(el): 
             d = {
                 f"connected_components_{channels[i]}":v 
                 for i, v in enumerate(el["connected_components"]) 
             }
             d["idx"] = el["idx"]
-            return d
-
-        k = list(bags.keys())[0]
-
-        logger.debug(f"processing bag {k}")
-    
-        if report:
-            reports.append(masks.report(
-                bags[k],
-                template_dir=template_dir,
-                template="masks.html",
-                name=k,
-                output=output,
-                channel_labels=channel_labels
-            ))
-
-        logger.debug("extracting meta data from bag")
-    
+            return d 
         bag_meta_meta = {f"connected_components_{i}": float for i in range(len(channels))}
         bag_meta_meta["idx"] = int
-        bag_meta = bags[k].map(to_meta_df)
+        bag_meta = images.map(to_meta_df)
         bag_meta = bag_meta.to_dataframe(meta=bag_meta_meta)
 
+        method = config["masking"]["method"]
         def rename(c):
             if c == "idx":
                 return c
             else:
-                return f"meta_{k}_{c}"
+                return f"meta_{method}_{c}"
         bag_meta = bag_meta.rename(columns=rename) 
 
         logger.debug("preparing bag for feature extraction")
-        bags[k] = bags[k].filter(segmentation_util.mask_predicate)
-        bags[k] = bags[k].map_partitions(segmentation_util.bounding_box_partition)
-        bags[k] = bags[k].map_partitions(segmentation_util.crop_to_mask_partition)
+        images = images.filter(segmentation_util.mask_predicate)
+        images = images.map_partitions(segmentation_util.bounding_box_partition)
+        images = images.map_partitions(segmentation_util.crop_to_mask_partition)
 
         logger.debug("performing normalization")
-        bags[k], quantiles = quantile_normalization.quantile_normalization(
-            bags[k], 0, 1, len(channels))
+        images, quantiles = quantile_normalization.quantile_normalization(
+            images, 0, 1, len(channels))
 
         if report:
             logger.debug("reporting example masked images")
             reports.append(example_images.report(
-                bags[k],
+                images,
                 template_dir=template_dir,
                 template="example_images.html",
-                name=k,
+                name=config["masking"]["method"],
                 output=output
             ))
             logger.debug("reporting distribution of masked images")
 
             tmp = numpy.array([(0, 1)] * len(channels))
             reports.append(intensity_distribution.report(
-                bags[k],
+                images,
                 template_dir=template_dir,
                 template="intensity_distribution.html",
                 bin_amount=100,
                 channel_labels=channel_labels,
                 output=output,
-                name=k,
+                name=method,
                 extent=groups.apply(
                     lambda a: [(i, tmp) for i in range(len(a))])
             ))
 
         logger.debug("computing features")
         bag_df = compute_features(
-            images=bags[k], 
-            prefix=k, 
+            images=images, 
+            prefix=config["masking"]["method"],
             nchannels=len(channels), 
             types=config["feature_extraction"]["types"]
         )
@@ -301,7 +297,7 @@ def main(
         f.compute()
  
         if debug:
-            f.visualize(filename=str(output / "final.svg"))
+            f.visualize(filename=str(output / "final.svg"), color="order", optimize_graph=True)
             context.client.profile(filename=str(output / "profile.html"))
 
     runtime = time.time() - start

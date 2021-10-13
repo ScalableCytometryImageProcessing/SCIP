@@ -53,4 +53,4 @@ def create_masks_on_bag(bag, noisy_channels):
     bag = bag.map_partitions(watershed_masking)
     bag = bag.map_partitions(util.apply_mask_partition)
 
-    return dict(watershed=bag)
+    return bag
