@@ -20,7 +20,9 @@ setuptools.setup(
         'graphviz',
         'pyarrow',
         'umap-learn',
-        'dask_mpi'
+        'dask_mpi',
+        'aicsimageio[czi]',
+        'centrosome'
     ],
     entry_points={
         'console_scripts': [

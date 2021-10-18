@@ -35,7 +35,7 @@ def set_groupidx_partition(part, groups):
 
 def get_images_bag(paths, channels, config, partition_size):
 
-    loader_module = import_module('scip.loading.%s' % config["loading"]["format"])
+    loader_module = import_module('scip.loading.%s' % config["loading"]["format"]) 
     loader = partial(
         loader_module.bag_from_directory,
         channels=channels,
@@ -47,8 +47,6 @@ def get_images_bag(paths, channels, config, partition_size):
     idx = 0
 
     for path in paths:
-        assert Path(path).exists(), f"{path} does not exist."
-        assert Path(path).is_dir(), f"{path} is not a directory."
         logging.info(f"Bagging {path}")
         bag, df = loader(path=path, idx=idx)
 
@@ -57,7 +55,7 @@ def get_images_bag(paths, channels, config, partition_size):
         meta.append(df)
 
     images, meta = dask.bag.concat(images), dask.dataframe.concat(meta)
-
+    
     def add_to_list(a, b):
         a.append(b["group"])
         return sorted(list(set(a)))
@@ -70,15 +68,15 @@ def get_images_bag(paths, channels, config, partition_size):
     return images, meta, groups
 
 
-def compute_features(images, prefix, nchannels, types):
+def compute_features(images, nchannels, types):
 
     def rename(c):
         if c == "idx":
             return c
         elif "bbox" in c:
-            return f"meta_{prefix}_{c}"
+            return f"meta_{c}"
         else:
-            return f"feat_{prefix}_{c}"
+            return f"feat_{c}"
 
     features = feature_extraction.extract_features(images=images, nchannels=nchannels, types=types)
     features = features.rename(columns=rename)
@@ -132,8 +130,7 @@ def main(
     port,
     debug,
     timing,
-    report,
-    fits
+    report
 ):
     with util.ClientClusterContext(
             n_workers=n_workers,
@@ -183,6 +180,7 @@ def main(
         assert len(channels) == len(channel_labels), "Please specify a label for each channel"
 
         logger.debug("loading images in to bags")
+
         images, meta, groups = get_images_bag(paths, channels, config, partition_size)
 
         reports = []
@@ -206,31 +204,31 @@ def main(
                 name="raw"
             ))
         
-        masking_module = import_module('scip.segmentation.%s' % config["masking"]["method"])
-        logger.debug("creating masks on bag")
-        images = masking_module.create_masks_on_bag(
-            images,
-            **(config["masking"]["kwargs"] or dict())
-        )
- 
-        if report:
-            logger.debug("mask report")
-            reports.append(masks.report(
-                images,
-                template_dir=template_dir,
-                template="masks.html",
-                name=config["masking"]["method"],
-                output=output,
-                channel_labels=channel_labels
-            ))
- 
         method = config["masking"]["method"]
-
-        logger.debug("preparing bag for feature extraction")
-        images = images.filter(segmentation_util.mask_predicate)
-        images = images.map_partitions(segmentation_util.bounding_box_partition)
-        images = images.map_partitions(segmentation_util.crop_to_mask_partition)
-        images = images.map_partitions(segmentation_util.apply_mask_partition)
+        if method is not None:
+            masking_module = import_module('scip.segmentation.%s' % config["masking"]["method"])
+            logger.debug("creating masks on bag")
+            images = masking_module.create_masks_on_bag(
+                images,
+                **(config["masking"]["kwargs"] or dict())
+            )
+    
+            if report:
+                logger.debug("mask report")
+                reports.append(masks.report(
+                    images,
+                    template_dir=template_dir,
+                    template="masks.html",
+                    name="masked",
+                    output=output,
+                    channel_labels=channel_labels
+                ))
+ 
+            logger.debug("preparing bag for feature extraction")
+            images = images.filter(segmentation_util.mask_predicate)
+            images = images.map_partitions(segmentation_util.bounding_box_partition)
+            images = images.map_partitions(segmentation_util.crop_to_mask_partition)
+            images = images.map_partitions(segmentation_util.apply_mask_partition)
 
         logger.debug("performing normalization")
         images, quantiles = quantile_normalization.quantile_normalization(
@@ -239,7 +237,6 @@ def main(
         logger.debug("computing features")
         bag_df = compute_features(
             images=images, 
-            prefix=config["masking"]["method"],
             nchannels=len(channels), 
             types=config["feature_extraction"]["types"]
         )
@@ -250,7 +247,7 @@ def main(
                 images,
                 template_dir=template_dir,
                 template="example_images.html",
-                name=method,
+                name="normalized",
                 output=output
             ))
 
@@ -263,7 +260,7 @@ def main(
                 bin_amount=100,
                 channel_labels=channel_labels,
                 output=output,
-                name=method,
+                name="normalized",
                 extent=groups.apply(
                     lambda a: [(i, tmp) for i in range(len(a))])
             ))
@@ -307,9 +304,6 @@ def main(
     "--memory", "-m", type=click.IntRange(min=1), default=4,
     help="Amount of memory available per node in the cluster")
 @click.option(
-    "--fits", "-f", type=bool, default=False, is_flag=True,
-    help="If set, the program assumes the full dataset can fit in the total available memory")
-@click.option(
     "--walltime", "-w", type=str, default="01:00:00",
     help="Expected required walltime for the job to finish")
 @click.option(
@@ -331,7 +325,7 @@ def main(
     "--local-directory", "-l", default=None, type=click.Path(file_okay=False, exists=True))
 @click.argument("output", type=click.Path(file_okay=False))
 @click.argument("config", type=click.Path(dir_okay=False, exists=True))
-@click.argument("paths", nargs=-1, type=click.Path(exists=True, file_okay=False))
+@click.argument("paths", nargs=-1, type=click.Path(exists=True))
 def cli(**kwargs):
     """Intro documentation
     """
