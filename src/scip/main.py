@@ -44,18 +44,16 @@ def get_images_bag(paths, channels, config, partition_size):
 
     images = []
     meta = []
-    idx = 0
 
-    for path in paths:
+    for i, path in enumerate(paths):
         logging.info(f"Bagging {path}")
-        bag, df = loader(path=path, idx=idx)
+        bag, df = loader(path=path, idx=i+1)
 
-        idx += len(df)
         images.append(bag)
         meta.append(df)
 
     images, meta = dask.bag.concat(images), dask.dataframe.concat(meta)
-    
+ 
     def add_to_list(a, b):
         a.append(b["group"])
         return sorted(list(set(a)))

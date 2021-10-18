@@ -7,8 +7,8 @@ from scipy.ndimage import distance_transform_edt
 import numpy
 import dask.bag
 import dask.dataframe
+import dask.array
 import dask
-from functools import partial
 from centrosome import radial_power_spectrum
 import scipy.linalg
 from skimage.measure import regionprops
@@ -48,7 +48,7 @@ def select_focused_plane(block):
 
 
 @dask.delayed
-def segment_block(block, *, idx, partition_size, cell_diameter, dapi_channel):
+def segment_block(block, *, idx, cell_diameter, dapi_channel):
 
     plane = block[0, dapi_channel]
 
@@ -86,14 +86,22 @@ def meta_from_delayed(events, path, tile, scene):
     ]).set_index("idx")
 
 
-def bag_from_directory(*, path, idx, channels, partition_size, dapi_channel, cell_diameter, scene):
+def bag_from_directory(*, path, idx, channels, partition_size, dapi_channel, cell_diameter, scenes):
 
     im = AICSImage(path, reconstruct_mosaic=False, chunk_dims=["Z", "C", "X", "Y"])
-    im.set_scene(scene)
 
-    data = im.get_image_dask_data("MCZXY", T=0, C=channels)
+    data = []
+    for scene in scenes:
+        im.set_scene(scene)
+        data.append(im.get_image_dask_data("MCZXY", T=0, C=channels))
+    data = dask.array.concatenate(data)
+
     data = data.map_blocks(
-        select_focused_plane, drop_axis=2, dtype=data.dtype, meta=numpy.array((), dtype=data.dtype))
+        select_focused_plane, 
+        drop_axis=2, 
+        dtype=data.dtype, 
+        meta=numpy.array((), dtype=data.dtype)
+    )
 
     delayed_blocks = data.to_delayed().flatten()
 
@@ -104,13 +112,9 @@ def bag_from_directory(*, path, idx, channels, partition_size, dapi_channel, cel
         cells.append(segment_block(
             block, 
             idx=idx_prefix, 
-            partition_size=partition_size,
             cell_diameter=cell_diameter,
             dapi_channel=dapi_channel
         ))
         meta.append(meta_from_delayed(cells[-1], path=path, tile=tile, scene=scene))
 
     return dask.bag.from_delayed(cells), dask.dataframe.from_delayed(meta)
-
-
-

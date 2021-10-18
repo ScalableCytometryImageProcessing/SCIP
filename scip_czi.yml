@@ -7,7 +7,7 @@ loading:
   loader_kwargs:
     cell_diameter: 30
     dapi_channel: 0
-    scene: "A2-A2"
+    scenes: ["A2-A2", "A1-A1"]
 masking:
   method:
 feature_extraction:
