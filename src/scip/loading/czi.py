@@ -71,7 +71,7 @@ def segment_block(block, *, idx, cell_diameter, dapi_channel):
         events.append(dict(
             pixels=block[0, :, bbox[0]: bbox[2], bbox[1]:bbox[3]],
             mask=numpy.repeat(prop.image[numpy.newaxis], block.shape[1], axis=0),
-            idx=int(f"{idx}{i}"),
+            idx=f"{idx}_{i}",
             group=idx,
             bbox=tuple(bbox)
         ))
@@ -81,9 +81,11 @@ def segment_block(block, *, idx, cell_diameter, dapi_channel):
 
 @dask.delayed
 def meta_from_delayed(events, path, tile, scene):
-    return pandas.DataFrame.from_records([
+    df = pandas.DataFrame.from_records([
         dict(idx=event["idx"], path=path, tile=tile, scene=scene) for event in events
     ]).set_index("idx")
+    df.columns = [f"meta_{c}" for c in df.columns]
+    return df
 
 
 def bag_from_directory(*, path, idx, channels, partition_size, dapi_channel, cell_diameter, scenes):
@@ -107,18 +109,17 @@ def bag_from_directory(*, path, idx, channels, partition_size, dapi_channel, cel
 
     delayed_blocks = data.to_delayed().flatten()
 
-    idx_prefixes = [f"{idx}{i}" for i in range(len(delayed_blocks))]
     cells = []
     meta = []
-    for tile, (idx_prefix, block) in enumerate(zip(idx_prefixes, delayed_blocks)):
+    for tile, block in enumerate(delayed_blocks):
+        scene = scenes_meta[block.key[1]]
         cells.append(segment_block(
             block, 
-            idx=idx_prefix, 
+            idx=f"{idx}_{scene}_{tile}",
             cell_diameter=cell_diameter,
             dapi_channel=dapi_channel
         ))
-
         meta.append(
-            meta_from_delayed(cells[-1], path=path, tile=tile, scene=scenes_meta[block.key[1]]))
+            meta_from_delayed(cells[-1], path=path, tile=tile, scene=scene))
 
     return dask.bag.from_delayed(cells), dask.dataframe.from_delayed(meta)

@@ -256,7 +256,7 @@ def extract_features(*, images: dask.bag.Bag, nchannels: int, types: list):
 
     images = images.map_partitions(features_partition)
 
-    meta = {"idx":int}
+    meta = {"idx": str}
     if "bbox" in types:
         meta.update(bbox_features_meta())
     if "shape" in types:
