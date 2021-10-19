@@ -91,9 +91,11 @@ def bag_from_directory(*, path, idx, channels, partition_size, dapi_channel, cel
     im = AICSImage(path, reconstruct_mosaic=False, chunk_dims=["Z", "C", "X", "Y"])
 
     data = []
+    scenes_meta = []
     for scene in scenes:
         im.set_scene(scene)
         data.append(im.get_image_dask_data("MCZXY", T=0, C=channels))
+        scenes_meta.extend([scene]*data[-1].numblocks[0])
     data = dask.array.concatenate(data)
 
     data = data.map_blocks(
@@ -115,6 +117,8 @@ def bag_from_directory(*, path, idx, channels, partition_size, dapi_channel, cel
             cell_diameter=cell_diameter,
             dapi_channel=dapi_channel
         ))
-        meta.append(meta_from_delayed(cells[-1], path=path, tile=tile, scene=scene))
+
+        meta.append(
+            meta_from_delayed(cells[-1], path=path, tile=tile, scene=scenes_meta[block.key[1]]))
 
     return dask.bag.from_delayed(cells), dask.dataframe.from_delayed(meta)
