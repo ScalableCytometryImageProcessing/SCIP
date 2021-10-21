@@ -90,13 +90,15 @@ def meta_from_delayed(events, path, tile, scene):
 
 def bag_from_directory(*, path, idx, channels, partition_size, dapi_channel, cell_diameter, scenes):
 
-    im = AICSImage(path, reconstruct_mosaic=False, chunk_dims=["Z", "C", "X", "Y"])
+    def load_scene(scene):
+        im = AICSImage(path, reconstruct_mosaic=False, chunk_dims=["Z", "C", "X", "Y"])
+        im.set_scene(scene)
+        return im.get_image_dask_data("MCZXY", T=0, C=channels)
 
     data = []
     scenes_meta = []
     for scene in scenes:
-        im.set_scene(scene)
-        data.append(im.get_image_dask_data("MCZXY", T=0, C=channels))
+        data.append(load_scene(scene))
         scenes_meta.extend([scene]*data[-1].numblocks[0])
     data = dask.array.concatenate(data)
 
