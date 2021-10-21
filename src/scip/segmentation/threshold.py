@@ -33,5 +33,4 @@ def create_masks_on_bag(bag, **kwargs):
         return [get_mask(p) for p in partition]
 
     bag = bag.map_partitions(threshold_masking)
-
-    return dict(threshold=bag)
+    return bag
