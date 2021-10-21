@@ -1,7 +1,7 @@
 import numpy as np
 from skimage.measure import regionprops
 import numpy
-from skimage.morphology import closing, remove_small_objects, label, disk
+from skimage.morphology import closing, remove_small_objects, label, disk, remove_small_holes
 
 
 def mask_predicate(s):
@@ -88,11 +88,8 @@ def get_bounding_box(event):
 
 
 def mask_post_process(mask):
+    mask = remove_small_holes(mask, area_threshold=300)
+    mask = remove_small_objects(mask, min_size=30)
     mask = label(mask)
-
-    if numpy.max(mask) > 1:
-        mask = remove_small_objects(mask, min_size=30)
-
-    mask = closing(mask, selem=disk(2)) 
     
     return mask > 0, mask.max()
