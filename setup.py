@@ -20,7 +20,11 @@ setuptools.setup(
         'graphviz',
         'pyarrow',
         'umap-learn',
-        'dask_mpi'
+        'dask_mpi',
+        'aicsimageio[czi]',
+        'centrosome',
+        'mpi4py',
+        'bokeh'
     ],
     entry_points={
         'console_scripts': [
