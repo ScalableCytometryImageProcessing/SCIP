@@ -12,7 +12,7 @@ def get_mask(el):
 
     for dim in range(len(el["pixels"])):
 
-        x = el["pixels"][i] 
+        x = el["pixels"][dim] 
         x = sobel(x)
         x = closing(x, selem=disk(4))
         x = threshold_otsu(x) < x
