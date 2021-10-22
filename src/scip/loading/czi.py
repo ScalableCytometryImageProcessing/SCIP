@@ -94,6 +94,7 @@ def meta_from_delayed(events, path, tile, scene):
     else:
         df = pandas.DataFrame(columns=["path", "tile", "scene"])
         df.index.name = "idx"
+        df["tile"] = df["tile"].astype(int)
     df.columns = [f"meta_{c}" for c in df.columns]
     return df
 
