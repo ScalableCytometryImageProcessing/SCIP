@@ -86,11 +86,15 @@ def segment_block(block, *, idx, cell_diameter, dapi_channel):
 
 @dask.delayed
 def meta_from_delayed(events, path, tile, scene):
-    df = pandas.DataFrame.from_records([
-        dict(idx=event["idx"], path=path, tile=tile, scene=scene) for event in events
-    ]).set_index("idx")
-    df.columns = [f"meta_{c}" for c in df.columns]
-    return df
+    if len(events) > 0:
+        df = pandas.DataFrame.from_records([
+            dict(idx=event["idx"], path=path, tile=tile, scene=scene) for event in events
+        ])
+        df = df.set_index("idx")
+        df.columns = [f"meta_{c}" for c in df.columns]
+        return df
+    else:
+        return pandas.DataFrame()
 
 
 def bag_from_directory(*, path, idx, channels, partition_size, dapi_channel, cell_diameter, scenes):
