@@ -49,7 +49,7 @@ def bag_from_directory(path, idx, channels, partition_size):
 
     events = []
     for i, p in enumerate(Path(path).glob("**/*.tiff")):
-        events.append(dict(path=str(p), idx=idx + i, group=str(p.parent)))
+        events.append(dict(path=str(p), idx=f"{idx}_{i}", group=str(p.parent)))
 
     meta = pandas.DataFrame.from_records(data=events, index="idx")
     meta.columns = [f"meta_{c}" for c in meta.columns]

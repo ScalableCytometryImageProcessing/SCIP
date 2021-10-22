@@ -17,7 +17,7 @@ def load_image(event, channels, clip):
         if clip is not None:
             arr = numpy.clip(arr, 0, clip)
 
-        # tifffile collapses axis with size 1
+        # tifffile collapses axis with size 1,
         # occurrs when only one path is passed
         if len(arr.shape) < 3:
             arr = arr[numpy.newaxis, ...]
@@ -36,9 +36,12 @@ def bag_from_directory(*, path, idx, channels, partition_size, regex, clip):
     logger = logging.getLogger(__name__)
 
     def match(p):
-        m = re.match(regex, str(p)).groupdict()
+        m = re.match(regex, str(p))
         if m is not None:
-            return {**m, **dict(path=str(p), group=str(p.parent))}
+            groups = m.groupdict()
+            gid = groups["id"]
+            groups["id"] = f"{idx}_{gid}"
+            return {**groups, **dict(path=str(p), group=str(p.parent))}
         else:
             return None
 
