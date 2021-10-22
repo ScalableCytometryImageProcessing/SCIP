@@ -44,7 +44,12 @@ def compute_powerslope(pixel_data):
 def select_focused_plane(block):
     scores = numpy.empty(shape=block.shape[:3], dtype=float)
     for m, c, z in numpy.ndindex(block.shape[:3]):
-        scores[m, c, z] = compute_powerslope(block[m, c, z])[0]
+        slope = compute_powerslope(block[m, c, z])
+        if hasattr(slope, "shape"):
+            scores[m, c, z] = slope[0]
+        else:
+            scores[m, c, z] = slope
+
     indices = numpy.squeeze(scores.argmax(axis=2))
     return numpy.vstack([block[:, i, j] for i, j in enumerate(indices)])[numpy.newaxis]
 
