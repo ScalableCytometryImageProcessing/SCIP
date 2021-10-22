@@ -91,10 +91,11 @@ def meta_from_delayed(events, path, tile, scene):
             dict(idx=event["idx"], path=path, tile=tile, scene=scene) for event in events
         ])
         df = df.set_index("idx")
-        df.columns = [f"meta_{c}" for c in df.columns]
-        return df
     else:
-        return pandas.DataFrame()
+        df = pandas.DataFrame(columns=["path", "tile", "scene"])
+        df.index.name = "idx"
+    df.columns = [f"meta_{c}" for c in df.columns]
+    return df
 
 
 def bag_from_directory(*, path, idx, channels, partition_size, dapi_channel, cell_diameter, scenes):
