@@ -1,7 +1,7 @@
 import numpy
-from skimage import morphology
-from skimage.restoration import denoise_wavelet, estimate_sigma
-from skimage.filters import sobel, threshold_mean
+from skimage.morphology import closing, disk
+from skimage.filters import threshold_otsu, sobel
+
 from scip.segmentation import util
 
 
@@ -11,16 +11,13 @@ def get_mask(el):
     connected_components = []
 
     for dim in range(len(el["pixels"])):
-        img = el["pixels"][dim]
 
-        denoised = denoise_wavelet(
-            img, method="VisuShrink", sigma=estimate_sigma(img), rescale_sigma=True)
+        x = el["pixels"][dim] 
+        x = sobel(x)
+        x = closing(x, selem=disk(4))
+        x = threshold_otsu(x) < x
 
-        elev = sobel(denoised)
-        closed = morphology.closing(elev, selem=morphology.disk(2))
-        thresh = closed > threshold_mean(closed)
-
-        mask[dim], cc = util.mask_post_process(thresh)
+        mask[dim], cc = util.mask_post_process(x)
         connected_components.append(cc)
 
     out = el.copy()
@@ -36,5 +33,4 @@ def create_masks_on_bag(bag, **kwargs):
         return [get_mask(p) for p in partition]
 
     bag = bag.map_partitions(threshold_masking)
-
-    return dict(threshold=bag)
+    return bag

@@ -22,7 +22,9 @@ setuptools.setup(
         'umap-learn',
         'dask_mpi',
         'aicsimageio[czi]',
-        'centrosome'
+        'centrosome',
+        'mpi4py',
+        'bokeh'
     ],
     entry_points={
         'console_scripts': [

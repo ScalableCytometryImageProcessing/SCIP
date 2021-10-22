@@ -11,9 +11,8 @@ loading:
     regex: .*\/(?P<id>[0-9]+)_Ch(?P<channel>(1|4|6|7|11))\.ome\.tif$
     clip: 4096
 masking:
-  method: watershed
+  method: threshold
   kwargs:
-    noisy_channels: [0]
 feature_extraction:
   types: ["shape", "intensity", "bbox", "texture"]
 export:
