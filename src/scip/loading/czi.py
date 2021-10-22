@@ -99,7 +99,7 @@ def bag_from_directory(*, path, idx, channels, partition_size, dapi_channel, cel
     scenes_meta = []
     for scene in scenes:
         data.append(load_scene(scene))
-        scenes_meta.extend([scene]*data[-1].numblocks[0])
+        scenes_meta.extend([(scene, i) for i in range(data[-1].numblocks[0])])
     data = dask.array.concatenate(data)
 
     data = data.map_blocks(
@@ -113,8 +113,7 @@ def bag_from_directory(*, path, idx, channels, partition_size, dapi_channel, cel
 
     cells = []
     meta = []
-    for tile, block in enumerate(delayed_blocks):
-        scene = scenes_meta[block.key[1]]
+    for (scene, tile), block in zip(scenes_meta, delayed_blocks):
         cells.append(segment_block(
             block, 
             idx=f"{idx}_{scene}_{tile}",
