@@ -179,7 +179,8 @@ def main(
 
         logger.debug("loading images in to bags")
 
-        images, meta, groups = get_images_bag(paths, channels, config, partition_size)
+        with dask.config.set(**{'array.slicing.split_large_chunks': False}):
+            images, meta, groups = get_images_bag(paths, channels, config, partition_size)
 
         reports = []
         if report:

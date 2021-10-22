@@ -1,7 +1,9 @@
 from aicsimageio import AICSImage
 from skimage.filters import threshold_otsu
 from skimage.segmentation import watershed, expand_labels
+from skimage.restoration import denoise_nl_means
 from skimage import feature, measure
+import skimage
 from scipy.ndimage import distance_transform_edt
 
 import numpy
@@ -51,6 +53,9 @@ def select_focused_plane(block):
 def segment_block(block, *, idx, cell_diameter, dapi_channel):
 
     plane = block[0, dapi_channel]
+    plane = skimage.img_as_float32(plane)
+
+    plane = denoise_nl_means(plane, patch_size=3, patch_distance=2, multichannel=False)
 
     t = threshold_otsu(plane)
     cells = plane > t
@@ -93,8 +98,7 @@ def bag_from_directory(*, path, idx, channels, partition_size, dapi_channel, cel
     def load_scene(scene):
         im = AICSImage(path, reconstruct_mosaic=False, chunk_dims=["Z", "C", "X", "Y"])
         im.set_scene(scene)
-        with dask.config.set(**{'array.slicing.split_large_chunks': False}):
-            return im.get_image_dask_data("MCZXY", T=0, C=channels)
+        return im.get_image_dask_data("MCZXY", T=0, C=channels)
     
     if scenes == "all":
         scenes = AICSImage(path, reconstruct_mosaic=False).scenes
