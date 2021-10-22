@@ -94,6 +94,9 @@ def bag_from_directory(*, path, idx, channels, partition_size, dapi_channel, cel
         im = AICSImage(path, reconstruct_mosaic=False, chunk_dims=["Z", "C", "X", "Y"])
         im.set_scene(scene)
         return im.get_image_dask_data("MCZXY", T=0, C=channels)
+    
+    if scenes == "all":
+        scenes = AICSImage(path, reconstruct_mosaic=False).scenes
 
     data = []
     scenes_meta = []
