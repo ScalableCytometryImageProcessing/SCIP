@@ -47,7 +47,7 @@ def get_images_bag(paths, channels, config, partition_size):
 
     for i, path in enumerate(paths):
         logging.info(f"Bagging {path}")
-        bag, df = loader(path=path, idx=i+1)
+        bag, df = loader(path=path, idx=i)
 
         images.append(bag)
         meta.append(df)
