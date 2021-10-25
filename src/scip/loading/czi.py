@@ -83,7 +83,8 @@ def segment_block(block, *, idx, cell_diameter, dapi_channel):
             mask=numpy.repeat(prop.image[numpy.newaxis], block.shape[1], axis=0),
             idx=f"{idx}_{i}",
             group=idx,
-            bbox=tuple(bbox)
+            bbox=tuple(bbox),
+            regions=[1]*len(block.shape[1])
         ))
 
     return events

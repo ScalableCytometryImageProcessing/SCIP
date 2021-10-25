@@ -11,7 +11,7 @@ def mask_predicate(s, bbox_channel):
         return False
 
     # only one connected component should be found in the bbox channel
-    if s["connected_components"][bbox_channel] != 1:
+    if s["regions"][bbox_channel] != 1:
         return False
 
     return True

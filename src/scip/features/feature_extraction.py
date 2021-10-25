@@ -221,22 +221,26 @@ def texture_features(sample):
     return features_dict
 
 
-def bbox_features_meta():
-    return {
+def bbox_features_meta(nchannels):
+    d = {
         "bbox_minr": float,
         "bbox_minc": float,
         "bbox_maxr": float,
         "bbox_maxc": float
     }
+    d.update({f"regions_{i}": int for i in range(nchannels)})
+    return d
 
 
 def bbox_features(p):
-    return {
+    d =  {
         "bbox_minr": p["bbox"][0],
         "bbox_minc": p["bbox"][1],
         "bbox_maxr": p["bbox"][2],
         "bbox_maxc": p["bbox"][3],
     }
+    d.update({f"regions_{i}": c for i, c in enumerate(p["regions"])})
+    return d
 
 
 def extract_features(*, images: dask.bag.Bag, nchannels: int, types: list):
@@ -273,7 +277,7 @@ def extract_features(*, images: dask.bag.Bag, nchannels: int, types: list):
 
     meta = {"idx": str}
     if "bbox" in types:
-        meta.update(bbox_features_meta())
+        meta.update(bbox_features_meta(nchannels))
     if "shape" in types:
         meta.update(shape_features_meta(nchannels))
     if "intensity" in types:

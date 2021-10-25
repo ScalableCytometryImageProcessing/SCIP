@@ -8,7 +8,7 @@ from scip.segmentation import util
 def get_mask(el):
 
     mask = numpy.empty(shape=el["pixels"].shape, dtype=bool)
-    connected_components = []
+    regions = []
 
     for dim in range(len(el["pixels"])):
 
@@ -18,11 +18,11 @@ def get_mask(el):
         x = threshold_otsu(x) < x
 
         mask[dim], cc = util.mask_post_process(x)
-        connected_components.append(cc)
+        regions.append(cc)
 
     out = el.copy()
     out["mask"] = mask
-    out["connected_components"] = connected_components
+    out["regions"] = regions
 
     return out
 

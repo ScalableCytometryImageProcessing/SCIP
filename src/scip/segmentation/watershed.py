@@ -12,7 +12,7 @@ def get_mask(el, noisy_channels):
 
     image = out["pixels"]
     mask = numpy.empty(shape=image.shape, dtype=bool)
-    connected_components = []
+    regions = []
 
     for dim in range(len(image)):
 
@@ -34,13 +34,13 @@ def get_mask(el, noisy_channels):
 
         if segmentation.max() == 0:
             mask[dim] = False
-            connected_components.append(0)
+            regions.append(0)
         else:
             mask[dim], cc = util.mask_post_process(segmentation == segmentation.max())
-            connected_components.append(cc)
+            regions.append(cc)
 
     out["mask"] = mask
-    out["connected_components"] = connected_components
+    out["regions"] = regions
 
     return out
 

@@ -87,7 +87,7 @@ def report(
         return count_dicts
     def merge_count_dicts(l1, l2):
         return [a + b for a, b in zip(l1, l2)]
-    cc_counts = bag.map_partitions(lambda part: [p["connected_components"] for p in part])
+    cc_counts = bag.map_partitions(lambda part: [p["regions"] for p in part])
     cc_counts = cc_counts.fold(
         binop=add_to_count_dict, 
         combine=merge_count_dicts, 

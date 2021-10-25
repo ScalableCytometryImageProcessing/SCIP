@@ -71,7 +71,7 @@ def compute_features(images, nchannels, types):
     def rename(c):
         if c == "idx":
             return c
-        elif "bbox" in c:
+        elif any([i in c for i in ["bbox", "regions"]]):
             return f"meta_{c}"
         else:
             return f"feat_{c}"
