@@ -9,6 +9,7 @@ loading:
   loader_kwargs:
 masking:
   method: watershed
+  bbox_channel: 0
   kwargs:
     noisy_channels: [0]
 export:

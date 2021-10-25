@@ -12,6 +12,7 @@ loading:
     clip: 4096
 masking:
   method: threshold
+  bbox_channel: 0
   kwargs:
 feature_extraction:
   types: ["shape", "intensity", "bbox", "texture"]

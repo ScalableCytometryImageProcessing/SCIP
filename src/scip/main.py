@@ -224,8 +224,16 @@ def main(
                 ))
  
             logger.debug("preparing bag for feature extraction")
-            images = images.filter(segmentation_util.mask_predicate)
-            images = images.map_partitions(segmentation_util.bounding_box_partition)
+
+            filter_func = partial(
+                segmentation_util.mask_predicate, 
+                bbox_channel=config["masking"]["bbox_channel"]
+            )
+            images = images.filter(filter_func)
+            images = images.map_partitions(
+                segmentation_util.bounding_box_partition, 
+                bbox_channel=config["masking"]["bbox_channel"]
+            )
             images = images.map_partitions(segmentation_util.crop_to_mask_partition)
             images = images.map_partitions(segmentation_util.apply_mask_partition)
 

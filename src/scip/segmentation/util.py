@@ -1,16 +1,20 @@
 import numpy as np
 from skimage.measure import regionprops
 import numpy
-from skimage.morphology import closing, remove_small_objects, label, disk, remove_small_holes
+from skimage.morphology import remove_small_objects, label, remove_small_holes
 
 
-def mask_predicate(s):
+def mask_predicate(s, bbox_channel):
 
-    if not all(c == 1 for c in s["connected_components"]):
+    # a mask should be present in the bbox_channel
+    if not numpy.any(s["mask"][bbox_channel]):
         return False
 
-    flat = s["mask"].reshape(s["mask"].shape[0], -1)
-    return all(numpy.any(flat, axis=1))
+    # only one connected component should be found in the bbox channel
+    if s["connected_components"][bbox_channel] != 1:
+        return False
+
+    return True
 
 
 def apply_mask_partition(part):
@@ -58,28 +62,13 @@ def crop_to_mask(sample):
     return newsample
 
 
-def bounding_box_partition(part):
-    return [get_bounding_box(event) for event in part]
+def bounding_box_partition(part, bbox_channel):
+    return [get_bounding_box(event, bbox_channel) for event in part]
 
 
-def get_bounding_box(event):
-    mask = np.where(event["mask"], 1, 0)
-
-    if numpy.any(mask[0]):
-        bbox = list(regionprops(mask[0])[0].bbox)
-        for m in mask:
-            if not numpy.any(m):
-                bbox = None, None, None, None
-                break
-
-            tmp = regionprops(m)[0].bbox
-
-            bbox[0] = min(bbox[0], tmp[0])
-            bbox[1] = min(bbox[1], tmp[1])
-            bbox[2] = max(bbox[2], tmp[2])
-            bbox[3] = max(bbox[3], tmp[3])
-    else:
-        bbox = None, None, None, None
+def get_bounding_box(event, bbox_channel):
+    mask = np.where(event["mask"][bbox_channel], 1, 0)
+    bbox = list(regionprops(mask)[0].bbox)
 
     newevent = event.copy()
     newevent["bbox"] = tuple(bbox)
@@ -88,8 +77,8 @@ def get_bounding_box(event):
 
 
 def mask_post_process(mask):
+    mask = remove_small_objects(mask, min_size=50)
     mask = remove_small_holes(mask, area_threshold=300)
-    mask = remove_small_objects(mask, min_size=30)
     mask = label(mask)
     
     return mask > 0, mask.max()

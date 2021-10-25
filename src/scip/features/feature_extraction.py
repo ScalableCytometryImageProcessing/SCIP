@@ -43,6 +43,8 @@ def shape_features(sample):
         dict: dictionary including new features
 
     """
+    
+    img = sample.get('mask')
 
     def channel_features(i):
         label_img = label(img[i])
@@ -69,11 +71,10 @@ def shape_features(sample):
         )
         return props
 
-    img = sample.get('mask')
     features_dict = {}
     for i in range(len(img)):
         props = channel_features(i)
-        props = {f"{k}_{i}": v[0] for k,v in props.items()}
+        props = {f"{k}_{i}": numpy.mean(v) for k,v in props.items()}
         features_dict.update(props)
 
     return features_dict 
@@ -110,27 +111,41 @@ def intensity_features(sample):
         dict: dictionary including new intensity features
     """
 
-    def channel_features(i):
-        
-        quartiles = numpy.quantile(img[i], q=(0.25, 0.75))
-        return {
-            f'mean_{i}': numpy.mean(img[i]), 
-            f'max_{i}': numpy.mean(img[i]),
-            f'min_{i}': numpy.min(img[i]),
-            f'var_{i}': numpy.var(img[i]),
-            f'mad_{i}': scipy.stats.median_abs_deviation(img[i]),
-            f'diff_entropy_{i}': scipy.stats.differential_entropy(img[i]),
-            f'skewness_{i}': scipy.stats.skew(img[i]),
-            f'kurtosis_{i}': scipy.stats.kurtosis(img[i]),
+    def channel_features(i, values): 
+        quartiles = numpy.quantile(values, q=(0.25, 0.75))
+
+
+        d = {
+            f'mean_{i}': numpy.mean(values), 
+            f'max_{i}': numpy.mean(values),
+            f'min_{i}': numpy.min(values),
+            f'var_{i}': numpy.var(values),
+            f'mad_{i}': scipy.stats.median_abs_deviation(values),
+            f'skewness_{i}': scipy.stats.skew(values),
+            f'kurtosis_{i}': scipy.stats.kurtosis(values),
             f'lower_quartile_{i}': quartiles[0],
             f'upper_quartile_{i}': quartiles[1]
         }
 
-    img = sample.get('pixels')
-    img = numpy.reshape(img, newshape=(img.shape[0], -1))
+        window_length = int(numpy.floor(numpy.sqrt(values.size)+0.5))
+        if window_length >= values.size//2:
+            window_length = values.size//2 - 1
+ 
+        if window_length < 1:
+            diff_ent = None
+        else:
+            diff_ent = scipy.stats.differential_entropy(
+            values, window_length=window_length)
+        d[f'diff_entropy_{i}'] = diff_ent
+
+        return d
+
+    img = sample['pixels']
     features_dict = {}
     for i in range(len(img)):
-        features_dict.update(channel_features(i))
+        if numpy.any(sample["mask"][i]):
+            values = img[i][sample["mask"][i]]
+            features_dict.update(channel_features(i, values))
 
     return features_dict
 
