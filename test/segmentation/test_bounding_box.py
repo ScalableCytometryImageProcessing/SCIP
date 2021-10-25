@@ -1,14 +1,15 @@
 from scip.loading import multiframe_tiff
 from scip.segmentation import watershed, util
+from functools import partial
 
 
 def test_bounding_box(images_folder, cluster):
 
     bag, _ = multiframe_tiff.bag_from_directory(
         images_folder, idx=0, channels=[0, 1, 2], partition_size=2)
-    bag = watershed.create_masks_on_bag(bag)["watershed"]
-    bag = bag.filter(util.nonempty_mask_predicate)
-    bag = bag.map_partitions(util.bounding_box_partition)
+    bag = watershed.create_masks_on_bag(bag, noisy_channels=[0])
+    bag = bag.filter(partial(util.mask_predicate, bbox_channel=0))
+    bag = bag.map_partitions(util.bounding_box_partition, bbox_channel=0)
 
     bag = bag.compute()
 

@@ -148,4 +148,4 @@ def create_masks_on_bag(images, noisy_channels):
         .map_partitions(largest_blob_partition)
     )
 
-    return dict(otsu=otsu)
+    return otsu
