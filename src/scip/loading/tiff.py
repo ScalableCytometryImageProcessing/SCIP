@@ -36,7 +36,7 @@ def bag_from_directory(*, path, idx, channels, partition_size, regex, clip):
     logger = logging.getLogger(__name__)
 
     def match(p):
-        m = re.match(regex, str(p))
+        m = re.search(regex, str(p))
         if m is not None:
             groups = m.groupdict()
             gid = groups["id"]
