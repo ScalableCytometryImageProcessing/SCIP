@@ -57,18 +57,17 @@ def bag_from_directory(*, path, idx, channels, partition_size, regex, clip):
     df2 = df.loc[~df.index.duplicated(keep='first'), "group"]
 
     df = pandas.concat([df1, df2], axis=1)
+    df.index.name = "idx"
 
     pre_filter = len(df)
     df = df.dropna(axis=0, how="any")
     dropped = pre_filter - len(df)
     logger.warning("Dropped %d rows because of missing channel files in %s." % (dropped, str(path)))
 
-    df["idx"] = pandas.RangeIndex(start=idx, stop=idx + len(df))
-
-    bag = dask.bag.from_sequence(df.to_dict(orient="records"), partition_size=partition_size)
+    bag = dask.bag.from_sequence(
+        df.reset_index(drop=False).to_dict(orient="records"), partition_size=partition_size)
     bag = bag.map_partitions(load_image_partition)
 
-    df = df.set_index("idx")
     df.columns = [f"meta_{c}" for c in df.columns]
     meta = dask.dataframe.from_pandas(df, chunksize=partition_size)
     return bag, meta
