@@ -2,6 +2,7 @@ import numpy as np
 from skimage.measure import regionprops
 import numpy
 from skimage.morphology import remove_small_objects, label, remove_small_holes
+from skimage.segmentation import expand_labels
 
 
 def mask_predicate(s, bbox_channel):
@@ -80,5 +81,6 @@ def mask_post_process(mask):
     mask = remove_small_objects(mask, min_size=50)
     mask = remove_small_holes(mask, area_threshold=300)
     mask = label(mask)
+    mask = expand_labels(mask, distance=2)
     
     return mask > 0, mask.max()
