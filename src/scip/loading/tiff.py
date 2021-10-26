@@ -41,7 +41,7 @@ def bag_from_directory(*, path, idx, channels, partition_size, regex, clip):
             groups = m.groupdict()
             gid = groups["id"]
             groups["id"] = f"{idx}_{gid}"
-            return {**groups, **dict(path=str(p), group=str(p.parent))}
+            return {**groups, **dict(path=str(p))}
         else:
             return None
 
