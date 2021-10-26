@@ -60,9 +60,9 @@ def bag_from_directory(*, path, idx, channels, partition_size, regex, clip):
     df.index.name = "idx"
 
     pre_filter = len(df)
-    df = df.dropna(axis=0, how="any")
+    df = df[~df1.isna().any(axis=1)]
     dropped = pre_filter - len(df)
-    logger.warning("Dropped %d rows because of missing channel files in %s." % (dropped, str(path)))
+    logger.warning("Dropped %d rows because of missing channel files in %s" % (dropped, str(path)))
 
     bag = dask.bag.from_sequence(
         df.reset_index(drop=False).to_dict(orient="records"), partition_size=partition_size)
