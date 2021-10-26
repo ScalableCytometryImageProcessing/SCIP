@@ -54,7 +54,7 @@ def bag_from_directory(*, path, idx, channels, partition_size, regex, clip):
     df = pandas.DataFrame.from_dict(matches)
     df1 = df.pivot(index="id", columns="channel", values="path")
     df = df.set_index("id")
-    df2 = df.loc[~df.index.duplicated(keep='first'), "group"]
+    df2 = df.loc[~df.index.duplicated(keep='first'), df.drop(columns=["path"]).columns]
 
     df = pandas.concat([df1, df2], axis=1)
     df.index.name = "idx"
