@@ -77,6 +77,26 @@ def shape_features(sample):
             props = channel_features(i)
             props = {f"{k}_{i}": numpy.mean(v) for k,v in props.items()}
             features_dict.update(props)
+        else:
+            # setting proper default values if possible when the mask is empty
+            features_dict.update({
+                f"area_{i}": 0,
+                f"convex_area_{i}": 0,
+                f"eccentricity_{i}": None,
+                f"equivalent_diameter_{i}": 0,
+                f"euler_number_{i}": None,
+                f"feret_diameter_max_{i}": 0,
+                f"filled_area_{i}": 0,
+                f"inertia_tensor_{i}": None,
+                f"inertia_tensor_eigvals_{i}": None,
+                f"major_axis_length_{i}": 0,
+                f"minor_axis_length_{i}": 0,
+                f"moments_hu_{i}": None,
+                f"orientation_{i}": None,
+                f"perimeter_{i}": 0,
+                f"perimeter_crofton_{i}": 0,
+                f"solidity_{i}": None
+            })
 
     return features_dict 
 
