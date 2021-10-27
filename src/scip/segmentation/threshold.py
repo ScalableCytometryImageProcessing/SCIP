@@ -1,7 +1,7 @@
 import numpy
 from skimage.morphology import closing, disk
 from skimage.filters import threshold_otsu, sobel
-
+from scipy.stats import normaltest
 from scip.segmentation import util
 
 
@@ -11,13 +11,16 @@ def get_mask(el):
     regions = []
 
     for dim in range(len(el["pixels"])):
-
         x = el["pixels"][dim] 
-        x = sobel(x)
-        x = closing(x, selem=disk(4))
-        x = threshold_otsu(x) < x
+        if (normaltest(x.ravel()).pvalue > 0.05):
+            # accept H0 that image is gaussian noise = no signal measured
+            mask[dim], cc = numpy.zeros(shape=x.shape, dtype=bool), 0
+        else:
+            x = sobel(x)
+            x = closing(x, selem=disk(4))
+            x = threshold_otsu(x) < x
+            mask[dim], cc = util.mask_post_process(x)
 
-        mask[dim], cc = util.mask_post_process(x)
         regions.append(cc)
 
     out = el.copy()

@@ -73,9 +73,10 @@ def shape_features(sample):
 
     features_dict = {}
     for i in range(len(img)):
-        props = channel_features(i)
-        props = {f"{k}_{i}": numpy.mean(v) for k,v in props.items()}
-        features_dict.update(props)
+        if numpy.any(img[i]):
+            props = channel_features(i)
+            props = {f"{k}_{i}": numpy.mean(v) for k,v in props.items()}
+            features_dict.update(props)
 
     return features_dict 
 
@@ -111,41 +112,52 @@ def intensity_features(sample):
         dict: dictionary including new intensity features
     """
 
-    def channel_features(i, values): 
-        quartiles = numpy.quantile(values, q=(0.25, 0.75))
+    def channel_features(i, values):
+        if numpy.any(sample["mask"][i]):
+            quartiles = numpy.quantile(values, q=(0.25, 0.75))
 
+            d = {
+                f'mean_{i}': numpy.mean(values), 
+                f'max_{i}': numpy.mean(values),
+                f'min_{i}': numpy.min(values),
+                f'var_{i}': numpy.var(values),
+                f'mad_{i}': scipy.stats.median_abs_deviation(values),
+                f'skewness_{i}': scipy.stats.skew(values),
+                f'kurtosis_{i}': scipy.stats.kurtosis(values),
+                f'lower_quartile_{i}': quartiles[0],
+                f'upper_quartile_{i}': quartiles[1]
+            }
 
-        d = {
-            f'mean_{i}': numpy.mean(values), 
-            f'max_{i}': numpy.mean(values),
-            f'min_{i}': numpy.min(values),
-            f'var_{i}': numpy.var(values),
-            f'mad_{i}': scipy.stats.median_abs_deviation(values),
-            f'skewness_{i}': scipy.stats.skew(values),
-            f'kurtosis_{i}': scipy.stats.kurtosis(values),
-            f'lower_quartile_{i}': quartiles[0],
-            f'upper_quartile_{i}': quartiles[1]
-        }
-
-        window_length = int(numpy.floor(numpy.sqrt(values.size)+0.5))
-        if window_length >= values.size//2:
-            window_length = values.size//2 - 1
- 
-        if window_length < 1:
-            diff_ent = None
+            window_length = int(numpy.floor(numpy.sqrt(values.size)+0.5))
+            if window_length >= values.size//2:
+                window_length = values.size//2 - 1
+    
+            if window_length < 1:
+                diff_ent = None
+            else:
+                diff_ent = scipy.stats.differential_entropy(
+                values, window_length=window_length)
+            d[f'diff_entropy_{i}'] = diff_ent
+            return d
         else:
-            diff_ent = scipy.stats.differential_entropy(
-            values, window_length=window_length)
-        d[f'diff_entropy_{i}'] = diff_ent
-
-        return d
+            return {
+                f'mean_{i}': 0, 
+                f'max_{i}': 0,
+                f'min_{i}': 0,
+                f'var_{i}': 0,
+                f'mad_{i}': 0,
+                f'skewness_{i}': 0,
+                f'kurtosis_{i}': 0,
+                f'lower_quartile_{i}': 0,
+                f'upper_quartile_{i}': 0,
+                f'diff_entropy_{i}': 0
+            }
 
     img = sample['pixels']
     features_dict = {}
     for i in range(len(img)):
-        if numpy.any(sample["mask"][i]):
-            values = img[i][sample["mask"][i]]
-            features_dict.update(channel_features(i, values))
+        values = img[i][sample["mask"][i]]
+        features_dict.update(channel_features(i, values))
 
     return features_dict
 
@@ -207,7 +219,7 @@ def texture_features(sample):
 
         return out
 
-    img = sample.get('pixels')
+    img = sample['pixels']
 
     # the amount of hog features depends on the size of the input image, which is not uniform
     # for most datasets. Therefore, we dynamically compute the HOG parameters so that there is
@@ -216,7 +228,8 @@ def texture_features(sample):
 
     features_dict = {}
     for i in range(len(img)):
-        features_dict.update(texture_features(i, pixels_per_cell))
+        if numpy.any(sample["mask"][i]):
+            features_dict.update(texture_features(i, pixels_per_cell))
 
     return features_dict
 
