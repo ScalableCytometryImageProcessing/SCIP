@@ -78,9 +78,9 @@ def get_bounding_box(event, bbox_channel):
 
 
 def mask_post_process(mask):
-    mask = remove_small_objects(mask, min_size=50)
     mask = remove_small_holes(mask, area_threshold=300)
+    mask = expand_labels(label(mask), distance=1)
+    mask = remove_small_objects(mask > 0, min_size=20)
     mask = label(mask)
-    mask = expand_labels(mask, distance=2)
     
     return mask > 0, mask.max()
