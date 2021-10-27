@@ -44,7 +44,7 @@ def shape_features(sample):
 
     """
     
-    img = sample.get('mask')
+    img = sample['mask']
 
     def channel_features(i):
         label_img = label(img[i])
