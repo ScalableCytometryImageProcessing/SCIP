@@ -6,7 +6,7 @@ setuptools.setup(
         "Operating System :: LInux",
     ],
     name="scip",
-    version="0.1.1",
+    version="0.1.2",
     package_dir={"": "src"},
     install_requires=[
         'numpy',
