@@ -1,6 +1,8 @@
-# SCIP: Scalable Image Processing
+# SCIP: Scalable Cytometry Image Processing
 
 ![main workflow badge](https://github.com/ScalableImagingPipeline/dask-pipeline/actions/workflows/main.yml/badge.svg)
+
+Scalable Cytometry Image Processing (SCIP) is an open-source tool that implements an image processing pipeline on top of Dask, a distributed computing framework written in Python. SCIP performs normalization, image segmentation and masking, feature extraction, and clustering and dimensionality reduction.
 
 ## Installation
 
