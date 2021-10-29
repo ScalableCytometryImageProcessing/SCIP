@@ -57,7 +57,7 @@ class ClientClusterContext:
             self.client = Client(self.cluster)
         elif self.mode == "jobqueue":
             from dask_jobqueue import PBSCluster
-            
+
             assert (Path.home() / "logs").exists(), "Make sure directory\
                  'logs' exists in your home dir"
 
@@ -80,7 +80,7 @@ class ClientClusterContext:
                 job_extra=self.job_extra,
                 scheduler_options={
                     'dashboard_address': None if self.port is None else f':{self.port}'},
-                death_timeout=10*60
+                death_timeout=10 * 60
             )
 
             self.cluster.scale(jobs=self.n_nodes)
@@ -94,11 +94,11 @@ class ClientClusterContext:
                 interface="ib0",
                 nthreads=self.threads_per_process,
                 local_directory=self.local_directory,
-                memory_limit=int(self.memory*1e9),
+                memory_limit=int(self.memory * 1e9),
                 nanny=True
             )
             self.client = Client()
-             
+
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):

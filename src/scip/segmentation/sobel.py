@@ -1,4 +1,3 @@
-from skimage.segmentation import watershed
 from skimage.filters import sobel
 from skimage import morphology
 import numpy

@@ -43,7 +43,7 @@ def shape_features(sample):
         dict: dictionary including new features
 
     """
-    
+
     img = sample['mask']
 
     def channel_features(i):
@@ -75,7 +75,7 @@ def shape_features(sample):
     for i in range(len(img)):
         if numpy.any(img[i]):
             props = channel_features(i)
-            props = {f"{k}_{i}": numpy.mean(v) for k,v in props.items()}
+            props = {f"{k}_{i}": numpy.mean(v) for k, v in props.items()}
             features_dict.update(props)
         else:
             # setting proper default values if possible when the mask is empty
@@ -98,7 +98,7 @@ def shape_features(sample):
                 f"solidity_{i}": None
             })
 
-    return features_dict 
+    return features_dict
 
 
 def intensity_features_meta(nchannels):
@@ -137,7 +137,7 @@ def intensity_features(sample):
             quartiles = numpy.quantile(values, q=(0.25, 0.75))
 
             d = {
-                f'mean_{i}': numpy.mean(values), 
+                f'mean_{i}': numpy.mean(values),
                 f'max_{i}': numpy.mean(values),
                 f'min_{i}': numpy.min(values),
                 f'var_{i}': numpy.var(values),
@@ -148,20 +148,20 @@ def intensity_features(sample):
                 f'upper_quartile_{i}': quartiles[1]
             }
 
-            window_length = int(numpy.floor(numpy.sqrt(values.size)+0.5))
-            if window_length >= values.size//2:
-                window_length = values.size//2 - 1
-    
+            window_length = int(numpy.floor(numpy.sqrt(values.size) + 0.5))
+            if window_length >= values.size // 2:
+                window_length = values.size // 2 - 1
+
             if window_length < 1:
                 diff_ent = None
             else:
                 diff_ent = scipy.stats.differential_entropy(
-                values, window_length=window_length)
+                    values, window_length=window_length)
             d[f'diff_entropy_{i}'] = diff_ent
             return d
         else:
             return {
-                f'mean_{i}': 0, 
+                f'mean_{i}': 0,
                 f'max_{i}': 0,
                 f'min_{i}': 0,
                 f'var_{i}': 0,
@@ -219,7 +219,7 @@ def texture_features(sample):
         )
 
         distances = [1, 2]
-        angles = [0, numpy.pi/2]
+        angles = [0, numpy.pi / 2]
 
         int_img = skimage.img_as_ubyte(img[i])
         glcm = greycomatrix(int_img, distances=distances, angles=angles, levels=256)
@@ -266,7 +266,7 @@ def bbox_features_meta(nchannels):
 
 
 def bbox_features(p):
-    d =  {
+    d = {
         "bbox_minr": p["bbox"][0],
         "bbox_minc": p["bbox"][1],
         "bbox_maxr": p["bbox"][2],
@@ -276,7 +276,7 @@ def bbox_features(p):
     return d
 
 
-def extract_features(*, images: dask.bag.Bag, nchannels: int, types: list):
+def extract_features(*, images: dask.bag.Bag, nchannels: int, types: list):  # noqa: C901
     """
     Extract features from pixel data
 

@@ -1,7 +1,7 @@
 from pathlib import Path
 from datetime import datetime
 import uuid
-import pandas 
+import pandas
 
 
 def main():
@@ -27,11 +27,12 @@ def main():
                     memory=total_mem // n_workers,
                     partition_size=partition_size,
                     output=o,
-                    np=n_workers+2,
+                    np=n_workers + 2,
                     prefix=str(output)
                 ))
 
     pandas.DataFrame(commands).to_csv(str(output / "data.csv"), index=False)
+
 
 if __name__ == "__main__":
     main()

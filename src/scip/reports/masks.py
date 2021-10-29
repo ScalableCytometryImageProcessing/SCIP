@@ -23,6 +23,7 @@ def plot1(percentage, channel_labels):
     ax.bar(channel_labels, percentage)
     return fig
 
+
 @dask.delayed
 def plot2(cc_counts, channel_labels):
     fig, axes = plt.subplots(1, len(channel_labels), squeeze=False, sharey=True)
@@ -34,15 +35,15 @@ def plot2(cc_counts, channel_labels):
 
 @dask.delayed
 def write_plots(fig1, fig2, name, template_dir, template, output):
-    
+
     stream = BytesIO()
     fig1.savefig(stream, format='png')
     encoded_missing = base64.b64encode(stream.getvalue()).decode('utf-8')
-    
+
     stream = BytesIO()
     fig2.savefig(stream, format='png')
     encoded_cc = base64.b64encode(stream.getvalue()).decode('utf-8')
-    
+
     # Write HTML
     filename = str("mask_quality_control_%s.html" % name)
     with open(str(output / filename), "w") as fh:
@@ -85,19 +86,21 @@ def report(
         for count_dict, value in zip(count_dicts, values):
             count_dict[value] += 1
         return count_dicts
+
     def merge_count_dicts(l1, l2):
         return [a + b for a, b in zip(l1, l2)]
+
     cc_counts = bag.map_partitions(lambda part: [p["regions"] for p in part])
     cc_counts = cc_counts.fold(
-        binop=add_to_count_dict, 
-        combine=merge_count_dicts, 
-        initial=[Counter()]*len(channel_labels)
+        binop=add_to_count_dict,
+        combine=merge_count_dicts,
+        initial=[Counter()] * len(channel_labels)
     )
 
     total = bag.count()
     percentage = dask.delayed(lambda v, t: v / t)(blanks_sum, total)
 
-    fig1 = plot1(percentage, channel_labels) 
+    fig1 = plot1(percentage, channel_labels)
     fig2 = plot2(cc_counts, channel_labels)
 
     return write_plots(
@@ -108,4 +111,3 @@ def report(
         template=template,
         output=output
     )
-

@@ -93,7 +93,6 @@ def report(
     def counts_partition(part, bins):
         return [get_counts(p, bins) for p in part]
 
-
     @dask.delayed
     def plot_pixel_distribution(counts_per_group, bins_per_group):
 

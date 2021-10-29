@@ -82,5 +82,5 @@ def mask_post_process(mask):
     mask = expand_labels(label(mask), distance=1)
     mask = remove_small_objects(mask > 0, min_size=20)
     mask = label(mask)
-    
+
     return mask > 0, mask.max()

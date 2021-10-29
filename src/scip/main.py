@@ -35,7 +35,7 @@ def set_groupidx_partition(part, groups):
 
 def get_images_bag(paths, channels, config, partition_size):
 
-    loader_module = import_module('scip.loading.%s' % config["loading"]["format"]) 
+    loader_module = import_module('scip.loading.%s' % config["loading"]["format"])
     loader = partial(
         loader_module.bag_from_directory,
         channels=channels,
@@ -57,9 +57,11 @@ def get_images_bag(paths, channels, config, partition_size):
     def add_to_list(a, b):
         a.append(b["group"])
         return sorted(list(set(a)))
+
     def merge_lists(a, b):
         a.extend(b)
         return sorted(list(set(a)))
+
     groups = images.fold(binop=add_to_list, combine=merge_lists, initial=list())
     images = images.map_partitions(set_groupidx_partition, groups)
 
@@ -153,10 +155,10 @@ def main(
         logger.info(f"Running with {n_workers} workers and {n_threads} threads per worker")
         logger.info(f"Mode? {mode}")
         logger.info(f"Output is saved in {str(output)}")
-        
+
         config = util.load_yaml_config(config)
         logger.info(f"Running with following config: {config}")
-        
+
         host = context.client.run_on_scheduler(socket.gethostname)
         port = context.client.scheduler_info()['services']['dashboard']
         logger.info(f"Dashboard -> ssh -N -L {port}:{host}:{port}")
@@ -202,7 +204,7 @@ def main(
                 output=output,
                 name="raw"
             ))
-        
+
         method = config["masking"]["method"]
         if method is not None:
             masking_module = import_module('scip.segmentation.%s' % config["masking"]["method"])
@@ -211,7 +213,7 @@ def main(
                 images,
                 **(config["masking"]["kwargs"] or dict())
             )
-    
+
             if report:
                 logger.debug("mask report")
                 reports.append(masks.report(
@@ -222,16 +224,16 @@ def main(
                     output=output,
                     channel_labels=channel_labels
                 ))
- 
+
             logger.debug("preparing bag for feature extraction")
 
             filter_func = partial(
-                segmentation_util.mask_predicate, 
+                segmentation_util.mask_predicate,
                 bbox_channel=config["masking"]["bbox_channel"]
             )
             images = images.filter(filter_func)
             images = images.map_partitions(
-                segmentation_util.bounding_box_partition, 
+                segmentation_util.bounding_box_partition,
                 bbox_channel=config["masking"]["bbox_channel"]
             )
             images = images.map_partitions(segmentation_util.crop_to_mask_partition)
@@ -243,11 +245,11 @@ def main(
 
         logger.debug("computing features")
         bag_df = compute_features(
-            images=images, 
-            nchannels=len(channels), 
+            images=images,
+            nchannels=len(channels),
             types=config["feature_extraction"]["types"]
         )
-        
+
         if report:
             logger.debug("reporting example masked images")
             reports.append(example_images.report(
@@ -279,7 +281,7 @@ def main(
             template_dir=template_dir
         )
         f.compute()
- 
+
         if debug:
             f.visualize(filename=str(output / "final.svg"))
             context.client.profile(filename=str(output / "profile.html"))

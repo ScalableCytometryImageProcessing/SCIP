@@ -33,8 +33,8 @@ def get_distributed_minmax(bag, nchannels):  # noqa: C901
     init[:, 1] = -np.inf
     out = bag.foldby(
         key="groupidx",
-        binop=combine_extent_partition, 
-        combine=final_minmax, 
+        binop=combine_extent_partition,
+        combine=final_minmax,
         initial=init,
         combine_initial=init
     )

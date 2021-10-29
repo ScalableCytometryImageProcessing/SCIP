@@ -27,8 +27,8 @@ def get_mask(el, noisy_channels):
         # markers[closed > numpy.quantile(closed, 0.95)] = 2
         markers = numpy.zeros_like(image[dim])
         thresh = threshold_otsu(closed)
-        markers[closed < thresh-thresh*0.5] = 1
-        markers[closed > thresh+thresh*0.5] = 2
+        markers[closed < thresh - thresh * 0.5] = 1
+        markers[closed > thresh + thresh * 0.5] = 2
 
         segmentation = watershed(image[dim], markers, compactness=1)
 

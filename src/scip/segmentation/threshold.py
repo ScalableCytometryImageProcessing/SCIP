@@ -11,7 +11,7 @@ def get_mask(el):
     regions = []
 
     for dim in range(len(el["pixels"])):
-        x = el["pixels"][dim] 
+        x = el["pixels"][dim]
         if (normaltest(x.ravel()).pvalue > 0.05):
             # accept H0 that image is gaussian noise = no signal measured
             mask[dim], cc = numpy.zeros(shape=x.shape, dtype=bool), 0

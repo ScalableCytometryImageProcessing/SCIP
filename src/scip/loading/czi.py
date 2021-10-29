@@ -72,7 +72,7 @@ def segment_block(block, *, idx, cell_diameter, dapi_channel):
     markers = measure.label(local_max_mask)
 
     segmented_cells = watershed(-distance, markers, mask=cells)
-    segmented_cells = expand_labels(segmented_cells, distance=cell_diameter*0.25)
+    segmented_cells = expand_labels(segmented_cells, distance=cell_diameter * 0.25)
 
     events = []
     props = regionprops(segmented_cells)
@@ -84,7 +84,7 @@ def segment_block(block, *, idx, cell_diameter, dapi_channel):
             idx=f"{idx}_{i}",
             group=idx,
             bbox=tuple(bbox),
-            regions=[1]*len(block.shape[1])
+            regions=[1] * len(block.shape[1])
         ))
 
     return events
@@ -111,7 +111,7 @@ def bag_from_directory(*, path, idx, channels, partition_size, dapi_channel, cel
         im = AICSImage(path, reconstruct_mosaic=False, chunk_dims=["Z", "C", "X", "Y"])
         im.set_scene(scene)
         return im.get_image_dask_data("MCZXY", T=0, C=channels)
-    
+
     if scenes == "all":
         scenes = AICSImage(path, reconstruct_mosaic=False).scenes
 
@@ -123,9 +123,9 @@ def bag_from_directory(*, path, idx, channels, partition_size, dapi_channel, cel
     data = dask.array.concatenate(data)
 
     data = data.map_blocks(
-        select_focused_plane, 
-        drop_axis=2, 
-        dtype=data.dtype, 
+        select_focused_plane,
+        drop_axis=2,
+        dtype=data.dtype,
         meta=numpy.array((), dtype=data.dtype)
     )
 
@@ -135,7 +135,7 @@ def bag_from_directory(*, path, idx, channels, partition_size, dapi_channel, cel
     meta = []
     for (scene, tile), block in zip(scenes_meta, delayed_blocks):
         cells.append(segment_block(
-            block, 
+            block,
             idx=f"{idx}_{scene}_{tile}",
             cell_diameter=cell_diameter,
             dapi_channel=dapi_channel
