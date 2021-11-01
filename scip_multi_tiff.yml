@@ -12,6 +12,7 @@ masking:
   bbox_channel: 0
   kwargs:
     noisy_channels: [0]
+normalization:
 export:
   format: parquet
   filename: features

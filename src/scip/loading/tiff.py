@@ -6,6 +6,7 @@ import dask.dataframe
 import tifffile
 import logging
 import numpy
+from skimage import util
 logging.getLogger("tifffile").setLevel(logging.ERROR)
 
 
@@ -16,6 +17,7 @@ def load_image(event, channels, clip):
 
         if clip is not None:
             arr = numpy.clip(arr, 0, clip)
+            arr = arr / clip
 
         # tifffile collapses axis with size 1,
         # occurrs when only one path is passed
@@ -23,7 +25,7 @@ def load_image(event, channels, clip):
             arr = arr[numpy.newaxis, ...]
 
         newevent = event.copy()
-        newevent["pixels"] = arr.astype(float)
+        newevent["pixels"] = util.img_as_float32(arr)
         return newevent
     except TypeError as e:
         logging.getLogger(__name__).exception(e)

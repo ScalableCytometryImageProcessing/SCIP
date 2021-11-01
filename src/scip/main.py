@@ -98,16 +98,17 @@ def final(features, meta, reports, quantiles, groups, *, config, template_dir, o
     filename = config["export"]["filename"]
     features.to_parquet(str(output / f"{filename}.parquet"))
 
-    data = []
-    index = []
-    for k, v in quantiles:
-        index.append(groups[k])
-        out = {}
-        for channel, r in zip(config["loading"]["channel_labels"], v):
-            out[f"{channel}_min"] = r[0]
-            out[f"{channel}_max"] = r[1]
-        data.append(out)
-    pandas.DataFrame(data=data, index=index).to_csv(str(output / "channel_boundaries.csv"))
+    if quantiles is not None:
+        data = []
+        index = []
+        for k, v in quantiles:
+            index.append(groups[k])
+            out = {}
+            for channel, r in zip(config["loading"]["channel_labels"], v):
+                out[f"{channel}_min"] = r[0]
+                out[f"{channel}_max"] = r[1]
+            data.append(out)
+        pandas.DataFrame(data=data, index=index).to_csv(str(output / "channel_boundaries.csv"))
 
 
 def main(
@@ -239,9 +240,15 @@ def main(
             images = images.map_partitions(segmentation_util.crop_to_mask_partition)
             images = images.map_partitions(segmentation_util.apply_mask_partition)
 
-        logger.debug("performing normalization")
-        images, quantiles = quantile_normalization.quantile_normalization(
-            images, 0, 1, len(channels))
+        quantiles = None
+        if config["normalization"] is not None:
+            logger.debug("performing normalization")
+            images, quantiles = quantile_normalization.quantile_normalization(
+                images,
+                config["normalization"]["lower"],
+                config["normalization"]["upper"],
+                len(channels)
+            )
 
         logger.debug("computing features")
         bag_df = compute_features(
