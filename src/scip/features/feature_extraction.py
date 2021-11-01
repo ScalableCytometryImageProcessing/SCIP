@@ -6,6 +6,7 @@ import scipy.stats
 from skimage.feature import hog, greycomatrix, greycoprops
 from skimage.measure import label, regionprops_table, shannon_entropy
 import skimage
+from scipy.ndimage import convolve
 
 
 def shape_features_meta(nchannels):
@@ -110,7 +111,17 @@ def intensity_features_meta(nchannels):
         'mad',
         'diff_entropy',
         'skewness',
-        'kurtosis'
+        'kurtosis',
+        'sum',
+        'edge_mean',
+        'edge_max',
+        'edge_min',
+        'edge_var',
+        'edge_mad',
+        'edge_diff_entropy',
+        'edge_skewness',
+        'edge_kurtosis',
+        'edge_sum'
     ]
     out = {}
     for i in range(nchannels):
@@ -132,8 +143,11 @@ def intensity_features(sample):
         dict: dictionary including new intensity features
     """
 
-    def channel_features(i, values):
+    def channel_features(i):
         if numpy.any(sample["mask"][i]):
+
+            # compute features on full masked pixels
+            values = sample["pixels"][i][sample["mask"][i]]
             quartiles = numpy.quantile(values, q=(0.25, 0.75))
 
             d = {
@@ -145,7 +159,8 @@ def intensity_features(sample):
                 f'skewness_{i}': scipy.stats.skew(values),
                 f'kurtosis_{i}': scipy.stats.kurtosis(values),
                 f'lower_quartile_{i}': quartiles[0],
-                f'upper_quartile_{i}': quartiles[1]
+                f'upper_quartile_{i}': quartiles[1],
+                f'sum_{i}': numpy.sum(values)
             }
 
             window_length = int(numpy.floor(numpy.sqrt(values.size) + 0.5))
@@ -158,6 +173,42 @@ def intensity_features(sample):
                 diff_ent = scipy.stats.differential_entropy(
                     values, window_length=window_length)
             d[f'diff_entropy_{i}'] = diff_ent
+
+            # compute features only on edge pixels
+            conv = convolve(
+                sample["mask"][i],
+                weights=numpy.ones(shape=[3,3], dtype=int),
+                mode="constant"
+            )
+            edge = (conv > 0) & (conv < 9)
+            values = sample["pixels"][i][edge]
+
+            quartiles = numpy.quantile(values, q=(0.25, 0.75))
+
+            d.update({
+                f'edge_mean_{i}': numpy.mean(values),
+                f'edge_max_{i}': numpy.mean(values),
+                f'edge_min_{i}': numpy.min(values),
+                f'edge_var_{i}': numpy.var(values),
+                f'edge_mad_{i}': scipy.stats.median_abs_deviation(values),
+                f'edge_skewness_{i}': scipy.stats.skew(values),
+                f'edge_kurtosis_{i}': scipy.stats.kurtosis(values),
+                f'edge_lower_quartile_{i}': quartiles[0],
+                f'edge_upper_quartile_{i}': quartiles[1],
+                f'edge_sum_{i}': numpy.sum(values)
+            })
+
+            window_length = int(numpy.floor(numpy.sqrt(values.size) + 0.5))
+            if window_length >= values.size // 2:
+                window_length = values.size // 2 - 1
+
+            if window_length < 1:
+                diff_ent = None
+            else:
+                diff_ent = scipy.stats.differential_entropy(
+                    values, window_length=window_length)
+            d[f'edge_diff_entropy_{i}'] = diff_ent
+
             return d
         else:
             return {
@@ -170,14 +221,24 @@ def intensity_features(sample):
                 f'kurtosis_{i}': 0,
                 f'lower_quartile_{i}': 0,
                 f'upper_quartile_{i}': 0,
-                f'diff_entropy_{i}': 0
+                f'diff_entropy_{i}': 0,
+                f'sum_{i}': 0,
+                f'edge_mean_{i}': 0,
+                f'edge_max_{i}': 0,
+                f'edge_min_{i}': 0,
+                f'edge_var_{i}': 0,
+                f'edge_mad_{i}': 0,
+                f'edge_skewness_{i}': 0,
+                f'edge_kurtosis_{i}': 0,
+                f'edge_lower_quartile_{i}': 0,
+                f'edge_upper_quartile_{i}': 0,
+                f'edge_diff_entropy_{i}': 0,
+                f'edge_sum_{i}': 0
             }
 
-    img = sample['pixels']
     features_dict = {}
-    for i in range(len(img)):
-        values = img[i][sample["mask"][i]]
-        features_dict.update(channel_features(i, values))
+    for i in range(len(sample["pixels"])):
+        features_dict.update(channel_features(i))
 
     return features_dict
 
