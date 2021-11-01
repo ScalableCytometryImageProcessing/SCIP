@@ -13,9 +13,9 @@ cd $PBS_O_WORKDIR
 source <(aenv --data data.csv)
 
 . $CONDA_PREFIX/etc/profile.d/conda.sh
-conda activate scip
+conda activate scip38
 
-DATA_PATH=${VSC_DATA_VO_USER}/datasets/weizmann/EhV/high_time_res/High/images/*
-CONFIG_PATH=${VSC_DATA_VO_USER}/datasets/weizmann/EhV/high_time_res/scip_tiff.yml
+DATA_PATH=${VSC_DATA_VO_USER}/datasets/weizmann/EhV/v2/images/*
+CONFIG_PATH=${VSC_DATA_VO_USER}/datasets/weizmann/EhV/v2/scip_tiff.yml
 
-mpiexec -np $np scip -d9104 --fits --no-report --timing "${prefix}/${PBS_ARRAYID}.json" -t1 --headless --mode mpi -l /local_scratch/ -j $n_workers -m $memory -s $partition_size $output $CONFIG_PATH $DATA_PATH
+mpiexec -np $np scip -d9104 --no-report --timing "${prefix}/${PBS_ARRAYID}.json" -t1 --headless --mode mpi -l /local_scratch/ -j $n_workers -m $memory -s $partition_size $output $CONFIG_PATH $DATA_PATH
