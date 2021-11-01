@@ -2,11 +2,13 @@ from pathlib import Path
 from datetime import datetime
 import uuid
 import pandas
+import os
 
 
 def main():
 
-    output = Path("/vsc-mounts/gent-user/420/vsc42015/vsc_data_vo/results/scip_benchmark")
+
+    output = Path(os.environ["VSC_DATA_VO_USER"]) / "results/scip_benchmark"
     output = output / Path("benchmark_%s" % datetime.now().strftime("%Y%m%d%H%M%S"))
     output.mkdir()
     (output / "results").mkdir()
