@@ -10,7 +10,7 @@ module load atools
 
 cd $PBS_O_WORKDIR
 
-source <(aenv --data data.csv)
+source <(aenv --data data.csv --snif 2048)
 
 . $CONDA_PREFIX/etc/profile.d/conda.sh
 conda activate scip
