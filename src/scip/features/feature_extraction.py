@@ -243,15 +243,17 @@ def intensity_features(sample):
     return features_dict
 
 
+distances = [3, 5]
+
+
 def texture_features_meta(nchannels):
     greycoprops = ['contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation', 'ASM']
     nhog = 36
 
     out = {}
     for i in range(nchannels):
-        for n in range(2):
-            for m in range(2):
-                out.update({f"glcm_{p}_{n}_{m}_{i}": float for p in greycoprops})
+        for n in distances:
+            out.update({f"glcm_{p}_{n}_{i}": float for p in greycoprops})
         out.update({f"hog_{j}_{i}": float for j in range(nhog)})
         out[f"shannon_entropy_{i}"] = float
     return out
@@ -279,8 +281,12 @@ def texture_features(sample):
             visualize=False
         )
 
-        distances = [1, 2]
-        angles = [0, numpy.pi / 2]
+        angles = [
+            numpy.pi / 4,  # 45 degrees
+            3 * numpy.pi / 4,  # 135 degrees
+            5 * numpy.pi / 4,  # 225 degrees
+            7 * numpy.pi / 4  # 315 degrees
+        ]
 
         int_img = skimage.img_as_ubyte(img[i])
         glcm = greycomatrix(int_img, distances=distances, angles=angles, levels=256)
@@ -289,8 +295,8 @@ def texture_features(sample):
         for prop in ['contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation', 'ASM']:
             v = greycoprops(glcm, prop=prop)
 
-            for (n, m), p in numpy.ndenumerate(v):
-                out[f'glcm_{prop}_{n}_{m}_{i}'] = p
+            for d, p in enumerate(v.mean(axis=1)):
+                out[f'glcm_{prop}_{distances[d]}_{i}'] = p
 
         # put hog features in dictionary
         for j in range(len(hog_features)):
