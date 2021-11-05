@@ -291,7 +291,14 @@ def texture_features(sample):
         int_img = skimage.img_as_ubyte(img[i])
         bin_edges = numpy.histogram_bin_edges(int_img, bins=15)
         int_img = numpy.digitize(int_img, bins=bin_edges, right=True)
-        glcm = greycomatrix(int_img, distances=distances, angles=angles, levels=16, normed=True)
+        glcm = greycomatrix(
+            int_img,
+            distances=distances,
+            angles=angles,
+            levels=16,
+            normed=True,
+            symmetric=True
+        )
 
         out = {}
         for prop in ['contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation', 'ASM']:
