@@ -22,7 +22,25 @@ def intensity_features_meta(nchannels):
         'edge_diff_entropy',
         'edge_skewness',
         'edge_kurtosis',
-        'edge_sum'
+        'edge_sum',
+        'bgcorr_mean',
+        'bgcorr_max',
+        'bgcorr_min',
+        'bgcorr_var',
+        'bgcorr_mad',
+        'bgcorr_diff_entropy',
+        'bgcorr_skewness',
+        'bgcorr_kurtosis',
+        'bgcorr_sum',
+        'bgcorr_edge_mean',
+        'bgcorr_edge_max',
+        'bgcorr_edge_min',
+        'bgcorr_edge_var',
+        'bgcorr_edge_mad',
+        'bgcorr_edge_diff_entropy',
+        'bgcorr_edge_skewness',
+        'bgcorr_edge_kurtosis',
+        'bgcorr_edge_sum'
     ]
     out = {}
     for i in range(nchannels):
@@ -44,7 +62,7 @@ def intensity_features(sample):
         dict: dictionary including new intensity features
     """
 
-    def row(pixels):
+    def row(pixels, i):
         quartiles = numpy.quantile(pixels, q=(0.25, 0.75))
 
         d = {
@@ -111,19 +129,17 @@ def intensity_features(sample):
     features_dict = {}
     for i in range(len(sample["pixels"])):
         if numpy.any(sample["mask"][i]):
-            features_dict.update(row(
-                sample["pixels"][i][sample["mask"][i]]
-            ))
+            features_dict.update(row(sample["pixels"][i][sample["mask"][i]].copy(), i))
 
             bg_sub = sample["pixels"][i][sample["mask"][i]].copy()
             bg_sub -= sample["mean_background"][i]
-            tmp = row(bg_sub)
+            tmp = row(bg_sub, i)
             tmp2 = {}
             for k in tmp.keys():
                 tmp2[f"bgcorr_{k}"] = tmp[k]
             features_dict.update(tmp2)
         else:
-            return {
+            features_dict.update({
                 f'mean_{i}': 0,
                 f'max_{i}': 0,
                 f'min_{i}': 0,
@@ -168,6 +184,6 @@ def intensity_features(sample):
                 f'bgcorr_edge_upper_quartile_{i}': 0,
                 f'bgcorr_edge_diff_entropy_{i}': 0,
                 f'bgcorr_edge_sum_{i}': 0
-            }
+            })
 
     return features_dict

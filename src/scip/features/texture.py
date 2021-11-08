@@ -34,7 +34,7 @@ def texture_features(sample):
 
     """
 
-    def row(pixels, pixels_per_cell):
+    def row(pixels, pixels_per_cell, i):
         hog_features = hog(
             pixels,
             orientations=4,
@@ -88,12 +88,13 @@ def texture_features(sample):
             features_dict.update(
                 row(
                     sample["pixels"][i],
-                    pixels_per_cell
+                    pixels_per_cell,
+                    i
                 )
             )
             bg_sub = sample["pixels"][i].copy()
             bg_sub[sample["mask"][i]] -= sample["mean_background"][i]
-            tmp = row(bg_sub, pixels_per_cell)
+            tmp = row(bg_sub, pixels_per_cell, i)
             tmp2 = {}
             for k in tmp.keys():
                 tmp2[f"bgcorr_{k}"] = tmp[k]
