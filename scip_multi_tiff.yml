@@ -10,6 +10,7 @@ loading:
 masking:
   method: watershed
   bbox_channel: 0
+  export: false
   kwargs:
     noisy_channels: [0]
 normalization:

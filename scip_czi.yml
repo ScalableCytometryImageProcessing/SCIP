@@ -10,6 +10,7 @@ loading:
     scenes: ["A2-A2", "A1-A1"]
 masking:
   method:
+  export: false
 normalization:
 feature_extraction:
   types: ["shape", "intensity", "bbox", "texture"]

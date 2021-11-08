@@ -83,6 +83,33 @@ def compute_features(images, nchannels, types):
     return features
 
 
+def get_schema(event):
+    py_to_avro = {
+        "str": "string",
+        "int": "int",
+        "list": {
+            "type": "array",
+            "name": "mask",
+            "items": "int"
+        }
+    }
+    tmp = event[0]
+    tmp["mask"] = tmp["mask"].tolist()
+    tmp["bbox"] = list(tmp["bbox"])
+    return [
+        {"name": k, "type": py_to_avro[type(v).__name__]}
+        for k, v in tmp.items()
+    ]
+
+
+def remove_pixels(event):
+    newevent = event.copy()
+    del newevent["pixels"]
+    newevent["shape"] = list(newevent["mask"].shape)
+    newevent["mask"] = newevent["mask"].ravel()
+    return newevent
+
+
 @dask.delayed
 def final(features, meta, reports, quantiles, groups, *, config, template_dir, output):
     if (len(reports) > 0) and (all(reports)):
@@ -237,6 +264,18 @@ def main(
                 segmentation_util.bounding_box_partition,
                 bbox_channel=config["masking"]["bbox_channel"]
             )
+
+            if config["masking"]["export"]:
+                no_pixels = images.map(remove_pixels)
+                no_pixels.to_avro(
+                    filename=str(output / "masks.*.avro"),
+                    schema={
+                        "name": "events",
+                        "type": "record",
+                        "fields": get_schema(no_pixels.take(1))
+                    }
+                )
+
             images = images.map_partitions(segmentation_util.crop_to_mask_partition)
             images = images.map_partitions(segmentation_util.apply_mask_partition)
 
@@ -288,6 +327,7 @@ def main(
             template_dir=template_dir
         )
         f.compute()
+
 
         if debug:
             f.visualize(filename=str(output / "final.svg"))

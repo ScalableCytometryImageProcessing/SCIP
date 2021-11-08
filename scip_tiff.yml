@@ -13,6 +13,7 @@ loading:
 masking:
   method: threshold
   bbox_channel: 0
+  export: true
   kwargs:
 normalization:
   lower: 0
