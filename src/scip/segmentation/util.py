@@ -37,14 +37,17 @@ def apply(sample, origin):
     img = sample["pixels"]
     mask = sample[origin]
     masked_img = np.empty(img.shape, dtype=float)
+    background = np.empty(shape=(len(img),), dtype=float)
 
     # Multiply image with mask to set background to zero
     for i in range(img.shape[0]):
         masked_img[i] = img[i] * mask[i]
+        background[i] = img[i][~mask[i]].mean()
 
     output = sample.copy()
     output["pixels"] = masked_img
     output["mask"] = mask
+    output["mean_background"] = background.tolist()
     return output
 
 
