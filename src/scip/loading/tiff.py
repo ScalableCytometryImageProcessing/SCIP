@@ -14,10 +14,10 @@ def load_image(event, channels, clip):
     try:
         paths = [event[str(c)] for c in channels]
         arr = tifffile.imread(paths)
+        arr = arr.astype(numpy.float32)
 
         if clip is not None:
             arr = numpy.clip(arr, 0, clip)
-            arr = arr / clip
 
         # tifffile collapses axis with size 1,
         # occurrs when only one path is passed
@@ -25,7 +25,7 @@ def load_image(event, channels, clip):
             arr = arr[numpy.newaxis, ...]
 
         newevent = event.copy()
-        newevent["pixels"] = util.img_as_float32(arr)
+        newevent["pixels"] = arr
         return newevent
     except TypeError as e:
         logging.getLogger(__name__).exception(e)
@@ -72,4 +72,4 @@ def bag_from_directory(*, path, idx, channels, partition_size, regex, clip):
 
     df.columns = [f"meta_{c}" for c in df.columns]
     meta = dask.dataframe.from_pandas(df, chunksize=partition_size)
-    return bag, meta
+    return bag, meta, clip

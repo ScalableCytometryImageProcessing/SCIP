@@ -44,10 +44,11 @@ def get_images_bag(paths, channels, config, partition_size):
 
     images = []
     meta = []
+    maximum_pixel_value = 0
 
     for i, path in enumerate(paths):
         logging.info(f"Bagging {path}")
-        bag, df = loader(path=path, idx=i)
+        bag, df, maximum_pixel_value = loader(path=path, idx=i)
 
         images.append(bag)
         meta.append(df)
@@ -65,10 +66,10 @@ def get_images_bag(paths, channels, config, partition_size):
     groups = images.fold(binop=add_to_list, combine=merge_lists, initial=list())
     images = images.map_partitions(set_groupidx_partition, groups)
 
-    return images, meta, groups
+    return images, meta, groups, maximum_pixel_value
 
 
-def compute_features(images, nchannels, types):
+def compute_features(images, nchannels, types, maximum_pixel_value):
 
     def rename(c):
         if c == "idx":
@@ -78,7 +79,12 @@ def compute_features(images, nchannels, types):
         else:
             return f"feat_{c}"
 
-    features = feature_extraction.extract_features(images=images, nchannels=nchannels, types=types)
+    features = feature_extraction.extract_features(
+        images=images,
+        nchannels=nchannels,
+        types=types,
+        maximum_pixel_value=maximum_pixel_value
+    )
     features = features.rename(columns=rename)
     return features
 
@@ -210,7 +216,8 @@ def main(
         logger.debug("loading images in to bags")
 
         with dask.config.set(**{'array.slicing.split_large_chunks': False}):
-            images, meta, groups = get_images_bag(paths, channels, config, partition_size)
+            images, meta, groups, maximum_pixel_value = get_images_bag(
+                paths, channels, config, partition_size)
 
         reports = []
         if report:
@@ -293,7 +300,8 @@ def main(
         bag_df = compute_features(
             images=images,
             nchannels=len(channels),
-            types=config["feature_extraction"]["types"]
+            types=config["feature_extraction"]["types"],
+            maximum_pixel_value=maximum_pixel_value
         )
 
         if report:

@@ -23,7 +23,7 @@ def texture_features_meta(nchannels):
     return out
 
 
-def texture_features(sample):
+def texture_features(sample, maximum_pixel_value):
     """
 
     Args:
@@ -50,7 +50,7 @@ def texture_features(sample):
             7 * numpy.pi / 4  # 315 degrees
         ]
 
-        int_img = skimage.img_as_ubyte(pixels)
+        int_img = skimage.img_as_int(pixels / maximum_pixel_value)
         bin_edges = numpy.histogram_bin_edges(int_img, bins=15)
         int_img = numpy.digitize(int_img, bins=bin_edges, right=True)
         glcm = greycomatrix(
@@ -73,7 +73,7 @@ def texture_features(sample):
         for j in range(len(hog_features)):
             out.update({f'hog_{j}_{i}': hog_features[j]})
 
-        out["shannon_entropy_{i}"] = shannon_entropy(pixels)
+        out["shannon_entropy_{i}"] = shannon_entropy(pixels+1)
 
         return out
 

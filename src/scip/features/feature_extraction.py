@@ -29,7 +29,13 @@ def bbox_features(p):
     return d
 
 
-def extract_features(*, images: dask.bag.Bag, nchannels: int, types: list):  # noqa: C901
+def extract_features(
+    *,
+    images: dask.bag.Bag,
+    nchannels: int,
+    types: list,
+    maximum_pixel_value: int
+):  # noqa: C901
     """
     Extract features from pixel data
 
@@ -51,7 +57,7 @@ def extract_features(*, images: dask.bag.Bag, nchannels: int, types: list):  # n
             if "intensity" in types:
                 type_dicts.append(intensity_features(p))
             if "texture" in types:
-                type_dicts.append(texture_features(p))
+                type_dicts.append(texture_features(p, maximum_pixel_value))
 
             out = {"idx": p["idx"]}
             for type_dict in type_dicts:
