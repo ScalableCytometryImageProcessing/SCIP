@@ -42,7 +42,10 @@ def apply(sample, origin):
     # Multiply image with mask to set background to zero
     for i in range(img.shape[0]):
         masked_img[i] = img[i] * mask[i]
-        background[i] = img[i][~mask[i]].mean()
+        if numpy.any(~mask[i]):
+            background[i] = img[i][~mask[i]].mean()
+        else:
+            background[i] = 0
 
     output = sample.copy()
     output["pixels"] = masked_img
