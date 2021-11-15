@@ -24,7 +24,8 @@ setuptools.setup(
         'aicsimageio[czi]',
         'centrosome',
         'mpi4py',
-        'bokeh'
+        'bokeh',
+        'zarr'
     ],
     entry_points={
         'console_scripts': [

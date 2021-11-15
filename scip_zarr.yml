@@ -1,0 +1,19 @@
+loading:
+  format: zarr
+  channels: [0, 1, 2, 3]
+  channel_labels:
+    - BF1
+    - PI
+    - DF
+    - BF2
+  loader_kwargs:
+masking:
+  method: watershed
+  bbox_channel: 0
+  export: false
+  kwargs:
+    noisy_channels: [0]
+normalization:
+export:
+  format: parquet
+  filename: features
