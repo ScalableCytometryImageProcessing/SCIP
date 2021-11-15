@@ -4,7 +4,6 @@ import dask.dataframe
 import pandas
 import zarr
 import numpy
-import skimage
 from pathlib import Path
 
 
@@ -25,11 +24,12 @@ def load_image(event, channels, clip):
     i = event["zarr_idx"]
     z = zarr.open(event["path"])
     arr = z[i].reshape(z.attrs["shape"][i])[channels]
+    arr = arr.astype(numpy.float32)
+
     if clip is not None:
         arr = numpy.clip(arr, 0, clip)
-        arr = arr / clip
     
-    newevent["pixels"] = skimage.img_as_float32(arr)
+    newevent["pixels"] = arr
 
     return newevent
 
@@ -67,4 +67,4 @@ def bag_from_directory(path, idx, channels, partition_size, clip):
     bag = dask.bag.from_sequence(events, partition_size=partition_size)
     bag = bag.map_partitions(load_image_partition)
 
-    return bag, meta
+    return bag, meta, clip
