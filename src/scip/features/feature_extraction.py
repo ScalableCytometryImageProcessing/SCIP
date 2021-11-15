@@ -49,19 +49,15 @@ def extract_features(
     def features_partition(part):
         data = []
         for p in part:
-            type_dicts = []
-            if "bbox" in types:
-                type_dicts.append(bbox_features(p))
-            if "shape" in types:
-                type_dicts.append(shape_features(p))
-            if "intensity" in types:
-                type_dicts.append(intensity_features(p))
-            if "texture" in types:
-                type_dicts.append(texture_features(p, maximum_pixel_value))
-
             out = {"idx": p["idx"]}
-            for type_dict in type_dicts:
-                out.update(type_dict)
+            if "bbox" in types:
+                out.update(bbox_features(p))
+            if "shape" in types:
+                out.update(shape_features(p))
+            if "intensity" in types:
+                out.update(intensity_features(p))
+            if "texture" in types:
+                out.update(texture_features(p, maximum_pixel_value))
             data.append(out)
         return data
 

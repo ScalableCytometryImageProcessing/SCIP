@@ -71,7 +71,7 @@ def texture_features(sample, maximum_pixel_value):
 
         # put hog features in dictionary
         for j in range(len(hog_features)):
-            out.update({f'hog_{j}_{i}': hog_features[j]})
+            out[f'hog_{j}_{i}'] = hog_features[j]
 
         out["shannon_entropy_{i}"] = shannon_entropy(pixels+1)
 
@@ -94,10 +94,7 @@ def texture_features(sample, maximum_pixel_value):
             )
             bg_sub = sample["pixels"][i].copy()
             bg_sub[sample["mask"][i]] -= sample["mean_background"][i]
-            tmp = row(bg_sub, pixels_per_cell, i)
-            tmp2 = {}
-            for k in tmp.keys():
-                tmp2[f"bgcorr_{k}"] = tmp[k]
-            features_dict.update(tmp2)
+            for k, v in row(bg_sub, pixels_per_cell, i).items():
+                features_dict[f"bgcorr_{k}"] = v
 
     return features_dict

@@ -69,8 +69,8 @@ def shape_features(sample):
     for i in range(len(img)):
         if numpy.any(img[i]):
             props = channel_features(i)
-            props = {f"{k}_{i}": numpy.mean(v) for k, v in props.items()}
-            features_dict.update(props)
+            for k, v in props.items():
+                features_dict[f"{k}_{i}"] = numpy.mean(v)
         else:
             # setting proper default values if possible when the mask is empty
             features_dict.update({

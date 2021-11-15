@@ -129,15 +129,11 @@ def intensity_features(sample):
     features_dict = {}
     for i in range(len(sample["pixels"])):
         if numpy.any(sample["mask"][i]):
-            features_dict.update(row(sample["pixels"][i][sample["mask"][i]].copy(), i))
-
+            features_dict.update(row(sample["pixels"][i][sample["mask"][i]], i))
             bg_sub = sample["pixels"][i][sample["mask"][i]].copy()
             bg_sub -= sample["mean_background"][i]
-            tmp = row(bg_sub, i)
-            tmp2 = {}
-            for k in tmp.keys():
-                tmp2[f"bgcorr_{k}"] = tmp[k]
-            features_dict.update(tmp2)
+            for k, v in row(bg_sub, i).items():
+                features_dict[f"bgcorr_{k}"] = v
         else:
             features_dict.update({
                 f'mean_{i}': 0,

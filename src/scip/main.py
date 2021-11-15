@@ -328,18 +328,20 @@ def main(
                     lambda a: [(i, tmp) for i in range(len(a))])
             ))
 
-        f = final(
-            bag_df, meta, reports, quantiles, groups,
-            config=config,
-            output=output,
-            template_dir=template_dir
-        )
-        f.compute()
+        bag_df.to_parquet(str(output))
+
+        # f = final(
+        #     bag_df, meta, reports, quantiles, groups,
+        #     config=config,
+        #     output=output,
+        #     template_dir=template_dir
+        # )
+        # f.compute()
 
 
-        if debug:
-            f.visualize(filename=str(output / "final.svg"))
-            context.client.profile(filename=str(output / "profile.html"))
+        # if debug:
+        #     f.visualize(filename=str(output / "final.svg"))
+        #     context.client.profile(filename=str(output / "profile.html"))
 
     runtime = time.time() - start
     logger.info(f"Full runtime {runtime:.2f}")
