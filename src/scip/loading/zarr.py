@@ -23,7 +23,11 @@ def load_image(event, channels, clip):
 
     i = event["zarr_idx"]
     z = zarr.open(event["path"])
-    arr = z[i].reshape(z.attrs["shape"][i])[channels]
+    try:
+        arr = z[i].reshape(z.attrs["shape"][i])[channels]
+    except ValueError as e:
+        print(event)
+        raise e
     arr = arr.astype(numpy.float32)
 
     if clip is not None:
@@ -57,7 +61,7 @@ def bag_from_directory(path, idx, channels, partition_size, clip):
             path=str(path),
             zarr_idx=i, 
             idx=f"{idx}_{obj}", 
-            group=str(path.parent)
+            group=str(path.stem)
         ))
 
     meta = pandas.DataFrame.from_records(data=events, index="idx")

@@ -107,7 +107,6 @@ class ClientClusterContext:
         if exc_type is not None:
             logging.getLogger(__name__).error(
                 "Exception in context: %s, %s", exc_type, str(exc_value))
-            return False
 
     def wait(self):
         if self.mode in ["local", "mpi"]:
