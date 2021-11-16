@@ -24,6 +24,12 @@ from scip.features import feature_extraction  # noqa: E402
 from scip.segmentation import util as segmentation_util  # noqa: E402
 # from scip.analysis import fuzzy_c_mean  # noqa: E402
 
+import warnings
+# dask issues a warning during normalization
+# when initializing the map-reduce operation
+# this warning can only be fixed by updating dask
+warnings.simplefilter("ignore", category=FutureWarning)
+
 
 def set_groupidx_partition(part, groups):
     def set_groupidx(p):

@@ -10,7 +10,6 @@ def intensity_features_meta(nchannels):
         'min',
         'var',
         'mad',
-        'diff_entropy',
         'skewness',
         'kurtosis',
         'sum',
@@ -19,7 +18,6 @@ def intensity_features_meta(nchannels):
         'edge_min',
         'edge_var',
         'edge_mad',
-        'edge_diff_entropy',
         'edge_skewness',
         'edge_kurtosis',
         'edge_sum',
@@ -28,7 +26,6 @@ def intensity_features_meta(nchannels):
         'bgcorr_min',
         'bgcorr_var',
         'bgcorr_mad',
-        'bgcorr_diff_entropy',
         'bgcorr_skewness',
         'bgcorr_kurtosis',
         'bgcorr_sum',
@@ -37,7 +34,6 @@ def intensity_features_meta(nchannels):
         'bgcorr_edge_min',
         'bgcorr_edge_var',
         'bgcorr_edge_mad',
-        'bgcorr_edge_diff_entropy',
         'bgcorr_edge_skewness',
         'bgcorr_edge_kurtosis',
         'bgcorr_edge_sum'
@@ -78,17 +74,6 @@ def intensity_features(sample):
             f'sum_{i}': numpy.sum(pixels)
         }
 
-        window_length = int(numpy.floor(numpy.sqrt(pixels.size) + 0.5))
-        if window_length >= pixels.size // 2:
-            window_length = pixels.size // 2 - 1
-
-        if window_length < 1:
-            diff_ent = None
-        else:
-            diff_ent = scipy.stats.differential_entropy(
-                pixels, window_length=window_length)
-        d[f'diff_entropy_{i}'] = diff_ent
-
         # compute features only on edge pixels
         conv = convolve(
             sample["mask"][i],
@@ -112,17 +97,6 @@ def intensity_features(sample):
             f'edge_upper_quartile_{i}': quartiles[1],
             f'edge_sum_{i}': numpy.sum(pixels)
         })
-
-        window_length = int(numpy.floor(numpy.sqrt(pixels.size) + 0.5))
-        if window_length >= pixels.size // 2:
-            window_length = pixels.size // 2 - 1
-
-        if window_length < 1:
-            diff_ent = None
-        else:
-            diff_ent = scipy.stats.differential_entropy(
-                pixels, window_length=window_length)
-        d[f'edge_diff_entropy_{i}'] = diff_ent
 
         return d
 
