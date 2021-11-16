@@ -30,13 +30,14 @@ import warnings
 # this warning can only be fixed by updating dask
 warnings.simplefilter("ignore", category=FutureWarning)
 
+    
+def set_groupidx(p, groups):
+    p["groupidx"] = groups.index(p["group"])
+    return p
+
 
 def set_groupidx_partition(part, groups):
-    def set_groupidx(p):
-        newp = p.copy()
-        newp["groupidx"] = groups.index(p["group"])
-        return newp
-    return [set_groupidx(p) for p in part]
+    return [set_groupidx(p, groups) for p in part]
 
 
 def get_images_bag(paths, channels, config, partition_size):
@@ -59,7 +60,7 @@ def get_images_bag(paths, channels, config, partition_size):
         images.append(bag)
         meta.append(df)
 
-    images, meta = dask.bag.concat(images), dask.dataframe.concat(meta)
+    images, _ = dask.bag.concat(images)
 
     def add_to_list(a, b):
         a.append(b["group"])

@@ -7,7 +7,7 @@ import numpy
 from pathlib import Path
 
 
-def load_image(event, channels, clip):
+def load_image(event, z, channels, clip):
     """
     Load an image from a certain path
 
@@ -19,23 +19,18 @@ def load_image(event, channels, clip):
     Returns:
         dict: dictionary containing pixel values (ndarray) and path for each image
     """
-    newevent = event.copy()
 
     i = event["zarr_idx"]
-    z = zarr.open(event["path"])
-    try:
-        arr = z[i].reshape(z.attrs["shape"][i])[channels]
-    except ValueError as e:
-        print(event)
-        raise e
-    arr = arr.astype(numpy.float32)
-
     if clip is not None:
-        arr = numpy.clip(arr, 0, clip)
+        event["pixels"] = numpy.clip(z[i].reshape(z.attrs["shape"][i])[channels], 0, clip)
+    else:
+        event["pixels"] = z[i].reshape(z.attrs["shape"][i])[channels]
+    event["pixels"] = event["pixels"].astype(numpy.float32)
+    return event
 
-    newevent["pixels"] = arr
 
-    return newevent
+def load_image_partition(partition, z,  channels, clip):
+    return [load_image(event, z, channels, clip) for event in partition]
 
 
 def bag_from_directory(path, idx, channels, partition_size, clip):
@@ -48,10 +43,6 @@ def bag_from_directory(path, idx, channels, partition_size, clip):
     Returns:
         dask.bag: bag containing dictionaries with image data
     """
-
-
-    def load_image_partition(partition):
-        return [load_image(event, channels, clip) for event in partition]
 
     z = zarr.open(path)
     path = Path(path)
@@ -69,6 +60,6 @@ def bag_from_directory(path, idx, channels, partition_size, clip):
     meta = dask.dataframe.from_pandas(meta, chunksize=10*partition_size)
 
     bag = dask.bag.from_sequence(events, partition_size=partition_size)
-    bag = bag.map_partitions(load_image_partition)
+    bag = bag.map_partitions(load_image_partition, z, channels, clip)
 
     return bag, meta, clip

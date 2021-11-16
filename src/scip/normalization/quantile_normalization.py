@@ -96,12 +96,11 @@ def sample_normalization(sample, quantiles):
 
     qq = dict(quantiles)[sample["groupidx"]]
 
-    newsample = sample.copy()
     for i in range(len(sample["pixels"])):
         flat = sample["pixels"][i][sample["mask"][i]]
-        newsample["pixels"][i][sample["mask"][i]] = np.clip(
+        sample["pixels"][i][sample["mask"][i]] = np.clip(
             (flat - qq[i, 0]) / (qq[i, 1] - qq[i, 0]), 0, 1)
-    return newsample
+    return sample
 
 
 def quantile_normalization(images: dask.bag.Bag, lower, upper, nchannels):
