@@ -5,6 +5,7 @@ import pandas
 import zarr
 import numpy
 from pathlib import Path
+import re
 
 
 def load_image(event, z, channels, clip):
@@ -33,7 +34,7 @@ def load_image_partition(partition, z,  channels, clip):
     return [load_image(event, z, channels, clip) for event in partition]
 
 
-def bag_from_directory(path, idx, channels, partition_size, clip):
+def bag_from_directory(path, idx, channels, partition_size, clip, regex):
     """
     Construct delayed ops for all tiffs in a directory
 
@@ -44,16 +45,18 @@ def bag_from_directory(path, idx, channels, partition_size, clip):
         dask.bag: bag containing dictionaries with image data
     """
 
+    match = re.search(regex, str(path))
+    groups = match.groupdict()
+
     z = zarr.open(path)
     path = Path(path)
     events = []
     for i, obj in enumerate(z.attrs["object_number"]):
-        events.append(dict(
-            path=str(path),
-            zarr_idx=i,
-            idx=f"{idx}_{obj}",
-            group=str(path.stem)
-        ))
+        events.append({**groups, **{
+            "path": str(path),
+            "zarr_idx": i,
+            "idx": f"{idx}_{obj}"
+        }})
 
     meta = pandas.DataFrame.from_records(data=events, index="idx")
     meta.columns = [f"meta_{c}" for c in meta.columns]
