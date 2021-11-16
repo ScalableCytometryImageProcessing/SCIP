@@ -60,7 +60,7 @@ def get_images_bag(paths, channels, config, partition_size):
         images.append(bag)
         meta.append(df)
 
-    images, _ = dask.bag.concat(images)
+    images, meta = dask.bag.concat(images), dask.dataframe.concat(meta)
 
     def add_to_list(a, b):
         a.append(b["group"])
