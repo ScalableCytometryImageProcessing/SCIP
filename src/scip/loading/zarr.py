@@ -32,7 +32,7 @@ def load_image(event, channels, clip):
 
     if clip is not None:
         arr = numpy.clip(arr, 0, clip)
-    
+
     newevent["pixels"] = arr
 
     return newevent
@@ -48,7 +48,7 @@ def bag_from_directory(path, idx, channels, partition_size, clip):
     Returns:
         dask.bag: bag containing dictionaries with image data
     """
-    
+
 
     def load_image_partition(partition):
         return [load_image(event, channels, clip) for event in partition]
@@ -59,14 +59,14 @@ def bag_from_directory(path, idx, channels, partition_size, clip):
     for i, obj in enumerate(z.attrs["object_number"]):
         events.append(dict(
             path=str(path),
-            zarr_idx=i, 
-            idx=f"{idx}_{obj}", 
+            zarr_idx=i,
+            idx=f"{idx}_{obj}",
             group=str(path.stem)
         ))
 
     meta = pandas.DataFrame.from_records(data=events, index="idx")
     meta.columns = [f"meta_{c}" for c in meta.columns]
-    meta = dask.dataframe.from_pandas(meta, chunksize=partition_size)
+    meta = dask.dataframe.from_pandas(meta, chunksize=10*partition_size)
 
     bag = dask.bag.from_sequence(events, partition_size=partition_size)
     bag = bag.map_partitions(load_image_partition)
