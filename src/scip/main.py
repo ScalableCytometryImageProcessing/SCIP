@@ -30,7 +30,7 @@ import warnings
 # this warning can only be fixed by updating dask
 warnings.simplefilter("ignore", category=FutureWarning)
 
-    
+
 def set_groupidx(p, groups):
     p["groupidx"] = groups.index(p["group"])
     return p
@@ -251,8 +251,13 @@ def main(
         if method is not None:
             masking_module = import_module('scip.segmentation.%s' % config["masking"]["method"])
             logger.debug("creating masks on bag")
+
+            # in the main phase of the masking procedure, only the main
+            # channel is masked and that mask is applied to all other channels
             images = masking_module.create_masks_on_bag(
                 images,
+                main=True,
+                main_channel=config["masking"]["bbox_channel"],
                 **(config["masking"]["kwargs"] or dict())
             )
 
@@ -274,6 +279,8 @@ def main(
                 bbox_channel=config["masking"]["bbox_channel"]
             )
             images = images.filter(filter_func)
+
+            # all channels are bounding boxed based on the main channel mask
             images = images.map_partitions(
                 segmentation_util.bounding_box_partition,
                 bbox_channel=config["masking"]["bbox_channel"]
@@ -290,7 +297,17 @@ def main(
                     }
                 )
 
+            # all channels are cropped and masked based on the main channel mask
             images = images.map_partitions(segmentation_util.crop_to_mask_partition)
+            images = images.map_partitions(segmentation_util.apply_mask_partition)
+
+            # in the non-main phase of the masking procedure, the masks for the non-main
+            # channels are computed
+            images = masking_module.create_masks_on_bag(
+                images, main=False,
+                main_channel=config["masking"]["bbox_channel"],
+                **(config["masking"]["kwargs"] or dict())
+            )
             images = images.map_partitions(segmentation_util.apply_mask_partition)
 
         quantiles = None
