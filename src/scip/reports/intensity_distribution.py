@@ -47,7 +47,7 @@ def get_counts(sample, bins_per_group):
     """
 
     # Count the intensities before masking
-    bins = bins_per_group[sample["groupidx"]]
+    bins = bins_per_group[sample["group"]]
 
     if "mask" in sample:
         img = [sample["pixels"][i][sample["mask"][i]] for i in range(len(sample["pixels"]))]
@@ -60,7 +60,7 @@ def get_counts(sample, bins_per_group):
         counts[i] = np.histogram(img[i].flatten(), bins[i])[0]
 
     out = {}
-    out[sample["groupidx"]] = counts
+    out[sample["group"]] = counts
     return out
 
 

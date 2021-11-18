@@ -32,7 +32,7 @@ def get_distributed_minmax(bag, nchannels):  # noqa: C901
     init[:, 0] = np.inf
     init[:, 1] = -np.inf
     out = bag.foldby(
-        key="groupidx",
+        key="group",
         binop=combine_extent_partition,
         combine=final_minmax,
         initial=init,
@@ -94,7 +94,7 @@ def sample_normalization(sample, quantiles):
         dict: dictionary including normalized data
     """
 
-    qq = dict(quantiles)[sample["groupidx"]]
+    qq = dict(quantiles)[sample["group"]]
 
     for i in range(len(sample["pixels"])):
         flat = sample["pixels"][i][sample["mask"][i]]

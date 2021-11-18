@@ -1,7 +1,6 @@
 from scip.loading import multiframe_tiff
 from scip.segmentation import threshold, felzenswalb
 from scip.normalization import quantile_normalization
-from scip.main import set_groupidx_partition
 import dask.bag
 import pickle
 import numpy
@@ -38,7 +37,6 @@ def test_quantile_normalization(images_folder, cluster):
 def test_minmax_normalization(images_folder, cluster):
     bag, _ = multiframe_tiff.bag_from_directory(
         images_folder, idx=0, channels=[0, 1, 2], partition_size=2)
-    bag = bag.map_partitions(set_groupidx_partition, ["test/data/images"])
     bag = threshold.create_masks_on_bag(bag, noisy_channels=[0])
     bag, quantiles = quantile_normalization.quantile_normalization(bag, 0, 1, 3)
 

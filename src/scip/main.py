@@ -27,17 +27,8 @@ from scip.segmentation import util as segmentation_util  # noqa: E402
 import warnings
 # dask issues a warning during normalization
 # when initializing the map-reduce operation
-# this warning can only be fixed by updating dask
+# this warning can only be fixed by fixing dask
 warnings.simplefilter("ignore", category=FutureWarning)
-
-
-def set_groupidx(p, groups):
-    p["groupidx"] = groups.index(p["group"])
-    return p
-
-
-def set_groupidx_partition(part, groups):
-    return [set_groupidx(p, groups) for p in part]
 
 
 def get_images_bag(paths, channels, config, partition_size):
@@ -69,9 +60,7 @@ def get_images_bag(paths, channels, config, partition_size):
     def merge_lists(a, b):
         a.extend(b)
         return sorted(list(set(a)))
-
     groups = images.fold(binop=add_to_list, combine=merge_lists, initial=list())
-    images = images.map_partitions(set_groupidx_partition, groups)
 
     return images, meta, groups, maximum_pixel_value
 
