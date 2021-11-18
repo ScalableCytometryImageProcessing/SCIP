@@ -51,6 +51,7 @@ def apply(sample, origin):
     output["pixels"] = masked_img
     output["mask"] = mask
     output["mean_background"] = background.tolist()
+
     return output
 
 

@@ -279,13 +279,21 @@ def main(
                 bbox_channel=config["masking"]["bbox_channel"]
             )
             images = images.filter(filter_func)
-
+            
             # all channels are bounding boxed based on the main channel mask
             images = images.map_partitions(
                 segmentation_util.bounding_box_partition,
                 bbox_channel=config["masking"]["bbox_channel"]
             )
 
+            # in the non-main phase of the masking procedure, the masks for the non-main
+            # channels are computed and applied
+            images = masking_module.create_masks_on_bag(
+                images, 
+                main=False, main_channel=config["masking"]["bbox_channel"],
+                **(config["masking"]["kwargs"] or dict())
+            )
+            
             if config["masking"]["export"]:
                 no_pixels = images.map(remove_pixels)
                 no_pixels.to_avro(
@@ -297,19 +305,22 @@ def main(
                     }
                 )
 
-            # all channels are cropped and masked based on the main channel mask
+            # mask is applied and background values are computed 
+            images = images.map_partitions(segmentation_util.apply_mask_partition)
+
+            # all channels are cropped based on the bounding box computed above
             images = images.map_partitions(segmentation_util.crop_to_mask_partition)
-            images = images.map_partitions(segmentation_util.apply_mask_partition)
-
-            # in the non-main phase of the masking procedure, the masks for the non-main
-            # channels are computed
-            images = masking_module.create_masks_on_bag(
-                images, main=False,
-                main_channel=config["masking"]["bbox_channel"],
-                **(config["masking"]["kwargs"] or dict())
-            )
-            images = images.map_partitions(segmentation_util.apply_mask_partition)
-
+        
+            if report:
+                logger.debug("reporting example images")
+                reports.append(example_images.report(
+                    images,
+                    template_dir=template_dir,
+                    template="example_images.html",
+                    name="masked",
+                    output=output
+                ))    
+        
         quantiles = None
         if config["normalization"] is not None:
             logger.debug("performing normalization")
@@ -319,7 +330,30 @@ def main(
                 config["normalization"]["upper"],
                 len(channels)
             )
+            if report:
+                logger.debug("reporting example masked images")
+                reports.append(example_images.report(
+                    images,
+                    template_dir=template_dir,
+                    template="example_images.html",
+                    name="normalized",
+                    output=output
+                ))
 
+                logger.debug("reporting distribution of masked images")
+                tmp = numpy.array([(0, 1)] * len(channels))
+                reports.append(intensity_distribution.report(
+                    images,
+                    template_dir=template_dir,
+                    template="intensity_distribution.html",
+                    bin_amount=100,
+                    channel_labels=channel_labels,
+                    output=output,
+                    name="normalized",
+                    extent=groups.apply(
+                        lambda a: [(i, tmp) for i in range(len(a))])
+                ))
+        
         logger.debug("computing features")
         bag_df = compute_features(
             images=images,
@@ -327,30 +361,6 @@ def main(
             types=config["feature_extraction"]["types"],
             maximum_pixel_value=maximum_pixel_value
         )
-
-        if report:
-            logger.debug("reporting example masked images")
-            reports.append(example_images.report(
-                images,
-                template_dir=template_dir,
-                template="example_images.html",
-                name="normalized",
-                output=output
-            ))
-
-            logger.debug("reporting distribution of masked images")
-            tmp = numpy.array([(0, 1)] * len(channels))
-            reports.append(intensity_distribution.report(
-                images,
-                template_dir=template_dir,
-                template="intensity_distribution.html",
-                bin_amount=100,
-                channel_labels=channel_labels,
-                output=output,
-                name="normalized",
-                extent=groups.apply(
-                    lambda a: [(i, tmp) for i in range(len(a))])
-            ))
 
         f = final(
             bag_df, meta, reports, quantiles, groups,
