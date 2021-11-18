@@ -307,10 +307,7 @@ def main(
 
             # mask is applied and background values are computed 
             images = images.map_partitions(segmentation_util.apply_mask_partition)
-
-            # all channels are cropped based on the bounding box computed above
-            images = images.map_partitions(segmentation_util.crop_to_mask_partition)
-        
+ 
             if report:
                 logger.debug("reporting example images")
                 reports.append(example_images.report(

@@ -40,34 +40,21 @@ def apply(sample, origin):
     background = np.empty(shape=(len(img),), dtype=float)
 
     # Multiply image with mask to set background to zero
+    masked_img = img * mask
     for i in range(img.shape[0]):
-        masked_img[i] = img[i] * mask[i]
         if numpy.any(~mask[i]):
             background[i] = img[i][~mask[i]].mean()
         else:
             background[i] = 0
+    
+    minr, minc, maxr, maxc = sample["bbox"]
 
     output = sample.copy()
-    output["pixels"] = masked_img
-    output["mask"] = mask
+    output["pixels"] = masked_img[:, minr:maxr, minc:maxc]
+    output["mask"] = mask[:, minr:maxr, minc:maxc]
     output["mean_background"] = background.tolist()
 
     return output
-
-
-def crop_to_mask_partition(part):
-    return [crop_to_mask(p) for p in part]
-
-
-def crop_to_mask(sample):
-
-    minr, minc, maxr, maxc = sample["bbox"]
-
-    newsample = sample.copy()
-    newsample["pixels"] = sample["pixels"][:, minr:maxr, minc:maxc]
-    newsample["mask"] = sample["mask"][:, minr:maxr, minc:maxc]
-
-    return newsample
 
 
 def bounding_box_partition(part, bbox_channel):
