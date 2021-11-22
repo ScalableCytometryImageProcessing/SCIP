@@ -95,7 +95,7 @@ class ClientClusterContext:
                 nthreads=self.threads_per_process,
                 local_directory=self.local_directory,
                 memory_limit=int(self.memory * 1e9),
-                nanny=True
+                worker_class='distributed.Nanny'
             )
             self.client = Client()
 
