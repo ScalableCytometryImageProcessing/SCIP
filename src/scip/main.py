@@ -324,13 +324,19 @@ def main(
         )
         bag_df = bag_df.repartition(npartitions=10)
         bag_df = bag_df.set_index("idx")
-        bag_df = dask.dataframe.multi.concat_indexed_dataframes(
-            [bag_df, meta], axis=1
+        bag_df = dask.dataframe.multi.concat(
+            [bag_df, meta], axis=1, join="outer"
         )
 
         filename = config["export"]["filename"]
         futures.append(
-            bag_df.to_parquet(str(output), name_function=lambda x: f"{filename}.{x}.parquet"))
+            bag_df.to_parquet(
+                str(output), 
+                name_function=lambda x: f"{filename}.{x}.parquet", 
+                write_metadata_file=False,
+                engine="fastparquet"
+            )
+        )
 
         dask.compute(*futures, traverse=False)
 
