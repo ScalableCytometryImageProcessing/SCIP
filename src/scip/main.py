@@ -47,22 +47,11 @@ def get_images_bag(paths, channels, config, partition_size):
     for i, path in enumerate(paths):
         logging.info(f"Bagging {path}")
         bag, df, maximum_pixel_value = loader(path=path, idx=i)
-
         images.append(bag)
         meta.append(df)
 
     images, meta = dask.bag.concat(images), dask.dataframe.concat(meta)
-
-    def add_to_list(a, b):
-        a.append(b["group"])
-        return sorted(list(set(a)))
-
-    def merge_lists(a, b):
-        a.extend(b)
-        return sorted(list(set(a)))
-    groups = images.fold(binop=add_to_list, combine=merge_lists, initial=list())
-
-    return images, meta, groups, maximum_pixel_value
+    return images, meta, maximum_pixel_value
 
 
 def compute_features(images, nchannels, types, maximum_pixel_value):
@@ -113,7 +102,7 @@ def remove_pixels(event):
 
 
 @dask.delayed
-def final(reports, quantiles, groups, *, config, template_dir, output):
+def channel_boundaries(quantiles, *, config, output):
     if quantiles is not None:
         data = []
         index = []
@@ -199,13 +188,13 @@ def main(
         logger.debug("loading images in to bags")
 
         with dask.config.set(**{'array.slicing.split_large_chunks': False}):
-            images, meta, groups, maximum_pixel_value = get_images_bag(
+            images, meta, maximum_pixel_value = get_images_bag(
                 paths, channels, config, partition_size)
 
-        reports = []
+        futures = []
         if report:
             logger.debug("reporting example images")
-            reports.append(example_images.report(
+            futures.append(example_images.report(
                 images,
                 template_dir=template_dir,
                 template="example_images.html",
@@ -213,7 +202,7 @@ def main(
                 output=output
             ))
             logger.debug("reporting on image distributions")
-            reports.append(intensity_distribution.report(
+            futures.append(intensity_distribution.report(
                 images,
                 template_dir=template_dir,
                 template="intensity_distribution.html",
@@ -239,7 +228,7 @@ def main(
 
             if report:
                 logger.debug("mask report")
-                reports.append(masks.report(
+                futures.append(masks.report(
                     images,
                     template_dir=template_dir,
                     template="masks.html",
@@ -286,7 +275,7 @@ def main(
 
             if report:
                 logger.debug("reporting example images")
-                reports.append(example_images.report(
+                futures.append(example_images.report(
                     images,
                     template_dir=template_dir,
                     template="example_images.html",
@@ -303,9 +292,10 @@ def main(
                 config["normalization"]["upper"],
                 len(channels)
             )
+            futures.append(channel_boundaries(quantiles, config=config, output=output))
             if report:
                 logger.debug("reporting example masked images")
-                reports.append(example_images.report(
+                futures.append(example_images.report(
                     images,
                     template_dir=template_dir,
                     template="example_images.html",
@@ -314,8 +304,7 @@ def main(
                 ))
 
                 logger.debug("reporting distribution of masked images")
-                tmp = numpy.array([(0, 1)] * len(channels))
-                reports.append(intensity_distribution.report(
+                futures.append(intensity_distribution.report(
                     images,
                     template_dir=template_dir,
                     template="intensity_distribution.html",
@@ -323,8 +312,7 @@ def main(
                     channel_labels=channel_labels,
                     output=output,
                     name="normalized",
-                    extent=groups.apply(
-                        lambda a: [(i, tmp) for i in range(len(a))])
+                    extent=numpy.array([(0, 1)] * len(channels))
                 ))
 
         logger.debug("computing features")
@@ -340,20 +328,13 @@ def main(
             [bag_df, meta], axis=1
         )
 
-        f1 = final(
-            reports, quantiles, groups,
-            config=config,
-            output=output,
-            template_dir=template_dir
-        )
-
         filename = config["export"]["filename"]
-        f2 = bag_df.to_parquet(str(output), name_function=lambda x: f"{filename}.{x}.parquet")
+        futures.append(
+            bag_df.to_parquet(str(output), name_function=lambda x: f"{filename}.{x}.parquet"))
 
-        dask.compute(f1, f2, traverse=False)
+        dask.compute(*futures, traverse=False)
 
         if debug:
-            f1.visualize(filename=str(output / "final.svg"))
             context.client.profile(filename=str(output / "profile.html"))
 
     runtime = time.time() - start
