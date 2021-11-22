@@ -113,25 +113,12 @@ def remove_pixels(event):
 
 
 @dask.delayed
-def final(features, meta, reports, quantiles, groups, *, config, template_dir, output):
-    if (len(reports) > 0) and (all(reports)):
-        feature_statistics.report(
-            features,
-            template_dir=template_dir,
-            template="feature_statistics.html",
-            output=output
-        )
-
-    features = features.set_index("idx")
-    features = pandas.concat([features, meta], axis=1)
-    filename = config["export"]["filename"]
-    features.to_parquet(str(output / f"{filename}.parquet"))
-
+def final(reports, quantiles, groups, *, config, template_dir, output):
     if quantiles is not None:
         data = []
         index = []
         for k, v in quantiles:
-            index.append(groups[k])
+            index.append(k)
             out = {}
             for channel, r in zip(config["loading"]["channel_labels"], v):
                 out[f"{channel}_min"] = r[0]
@@ -268,7 +255,7 @@ def main(
                 bbox_channel=config["masking"]["bbox_channel"]
             )
             images = images.filter(filter_func)
-            
+
             # all channels are bounding boxed based on the main channel mask
             images = images.map_partitions(
                 segmentation_util.bounding_box_partition,
@@ -278,11 +265,11 @@ def main(
             # in the non-main phase of the masking procedure, the masks for the non-main
             # channels are computed and applied
             images = masking_module.create_masks_on_bag(
-                images, 
+                images,
                 main=False, main_channel=config["masking"]["bbox_channel"],
                 **(config["masking"]["kwargs"] or dict())
             )
-            
+
             if config["masking"]["export"]:
                 no_pixels = images.map(remove_pixels)
                 no_pixels.to_avro(
@@ -294,9 +281,9 @@ def main(
                     }
                 )
 
-            # mask is applied and background values are computed 
+            # mask is applied and background values are computed
             images = images.map_partitions(segmentation_util.apply_mask_partition)
- 
+
             if report:
                 logger.debug("reporting example images")
                 reports.append(example_images.report(
@@ -305,8 +292,8 @@ def main(
                     template="example_images.html",
                     name="masked",
                     output=output
-                ))    
-        
+                ))
+
         quantiles = None
         if config["normalization"] is not None:
             logger.debug("performing normalization")
@@ -339,7 +326,7 @@ def main(
                     extent=groups.apply(
                         lambda a: [(i, tmp) for i in range(len(a))])
                 ))
-        
+
         logger.debug("computing features")
         bag_df = compute_features(
             images=images,
@@ -347,17 +334,26 @@ def main(
             types=config["feature_extraction"]["types"],
             maximum_pixel_value=maximum_pixel_value
         )
+        bag_df = bag_df.repartition(npartitions=10)
+        bag_df = bag_df.set_index("idx")
+        bag_df = dask.dataframe.multi.concat_indexed_dataframes(
+            [bag_df, meta], axis=1
+        )
 
-        f = final(
-            bag_df, meta, reports, quantiles, groups,
+        f1 = final(
+            reports, quantiles, groups,
             config=config,
             output=output,
             template_dir=template_dir
         )
-        f.compute()
+
+        filename = config["export"]["filename"]
+        f2 = bag_df.to_parquet(str(output), name_function=lambda x: f"{filename}.{x}.parquet")
+
+        dask.compute(f1, f2, traverse=False)
 
         if debug:
-            f.visualize(filename=str(output / "final.svg"))
+            f1.visualize(filename=str(output / "final.svg"))
             context.client.profile(filename=str(output / "profile.html"))
 
     runtime = time.time() - start
