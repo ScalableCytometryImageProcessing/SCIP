@@ -25,7 +25,8 @@ setuptools.setup(
         'centrosome',
         'mpi4py',
         'bokeh',
-        'zarr'
+        'zarr',
+        'fastparquet'
     ],
     entry_points={
         'console_scripts': [

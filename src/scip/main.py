@@ -44,13 +44,15 @@ def get_images_bag(paths, channels, config, partition_size):
     meta = []
     maximum_pixel_value = 0
 
-    for i, path in enumerate(paths):
+    idx = 0
+    for path in paths:
         logging.info(f"Bagging {path}")
-        bag, df, maximum_pixel_value = loader(path=path, idx=i)
+        bag, df, maximum_pixel_value, idx = loader(path=path, idx=idx)
         images.append(bag)
         meta.append(df)
 
     images, meta = dask.bag.concat(images), dask.dataframe.concat(meta)
+    meta = meta.repartition(npartitions=10)
     return images, meta, maximum_pixel_value
 
 
@@ -322,8 +324,7 @@ def main(
             types=config["feature_extraction"]["types"],
             maximum_pixel_value=maximum_pixel_value
         )
-        bag_df = bag_df.repartition(npartitions=10)
-        bag_df = bag_df.set_index("idx")
+        bag_df = bag_df.set_index("idx", npartitions=10)
         bag_df = dask.dataframe.multi.concat(
             [bag_df, meta], axis=1, join="outer"
         )

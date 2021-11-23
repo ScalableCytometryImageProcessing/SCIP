@@ -55,14 +55,15 @@ def bag_from_directory(path, idx, channels, partition_size, clip, regex):
         events.append({**groups, **{
             "path": str(path),
             "zarr_idx": i,
-            "idx": f"{idx}_{obj}"
+            "object_number": obj,
+            "idx": idx+i
         }})
 
     meta = pandas.DataFrame.from_records(data=events, index="idx")
     meta.columns = [f"meta_{c}" for c in meta.columns]
-    meta = dask.dataframe.from_pandas(meta, chunksize=10*partition_size)
+    meta = dask.dataframe.from_pandas(meta, npartitions=1)
 
     bag = dask.bag.from_sequence(events, partition_size=partition_size)
     bag = bag.map_partitions(load_image_partition, z, channels, clip)
 
-    return bag, meta, clip
+    return bag, meta, clip, len(z)

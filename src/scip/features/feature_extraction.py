@@ -63,7 +63,7 @@ def extract_features(
 
     images = images.map_partitions(features_partition)
 
-    meta = {"idx": str}
+    meta = {"idx": int}
     if "bbox" in types:
         meta.update(bbox_features_meta(nchannels))
     if "shape" in types:
