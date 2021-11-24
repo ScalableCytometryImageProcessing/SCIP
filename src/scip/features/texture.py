@@ -73,7 +73,7 @@ def texture_features(sample, maximum_pixel_value):
         for j in range(len(hog_features)):
             out[f'hog_{j}_{i}'] = hog_features[j]
 
-        out["shannon_entropy_{i}"] = shannon_entropy(pixels+1)
+        out["shannon_entropy_{i}"] = shannon_entropy(pixels + 1)
 
         return out
 

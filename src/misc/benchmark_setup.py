@@ -7,7 +7,6 @@ import os
 
 def main():
 
-
     output = Path(os.environ["VSC_DATA_VO_USER"]) / "results/scip_benchmark"
     output = output / Path("benchmark_%s" % datetime.now().strftime("%Y%m%d%H%M%S"))
     output.mkdir()

@@ -30,7 +30,7 @@ def load_image(event, z, channels, clip):
     return event
 
 
-def load_image_partition(partition, z,  channels, clip):
+def load_image_partition(partition, z, channels, clip):
     return [load_image(event, z, channels, clip) for event in partition]
 
 
@@ -56,7 +56,7 @@ def bag_from_directory(path, idx, channels, partition_size, clip, regex):
             "path": str(path),
             "zarr_idx": i,
             "object_number": obj,
-            "idx": idx+i
+            "idx": idx + i
         }})
 
     meta = pandas.DataFrame.from_records(data=events, index="idx")
@@ -66,4 +66,4 @@ def bag_from_directory(path, idx, channels, partition_size, clip, regex):
     bag = dask.bag.from_sequence(events, partition_size=partition_size)
     bag = bag.map_partitions(load_image_partition, z, channels, clip)
 
-    return bag, meta, clip, idx+len(z)
+    return bag, meta, clip, idx + len(z)

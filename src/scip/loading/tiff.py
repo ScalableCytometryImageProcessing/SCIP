@@ -6,7 +6,6 @@ import dask.dataframe
 import tifffile
 import logging
 import numpy
-from skimage import util
 logging.getLogger("tifffile").setLevel(logging.ERROR)
 
 

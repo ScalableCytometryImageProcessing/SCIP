@@ -1,5 +1,5 @@
 from scip.loading import multiframe_tiff
-from scip.segmentation import threshold, felzenswalb
+from scip.segmentation import threshold
 from scip.normalization import quantile_normalization
 import dask.bag
 import pickle
@@ -28,16 +28,17 @@ def test_distributed_partitioned_quantile(data, cluster):
 def test_quantile_normalization(images_folder, cluster):
     bag, _ = multiframe_tiff.bag_from_directory(
         images_folder, idx=0, channels=[0, 1, 2], partition_size=2)
-    bag = felzenswalb.create_masks_on_bag(bag, noisy_channels=[0])
+    bag = threshold.create_masks_on_bag(bag, main=True, main_channel=0)
     bag, quantiles = quantile_normalization.quantile_normalization(bag, 0.05, 0.95, 3)
 
     bag = bag.compute()
+    quantiles.compute()
 
 
 def test_minmax_normalization(images_folder, cluster):
     bag, _ = multiframe_tiff.bag_from_directory(
         images_folder, idx=0, channels=[0, 1, 2], partition_size=2)
-    bag = threshold.create_masks_on_bag(bag, noisy_channels=[0])
+    bag = threshold.create_masks_on_bag(bag, main=True, main_channel=0)
     bag, quantiles = quantile_normalization.quantile_normalization(bag, 0, 1, 3)
 
     bag = bag.compute()

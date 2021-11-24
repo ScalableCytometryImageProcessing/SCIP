@@ -77,7 +77,7 @@ def intensity_features(sample):
         # compute features only on edge pixels
         conv = convolve(
             sample["mask"][i],
-            weights=numpy.ones(shape=[3,3], dtype=int),
+            weights=numpy.ones(shape=[3, 3], dtype=int),
             mode="constant"
         )
         edge = (conv > 0) & (conv < 9)

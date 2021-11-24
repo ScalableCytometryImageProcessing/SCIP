@@ -8,7 +8,7 @@ from scip.segmentation import util
 def get_mask(el, main, main_channel):
 
     if main:
-        regions = [0]*len(el["pixels"])
+        regions = [0] * len(el["pixels"])
         mask, cc = numpy.full(shape=el["pixels"].shape, dtype=bool, fill_value=False), 0
         x = el["pixels"][main_channel]
         if (normaltest(x.ravel()).pvalue < 0.05):

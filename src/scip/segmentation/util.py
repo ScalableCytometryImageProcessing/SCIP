@@ -48,7 +48,7 @@ def apply(sample, origin):
             background[i] = img[i][~mask[i]].mean()
         else:
             background[i] = 0
-    
+
     minr, minc, maxr, maxc = sample["bbox"]
 
     output = copy_without(sample, ["pixels", "mask"])

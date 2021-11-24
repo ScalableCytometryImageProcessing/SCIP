@@ -29,13 +29,13 @@ def bbox_features(p):
     return d
 
 
-def extract_features(
+def extract_features(  # noqa: C901
     *,
     images: dask.bag.Bag,
     nchannels: int,
     types: list,
     maximum_pixel_value: int
-):  # noqa: C901
+):
     """
     Extract features from pixel data
 
