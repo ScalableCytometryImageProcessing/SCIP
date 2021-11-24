@@ -150,3 +150,10 @@ def make_output_dir(output, headless):
         shutil.rmtree(output)
     if not output.exists():
         output.mkdir(parents=True)
+
+
+def copy_without(event, without=[]):
+    return {
+        k: v for k, v in event.items()
+        if k not in without
+    }

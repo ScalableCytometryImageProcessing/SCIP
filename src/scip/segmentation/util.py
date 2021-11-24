@@ -4,6 +4,8 @@ import numpy
 from skimage.morphology import remove_small_objects, label, remove_small_holes
 from skimage.segmentation import expand_labels
 
+from scip.utils.util import copy_without
+
 
 def mask_predicate(s, bbox_channel):
 
@@ -49,7 +51,7 @@ def apply(sample, origin):
     
     minr, minc, maxr, maxc = sample["bbox"]
 
-    output = sample.copy()
+    output = copy_without(sample, ["pixels", "mask"])
     output["pixels"] = masked_img[:, minr:maxr, minc:maxc]
     output["mask"] = mask[:, minr:maxr, minc:maxc]
     output["mean_background"] = background.tolist()

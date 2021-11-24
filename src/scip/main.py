@@ -11,6 +11,8 @@ import numpy
 import os
 import socket
 import pandas
+from scip.utils.util import copy_without
+
 
 import matplotlib
 matplotlib.use("Agg")
@@ -96,10 +98,9 @@ def get_schema(event):
 
 
 def remove_pixels(event):
-    newevent = event.copy()
-    del newevent["pixels"]
-    newevent["shape"] = list(newevent["mask"].shape)
-    newevent["mask"] = newevent["mask"].ravel()
+    newevent = copy_without(event, ["pixels", "shape", "mask"])
+    newevent["shape"] = list(event["mask"].shape)
+    newevent["mask"] = event["mask"].ravel()
     return newevent
 
 
