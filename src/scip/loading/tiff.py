@@ -36,34 +36,36 @@ def bag_from_directory(*, path, idx, channels, partition_size, regex, clip):
 
     logger = logging.getLogger(__name__)
 
-    def match(p):
-        m = re.search(regex, str(p))
-        if m is not None:
-            groups = m.groupdict()
-            gid = groups["id"]
-            groups["id"] = f"{idx}_{gid}"
-            return {**groups, **dict(path=str(p))}
-        else:
-            return None
-
     def load_image_partition(partition):
         return [load_image(event, channels, clip) for event in partition]
 
     path = Path(path)
 
-    matches = list(filter(lambda r: r is not None, map(match, path.glob("*.tif*"))))
+    matches = []
+    i = 0
+    for p in path.glob("*.tif"):
+        m = re.search(regex, str(p))
+        if m is not None:
+            groups = m.groupdict()
+            matches.append({
+                **groups,
+                **dict(path=str(p))
+            })
+            i += 1
+
     df = pandas.DataFrame.from_dict(matches)
     df1 = df.pivot(index="id", columns="channel", values="path")
     df = df.set_index("id")
     df2 = df.loc[~df.index.duplicated(keep='first'), df.drop(columns=["path"]).columns]
 
     df = pandas.concat([df1, df2], axis=1)
-    df.index.name = "idx"
 
     pre_filter = len(df)
     df = df[~df1.isna().any(axis=1)]
     dropped = pre_filter - len(df)
     logger.warning("Dropped %d rows because of missing channel files in %s" % (dropped, str(path)))
+
+    df = df.set_index(pandas.RangeIndex(start=idx, stop=idx+len(df), name='idx'))
 
     bag = dask.bag.from_sequence(
         df.reset_index(drop=False).to_dict(orient="records"), partition_size=partition_size)
@@ -71,4 +73,4 @@ def bag_from_directory(*, path, idx, channels, partition_size, regex, clip):
 
     df.columns = [f"meta_{c}" for c in df.columns]
     meta = dask.dataframe.from_pandas(df, chunksize=partition_size)
-    return bag, meta, clip
+    return bag, meta, clip, idx+len(df)
