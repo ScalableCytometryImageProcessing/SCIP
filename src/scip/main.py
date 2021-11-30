@@ -53,7 +53,7 @@ def get_images_bag(paths, channels, config, partition_size):
         meta.append(df)
 
     images, meta = dask.bag.concat(images), dask.dataframe.concat(meta)
-    meta = meta.repartition(npartitions=10)
+    meta = meta.repartition(npartitions=1)
     return images, meta, maximum_pixel_value
 
 

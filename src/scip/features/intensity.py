@@ -102,6 +102,8 @@ def intensity_features(sample):
             f'edge_upper_quartile_{i}': quartiles[1],
             f'edge_sum_{i}': numpy.sum(pixels)
         })
+        d[f"edge_modulation_{i}"] = (
+            d[f"edge_max_{i}"] - d[f"edge_min_{i}"]) / ((d[f"edge_max_{i}"] + d[f"edge_min_{i}"]))
 
         return d
 

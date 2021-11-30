@@ -14,8 +14,10 @@ def texture_features_meta(nchannels):
     out = {}
     for i in range(nchannels):
         for n in distances:
-            out.update({f"glcm_{p}_{n}_{i}": float for p in greycoprops})
-            out.update({f"bgcorr_glcm_{p}_{n}_{i}": float for p in greycoprops})
+            out.update({f"glcm_mean_{p}_{n}_{i}": float for p in greycoprops})
+            out.update({f"glcm_std_{p}_{n}_{i}": float for p in greycoprops})
+            out.update({f"bgcorr_glcm_mean_{p}_{n}_{i}": float for p in greycoprops})
+            out.update({f"bgcorr_glcm_std_{p}_{n}_{i}": float for p in greycoprops})
         out[f"shannon_entropy_{i}"] = float
         out[f"bgcorr_shannon_entropy_{i}"] = float
         out[f"sobel_mean_{i}"] = float
