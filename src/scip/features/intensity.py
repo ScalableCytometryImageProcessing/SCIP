@@ -13,6 +13,7 @@ def intensity_features_meta(nchannels):
         'skewness',
         'kurtosis',
         'sum',
+        'modulation',
         'edge_mean',
         'edge_max',
         'edge_min',
@@ -21,6 +22,7 @@ def intensity_features_meta(nchannels):
         'edge_skewness',
         'edge_kurtosis',
         'edge_sum',
+        'edge_modulation',
         'bgcorr_mean',
         'bgcorr_max',
         'bgcorr_min',
@@ -29,6 +31,7 @@ def intensity_features_meta(nchannels):
         'bgcorr_skewness',
         'bgcorr_kurtosis',
         'bgcorr_sum',
+        'bgcorr_modulation',
         'bgcorr_edge_mean',
         'bgcorr_edge_max',
         'bgcorr_edge_min',
@@ -36,7 +39,8 @@ def intensity_features_meta(nchannels):
         'bgcorr_edge_mad',
         'bgcorr_edge_skewness',
         'bgcorr_edge_kurtosis',
-        'bgcorr_edge_sum'
+        'bgcorr_edge_sum',
+        'bgcorr_edge_modulation'
     ]
     out = {}
     for i in range(nchannels):
@@ -73,6 +77,7 @@ def intensity_features(sample):
             f'upper_quartile_{i}': quartiles[1],
             f'sum_{i}': numpy.sum(pixels)
         }
+        d[f"modulation_{i}"] = (d[f"max_{i}"] - d[f"min_{i}"]) / ((d[f"max_{i}"] + d[f"min_{i}"]))
 
         # compute features only on edge pixels
         conv = convolve(

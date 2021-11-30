@@ -1,6 +1,7 @@
 import numpy
-from skimage.feature import hog, greycomatrix, greycoprops
+from skimage.feature import greycomatrix, greycoprops
 from skimage.measure import shannon_entropy
+from skimage.filters import sobel
 import skimage
 
 
@@ -9,17 +10,18 @@ distances = [3, 5]
 
 def texture_features_meta(nchannels):
     greycoprops = ['contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation', 'ASM']
-    nhog = 36
 
     out = {}
     for i in range(nchannels):
         for n in distances:
             out.update({f"glcm_{p}_{n}_{i}": float for p in greycoprops})
             out.update({f"bgcorr_glcm_{p}_{n}_{i}": float for p in greycoprops})
-        out.update({f"hog_{j}_{i}": float for j in range(nhog)})
-        out.update({f"bgcorr_hog_{j}_{i}": float for j in range(nhog)})
         out[f"shannon_entropy_{i}"] = float
         out[f"bgcorr_shannon_entropy_{i}"] = float
+        out[f"sobel_mean_{i}"] = float
+        out[f"sobel_std_{i}"] = float
+        out[f"sobel_max_{i}"] = float
+        out[f"sobel_min_{i}"] = float
     return out
 
 
@@ -34,15 +36,7 @@ def texture_features(sample, maximum_pixel_value):
 
     """
 
-    def row(pixels, pixels_per_cell, i):
-        hog_features = hog(
-            pixels,
-            orientations=4,
-            pixels_per_cell=pixels_per_cell,
-            cells_per_block=(1, 1),
-            visualize=False
-        )
-
+    def row(pixels, i, bg_subbed=False):
         angles = [
             numpy.pi / 4,  # 45 degrees
             3 * numpy.pi / 4,  # 135 degrees
@@ -65,36 +59,28 @@ def texture_features(sample, maximum_pixel_value):
         out = {}
         for prop in ['contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation', 'ASM']:
             v = greycoprops(glcm, prop=prop)
+            for d, (mu, std) in enumerate(zip(v.mean(axis=1), v.std(axis=1))):
+                out[f'glcm_mean_{prop}_{distances[d]}_{i}'] = mu
+                out[f'glcm_std_{prop}_{distances[d]}_{i}'] = std
 
-            for d, p in enumerate(v.mean(axis=1)):
-                out[f'glcm_{prop}_{distances[d]}_{i}'] = p
+        out["shannon_entropy_{i}"] = shannon_entropy(int_img)
 
-        # put hog features in dictionary
-        for j in range(len(hog_features)):
-            out[f'hog_{j}_{i}'] = hog_features[j]
-
-        out["shannon_entropy_{i}"] = shannon_entropy(pixels + 1)
+        if not bg_subbed:
+            s = sobel(pixels)
+            out[f"sobel_mean_{i}"] = s.mean()
+            out[f"sobel_std_{i}"] = s.std()
+            out[f"sobel_max_{i}"] = s.max()
+            out[f"sobel_min_{i}"] = s.min()
 
         return out
-
-    # the amount of hog features depends on the size of the input image, which is not uniform
-    # for most datasets. Therefore, we dynamically compute the HOG parameters so that there is
-    # always a 3x3 cell grid leading to a uniform length feature vector
-    pixels_per_cell = sample["pixels"].shape[1] // 3, sample["pixels"].shape[2] // 3
 
     features_dict = {}
     for i in range(len(sample["pixels"])):
         if numpy.any(sample["mask"][i]):
-            features_dict.update(
-                row(
-                    sample["pixels"][i],
-                    pixels_per_cell,
-                    i
-                )
-            )
+            features_dict.update(row(sample["pixels"][i], i))
             bg_sub = sample["pixels"][i].copy()
             bg_sub[sample["mask"][i]] -= sample["mean_background"][i]
-            for k, v in row(bg_sub, pixels_per_cell, i).items():
+            for k, v in row(bg_sub, i, bg_subbed=True).items():
                 features_dict[f"bgcorr_{k}"] = v
 
     return features_dict
