@@ -13,9 +13,12 @@ def get_mask(el, main, main_channel):
         x = el["pixels"][main_channel]
         if (normaltest(x.ravel()).pvalue < 0.05):
             x = sobel(x)
-            x = closing(x, selem=disk(4))
+            x = closing(x, selem=disk(2))
             x = threshold_otsu(x) < x
-            mask[main_channel], cc = util.mask_post_process(x)
+            x = remove_small_holes(x, area_threshold=40)
+            x = remove_small_objects(x, min_size=5)
+            x = label(x)
+            mask[main_channel], cc = x > 0, x.max()
         regions[main_channel] = cc
     else:
         regions = []
