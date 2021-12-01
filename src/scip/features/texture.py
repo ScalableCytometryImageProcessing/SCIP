@@ -16,14 +16,16 @@ def texture_features_meta(nchannels):
         for n in distances:
             out.update({f"glcm_mean_{p}_{n}_{i}": float for p in greycoprops})
             out.update({f"glcm_std_{p}_{n}_{i}": float for p in greycoprops})
-            out.update({f"bgcorr_glcm_mean_{p}_{n}_{i}": float for p in greycoprops})
-            out.update({f"bgcorr_glcm_std_{p}_{n}_{i}": float for p in greycoprops})
-        out[f"shannon_entropy_{i}"] = float
-        out[f"bgcorr_shannon_entropy_{i}"] = float
+            out.update({f"combined_glcm_mean_{p}_{n}_{i}": float for p in greycoprops})
+            out.update({f"combined_glcm_std_{p}_{n}_{i}": float for p in greycoprops})
         out[f"sobel_mean_{i}"] = float
         out[f"sobel_std_{i}"] = float
         out[f"sobel_max_{i}"] = float
         out[f"sobel_min_{i}"] = float
+        out[f"combined_sobel_mean_{i}"] = float
+        out[f"combined_sobel_std_{i}"] = float
+        out[f"combined_sobel_max_{i}"] = float
+        out[f"combined_sobel_min_{i}"] = float
     return out
 
 
@@ -38,7 +40,7 @@ def texture_features(sample, maximum_pixel_value):
 
     """
 
-    def row(pixels, i, bg_subbed=False):
+    def row(pixels, i):
         angles = [
             numpy.pi / 4,  # 45 degrees
             3 * numpy.pi / 4,  # 135 degrees
@@ -65,24 +67,27 @@ def texture_features(sample, maximum_pixel_value):
                 out[f'glcm_mean_{prop}_{distances[d]}_{i}'] = mu
                 out[f'glcm_std_{prop}_{distances[d]}_{i}'] = std
 
-        out["shannon_entropy_{i}"] = shannon_entropy(int_img)
-
-        if not bg_subbed:
-            s = sobel(pixels)
-            out[f"sobel_mean_{i}"] = s.mean()
-            out[f"sobel_std_{i}"] = s.std()
-            out[f"sobel_max_{i}"] = s.max()
-            out[f"sobel_min_{i}"] = s.min()
+        s = sobel(pixels)
+        out[f"sobel_mean_{i}"] = s.mean()
+        out[f"sobel_std_{i}"] = s.std()
+        out[f"sobel_max_{i}"] = s.max()
+        out[f"sobel_min_{i}"] = s.min()
 
         return out
 
     features_dict = {}
+
+    mask_pixels = sample["pixels"] * sample["mask"]
+    combined_mask_pixels = sample["pixels"] * sample["combined_mask"][numpy.newaxis, ...]
     for i in range(len(sample["pixels"])):
+
+        # compute features on channel specific mask
         if numpy.any(sample["mask"][i]):
-            features_dict.update(row(sample["pixels"][i], i))
-            bg_sub = sample["pixels"][i].copy()
-            bg_sub[sample["mask"][i]] -= sample["mean_background"][i]
-            for k, v in row(bg_sub, i, bg_subbed=True).items():
-                features_dict[f"bgcorr_{k}"] = v
+            features_dict.update(row(mask_pixels[i], i))
+
+        # always compute features on combined mask (it can never be empty)
+        out = row(combined_mask_pixels[i], i)
+        for k in out.keys():
+            features_dict[f"combined_{k}"] = out[k]
 
     return features_dict

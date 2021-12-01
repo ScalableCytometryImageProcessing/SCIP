@@ -21,10 +21,10 @@ def mask_predicate(s, bbox_channel):
 
 
 def apply_mask_partition(part):
-    return [apply(p, "mask") for p in part]
+    return [apply(p) for p in part]
 
 
-def apply(sample, origin):
+def apply(sample):
     """
     Apply binary mask on every channel
 
@@ -37,24 +37,27 @@ def apply(sample, origin):
     """
 
     img = sample["pixels"]
-    mask = sample[origin]
-    masked_img = np.empty(img.shape, dtype=float)
+    mask = sample["mask"]
+    combined_mask = numpy.sum(mask, axis=0) > 0
     background = np.empty(shape=(len(img),), dtype=float)
+    combined_background = np.empty(shape=(len(img),), dtype=float)
 
     # Multiply image with mask to set background to zero
-    masked_img = img * mask
     for i in range(img.shape[0]):
         if numpy.any(~mask[i]):
             background[i] = img[i][~mask[i]].mean()
         else:
             background[i] = 0
+        combined_background[i] = img[i][~combined_mask].mean()
 
     minr, minc, maxr, maxc = sample["bbox"]
 
     output = copy_without(sample, ["pixels", "mask"])
-    output["pixels"] = masked_img[:, minr:maxr, minc:maxc]
+    output["pixels"] = img[:, minr:maxr, minc:maxc]
     output["mask"] = mask[:, minr:maxr, minc:maxc]
-    output["mean_background"] = background.tolist()
+    output["combined_mask"] = combined_mask[minr:maxr, minc:maxc]
+    output["background"] = background.tolist()
+    output["combined_background"] = combined_background.tolist()
 
     return output
 

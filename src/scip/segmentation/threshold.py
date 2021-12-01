@@ -2,7 +2,6 @@ import numpy
 from skimage.morphology import closing, disk, remove_small_holes, remove_small_objects, label
 from skimage.filters import threshold_otsu, sobel, gaussian
 from scipy.stats import normaltest
-from scip.segmentation import util
 
 
 def get_mask(el, main, main_channel):
@@ -15,8 +14,8 @@ def get_mask(el, main, main_channel):
             x = sobel(x)
             x = closing(x, selem=disk(2))
             x = threshold_otsu(x) < x
-            x = remove_small_holes(x, area_threshold=40)
-            x = remove_small_objects(x, min_size=5)
+            x = remove_small_holes(x, area_threshold=100)
+            x = remove_small_objects(x, min_size=20)
             x = label(x)
             mask[main_channel], cc = x > 0, x.max()
         regions[main_channel] = cc
@@ -42,7 +41,7 @@ def get_mask(el, main, main_channel):
                 x = threshold_otsu(x) < x
                 x[[0, -1], :] = 0
                 x[:, [0, -1]] = 0
-                x = remove_small_holes(x, area_threshold=40)
+                x = remove_small_holes(x, area_threshold=100)
                 x = remove_small_objects(x, min_size=5)
                 x = label(x)
                 mask[dim, bbox[0]:bbox[2], bbox[1]:bbox[3]], cc = x > 0, x.max()
