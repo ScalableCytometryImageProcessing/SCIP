@@ -11,7 +11,7 @@ loading:
     clip: 4096
 masking:
   method: watershed
-  bbox_channel: 0
+  bbox_channel_index: 0
   export: false
   kwargs:
     noisy_channels: [0]

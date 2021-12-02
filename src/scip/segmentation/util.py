@@ -7,14 +7,14 @@ from skimage.segmentation import expand_labels
 from scip.utils.util import copy_without
 
 
-def mask_predicate(s, bbox_channel):
+def mask_predicate(s, bbox_channel_index):
 
-    # a mask should be present in the bbox_channel
-    if not numpy.any(s["mask"][bbox_channel]):
+    # a mask should be present in the bbox_channel_index
+    if not numpy.any(s["mask"][bbox_channel_index]):
         return False
 
     # only one connected component should be found in the bbox channel
-    if s["regions"][bbox_channel] != 1:
+    if s["regions"][bbox_channel_index] != 1:
         return False
 
     return True
@@ -62,12 +62,12 @@ def apply(sample):
     return output
 
 
-def bounding_box_partition(part, bbox_channel):
-    return [get_bounding_box(event, bbox_channel) for event in part]
+def bounding_box_partition(part, bbox_channel_index):
+    return [get_bounding_box(event, bbox_channel_index) for event in part]
 
 
-def get_bounding_box(event, bbox_channel):
-    mask = np.where(event["mask"][bbox_channel], 1, 0)
+def get_bounding_box(event, bbox_channel_index):
+    mask = np.where(event["mask"][bbox_channel_index], 1, 0)
     bbox = list(regionprops(mask)[0].bbox)
 
     newevent = event.copy()

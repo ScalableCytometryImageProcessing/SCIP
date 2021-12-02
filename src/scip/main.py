@@ -224,7 +224,7 @@ def main(
             images = masking_module.create_masks_on_bag(
                 images,
                 main=True,
-                main_channel=config["masking"]["bbox_channel"],
+                main_channel=config["masking"]["bbox_channel_index"],
                 **(config["masking"]["kwargs"] or dict())
             )
 
@@ -243,21 +243,21 @@ def main(
 
             filter_func = partial(
                 segmentation_util.mask_predicate,
-                bbox_channel=config["masking"]["bbox_channel"]
+                bbox_channel_index=config["masking"]["bbox_channel_index"]
             )
             images = images.filter(filter_func)
 
             # all channels are bounding boxed based on the main channel mask
             images = images.map_partitions(
                 segmentation_util.bounding_box_partition,
-                bbox_channel=config["masking"]["bbox_channel"]
+                bbox_channel_index=config["masking"]["bbox_channel_index"]
             )
 
             # in the non-main phase of the masking procedure, the masks for the non-main
             # channels are computed and applied
             images = masking_module.create_masks_on_bag(
                 images,
-                main=False, main_channel=config["masking"]["bbox_channel"],
+                main=False, main_channel=config["masking"]["bbox_channel_index"],
                 **(config["masking"]["kwargs"] or dict())
             )
 

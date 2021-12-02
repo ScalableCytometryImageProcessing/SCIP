@@ -12,7 +12,7 @@ loading:
     clip: 4096
 masking:
   method: threshold
-  bbox_channel: 0
+  bbox_channel_index: 0
   export: false
   kwargs:
 normalization:
