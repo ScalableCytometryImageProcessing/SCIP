@@ -70,7 +70,7 @@ def report(
         template,
         template_dir,
         bin_amount,
-        channel_labels,
+        channel_names,
         output,
         name,
         extent=None
@@ -82,7 +82,7 @@ def report(
     Args:
         bag (dask.bag): bag containing dictionaries with image data
         bin_amount (int): number of bins to use for intensity binning
-        channel_labels ([str]): names of image channels
+        channel_names ([str]): names of image channels
         output (str): output file name
 
     Returns:
@@ -107,13 +107,13 @@ def report(
         """
 
         fig, axes = plt.subplots(
-            len(counts_per_group), len(channel_labels), squeeze=False, figsize=(10, 5))
+            len(counts_per_group), len(channel_names), squeeze=False, figsize=(10, 5))
         for i, k in enumerate(counts_per_group.keys()):
             counts = counts_per_group[k]
             bins = bins_per_group[k]
 
-            for j in range(len(channel_labels)):
-                axes[i, j].set_title(channel_labels[j])
+            for j in range(len(channel_names)):
+                axes[i, j].set_title(channel_names[j])
                 axes[i, j].bar(
                     bins[j, :-1], counts[j], width=(bins[j, -1] - bins[j, 0]) / bin_amount)
 
@@ -129,7 +129,7 @@ def report(
         return True
 
     if extent is None:
-        extent = get_distributed_minmax(bag, len(channel_labels))
+        extent = get_distributed_minmax(bag, len(channel_names))
         extent = extent.to_delayed()[0]
 
     # Get bins from the extrema

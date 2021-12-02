@@ -7,35 +7,35 @@ from .intensity import intensity_features, intensity_features_meta
 from .texture import texture_features, texture_features_meta
 
 
-def bbox_features_meta(nchannels):
+def bbox_features_meta(channel_names):
     d = {
         "bbox_minr": float,
         "bbox_minc": float,
         "bbox_maxr": float,
         "bbox_maxc": float
     }
-    d.update({f"regions_{i}": int for i in range(nchannels)})
+    d.update({f"regions_{i}": int for i in channel_names})
     return d
 
 
-def bbox_features(p):
+def bbox_features(p, channel_names):
     d = {
         "bbox_minr": p["bbox"][0],
         "bbox_minc": p["bbox"][1],
         "bbox_maxr": p["bbox"][2],
         "bbox_maxc": p["bbox"][3],
     }
-    d.update({f"regions_{i}": c for i, c in enumerate(p["regions"])})
+    d.update({f"regions_{i}": c for i, c in zip(channel_names, p["regions"])})
     return d
 
 
 def extract_features(  # noqa: C901
     *,
     images: dask.bag.Bag,
-    nchannels: int,
+    channel_names: list,
     types: list,
     maximum_pixel_value: int
-):
+) -> dask.dataframe.DataFrame:
     """
     Extract features from pixel data
 
@@ -51,13 +51,13 @@ def extract_features(  # noqa: C901
         for p in part:
             out = {"idx": p["idx"]}
             if "bbox" in types:
-                out.update(bbox_features(p))
+                out.update(bbox_features(p, channel_names))
             if "shape" in types:
-                out.update(shape_features(p))
+                out.update(shape_features(p, channel_names))
             if "intensity" in types:
-                out.update(intensity_features(p))
+                out.update(intensity_features(p, channel_names))
             if "texture" in types:
-                out.update(texture_features(p, maximum_pixel_value))
+                out.update(texture_features(p, channel_names, maximum_pixel_value))
             data.append(out)
         return data
 
@@ -65,13 +65,13 @@ def extract_features(  # noqa: C901
 
     meta = {"idx": int}
     if "bbox" in types:
-        meta.update(bbox_features_meta(nchannels))
+        meta.update(bbox_features_meta(channel_names))
     if "shape" in types:
-        meta.update(shape_features_meta(nchannels))
+        meta.update(shape_features_meta(channel_names))
     if "intensity" in types:
-        meta.update(intensity_features_meta(nchannels))
+        meta.update(intensity_features_meta(channel_names))
     if "texture" in types:
-        meta.update(texture_features_meta(nchannels))
+        meta.update(texture_features_meta(channel_names))
     images_df = images.to_dataframe(meta=meta)
 
     return images_df

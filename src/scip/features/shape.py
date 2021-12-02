@@ -84,14 +84,15 @@ prop_ids = [
     "extent"
 ]
 
-def shape_features_meta(nchannels):
+
+def shape_features_meta(channel_names):
     out = {}
-    for i in range(nchannels):
+    for i in channel_names:
         out.update({f"{p}_{i}": float for p in prop_names})
     return out
 
 
-def shape_features(sample):
+def shape_features(sample, channel_names):
     """
         compute regionpropse
     Args:
@@ -104,79 +105,79 @@ def shape_features(sample):
 
     img = sample['mask']
 
-    def channel_features(i):
-        label_img = label(img[i])
+    def row(mask):
+        label_img = label(mask)
         props = regionprops_table(label_image=label_img, properties=prop_ids)
         return props
 
     features_dict = {}
-    for i in range(len(img)):
+    for i, name in enumerate(channel_names):
         if numpy.any(img[i]):
-            props = channel_features(i)
+            props = row(img[i])
             for k, v in props.items():
-                features_dict[f"{k}_{i}"] = numpy.mean(v)
+                features_dict[f"{k}_{name}"] = numpy.mean(v)
         else:
             # setting proper default values if possible when the mask is empty
             features_dict.update({
-                f"area_{i}": 0,
-                f"convex_area_{i}": 0,
-                f"eccentricity_{i}": None,
-                f"equivalent_diameter_{i}": 0,
-                f"euler_number_{i}": None,
-                f"feret_diameter_max_{i}": 0,
-                f"filled_area_{i}": 0,
-                f"major_axis_length_{i}": 0,
-                f"minor_axis_length_{i}": 0,
-                f"orientation_{i}": None,
-                f"perimeter_{i}": 0,
-                f"perimeter_crofton_{i}": 0,
-                f"solidity_{i}": 0,
-                f"extent_{i}": 0,
-                f"inertia_tensor-0-0": None,
-                f"inertia_tensor-0-1": None,
-                f"inertia_tensor-1-0": None,
-                f"inertia_tensor-1-1": None,
-                f"inertia_tensor_eigvals-0": None,
-                f"inertia_tensor_eigvals-1": None,
-                f"moments-0-0": None,
-                f"moments-0-1": None,
-                f"moments-0-2": None,
-                f"moments-0-3": None,
-                f"moments-1-0": None,
-                f"moments-1-1": None,
-                f"moments-1-2": None,
-                f"moments-1-3": None,
-                f"moments-2-0": None,
-                f"moments-2-1": None,
-                f"moments-2-2": None,
-                f"moments-2-3": None,
-                f"moments-3-0": None,
-                f"moments-3-1": None,
-                f"moments-3-2": None,
-                f"moments-3-3": None,
-                f"moments_central-0-0": None,
-                f"moments_central-0-1": None,
-                f"moments_central-0-2": None,
-                f"moments_central-0-3": None,
-                f"moments_central-1-0": None,
-                f"moments_central-1-1": None,
-                f"moments_central-1-2": None,
-                f"moments_central-1-3": None,
-                f"moments_central-2-0": None,
-                f"moments_central-2-1": None,
-                f"moments_central-2-2": None,
-                f"moments_central-2-3": None,
-                f"moments_central-3-0": None,
-                f"moments_central-3-1": None,
-                f"moments_central-3-2": None,
-                f"moments_central-3-3": None,
-                f"moments_hu-0": None,
-                f"moments_hu-1": None,
-                f"moments_hu-2": None,
-                f"moments_hu-3": None,
-                f"moments_hu-4": None,
-                f"moments_hu-5": None,
-                f"moments_hu-6": None
+                f"area_{name}": 0,
+                f"convex_area_{name}": 0,
+                f"eccentricity_{name}": None,
+                f"equivalent_diameter_{name}": 0,
+                f"euler_number_{name}": None,
+                f"feret_diameter_max_{name}": 0,
+                f"filled_area_{name}": 0,
+                f"major_axis_length_{name}": 0,
+                f"minor_axis_length_{name}": 0,
+                f"orientation_{name}": None,
+                f"perimeter_{name}": 0,
+                f"perimeter_crofton_{name}": 0,
+                f"solidity_{name}": 0,
+                f"extent_{name}": 0,
+                f"inertia_tensor-0-0_{name}": None,
+                f"inertia_tensor-0-1_{name}": None,
+                f"inertia_tensor-1-0_{name}": None,
+                f"inertia_tensor-1-1_{name}": None,
+                f"inertia_tensor_eigvals-0_{name}": None,
+                f"inertia_tensor_eigvals-1_{name}": None,
+                f"moments-0-0_{name}": None,
+                f"moments-0-1_{name}": None,
+                f"moments-0-2_{name}": None,
+                f"moments-0-3_{name}": None,
+                f"moments-1-0_{name}": None,
+                f"moments-1-1_{name}": None,
+                f"moments-1-2_{name}": None,
+                f"moments-1-3_{name}": None,
+                f"moments-2-0_{name}": None,
+                f"moments-2-1_{name}": None,
+                f"moments-2-2_{name}": None,
+                f"moments-2-3_{name}": None,
+                f"moments-3-0_{name}": None,
+                f"moments-3-1_{name}": None,
+                f"moments-3-2_{name}": None,
+                f"moments-3-3_{name}": None,
+                f"moments_central-0-0_{name}": None,
+                f"moments_central-0-1_{name}": None,
+                f"moments_central-0-2_{name}": None,
+                f"moments_central-0-3_{name}": None,
+                f"moments_central-1-0_{name}": None,
+                f"moments_central-1-1_{name}": None,
+                f"moments_central-1-2_{name}": None,
+                f"moments_central-1-3_{name}": None,
+                f"moments_central-2-0_{name}": None,
+                f"moments_central-2-1_{name}": None,
+                f"moments_central-2-2_{name}": None,
+                f"moments_central-2-3_{name}": None,
+                f"moments_central-3-0_{name}": None,
+                f"moments_central-3-1_{name}": None,
+                f"moments_central-3-2_{name}": None,
+                f"moments_central-3-3_{name}": None,
+                f"moments_hu-0_{name}": None,
+                f"moments_hu-1_{name}": None,
+                f"moments_hu-2_{name}": None,
+                f"moments_hu-3_{name}": None,
+                f"moments_hu-4_{name}": None,
+                f"moments_hu-5_{name}": None,
+                f"moments_hu-6_{name}": None
             })
 
     return features_dict

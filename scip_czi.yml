@@ -1,7 +1,7 @@
 loading:
   format: czi
   channels: [0, 1]
-  channel_labels:
+  channel_names:
     - DAPI
     - eGFP
   loader_kwargs:

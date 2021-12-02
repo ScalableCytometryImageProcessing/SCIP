@@ -57,7 +57,7 @@ def get_images_bag(paths, channels, config, partition_size):
     return images, meta, maximum_pixel_value
 
 
-def compute_features(images, nchannels, types, maximum_pixel_value):
+def compute_features(images, channel_names, types, maximum_pixel_value):
 
     def rename(c):
         if c == "idx":
@@ -69,7 +69,7 @@ def compute_features(images, nchannels, types, maximum_pixel_value):
 
     features = feature_extraction.extract_features(
         images=images,
-        nchannels=nchannels,
+        channel_names=channel_names,
         types=types,
         maximum_pixel_value=maximum_pixel_value
     )
@@ -111,7 +111,7 @@ def channel_boundaries(quantiles, *, config, output):
         for k, v in quantiles:
             index.append(k)
             out = {}
-            for channel, r in zip(config["loading"]["channel_labels"], v):
+            for channel, r in zip(config["loading"]["channel_names"], v):
                 out[f"{channel}_min"] = r[0]
                 out[f"{channel}_max"] = r[1]
             data.append(out)
@@ -183,9 +183,9 @@ def main(
         start = time.time()
 
         assert "channels" in config["loading"], "Please specify what channels to load"
-        channels = config["loading"].get("channels")
-        channel_labels = config["loading"].get("channel_labels")
-        assert len(channels) == len(channel_labels), "Please specify a label for each channel"
+        channels = config["loading"]["channels"]
+        channel_names = config["loading"]["channel_names"]
+        assert len(channels) == len(channel_names), "Please specify a name for each channel"
 
         logger.debug("loading images in to bags")
 
@@ -209,7 +209,7 @@ def main(
                 template_dir=template_dir,
                 template="intensity_distribution.html",
                 bin_amount=100,
-                channel_labels=channel_labels,
+                channel_names=channel_names,
                 output=output,
                 name="raw"
             ))
@@ -236,7 +236,7 @@ def main(
                     template="masks.html",
                     name="masked",
                     output=output,
-                    channel_labels=channel_labels
+                    channel_names=channel_names
                 ))
 
             logger.debug("preparing bag for feature extraction")
@@ -311,7 +311,7 @@ def main(
                     template_dir=template_dir,
                     template="intensity_distribution.html",
                     bin_amount=100,
-                    channel_labels=channel_labels,
+                    channel_names=channel_names,
                     output=output,
                     name="normalized",
                     extent=numpy.array([(0, 1)] * len(channels))
@@ -320,7 +320,7 @@ def main(
         logger.debug("computing features")
         bag_df = compute_features(
             images=images,
-            nchannels=len(channels),
+            channel_names=channel_names,
             types=config["feature_extraction"]["types"],
             maximum_pixel_value=maximum_pixel_value
         )

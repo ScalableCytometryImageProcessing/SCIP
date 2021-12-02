@@ -15,9 +15,9 @@ props = [
 ]
 
 
-def intensity_features_meta(nchannels):
+def intensity_features_meta(channel_names):
     out = {}
-    for i in range(nchannels):
+    for i in channel_names:
         out.update({f"{p}_{i}": float for p in props})
         out.update({f"bgcorr_{p}_{i}": float for p in props})
         out.update({f"edge_{p}_{i}": float for p in props})
@@ -49,7 +49,7 @@ def row(pixels, i):
     return d
 
 
-def intensity_features(sample):
+def intensity_features(sample, channel_names):
     """
     Find following intensity features based on normalized masked pixel data:
         'mean',
@@ -84,7 +84,7 @@ def intensity_features(sample):
     )
     combined_edge = (conv > 0) & (conv < 9)
 
-    for i in range(len(sample["pixels"])):
+    for i, name in enumerate(channel_names):
 
         # compute features on channel specific mask
         if numpy.any(sample["mask"][i]):
@@ -101,14 +101,14 @@ def intensity_features(sample):
             mask_edge_pixels = sample["pixels"][i][edge]
             mask_bgcorr_edge_pixels = mask_edge_pixels - sample["background"][i]
 
-            mask_out = row(mask_pixels, i)
-            mask_bgcorr_out = row(mask_bgcorr_pixels, i)
-            mask_edge_out = row(mask_edge_pixels, i)
-            mask_bgcorr_edge_out = row(mask_bgcorr_edge_pixels, i)
+            mask_out = row(mask_pixels, name)
+            mask_bgcorr_out = row(mask_bgcorr_pixels, name)
+            mask_edge_out = row(mask_edge_pixels, name)
+            mask_bgcorr_edge_out = row(mask_bgcorr_edge_pixels, name)
 
             for k in mask_out.keys():
                 features_dict[k] = mask_out[k]
-                features_dict[f"bgcorr_{k}"] =  mask_bgcorr_out[k]
+                features_dict[f"bgcorr_{k}"] = mask_bgcorr_out[k]
                 features_dict[f"edge_{k}"] = mask_edge_out[k]
                 features_dict[f"bgcorr_edge_{k}"] = mask_bgcorr_edge_out[k]
         else:
@@ -126,14 +126,14 @@ def intensity_features(sample):
         mask_edge_pixels = sample["pixels"][i][combined_edge]
         mask_bgcorr_edge_pixels = mask_edge_pixels - sample["combined_background"][i]
 
-        mask_out = row(mask_pixels, i)
-        mask_bgcorr_out = row(mask_bgcorr_pixels, i)
-        mask_edge_out = row(mask_edge_pixels, i)
-        mask_bgcorr_edge_out = row(mask_bgcorr_edge_pixels, i)
+        mask_out = row(mask_pixels, name)
+        mask_bgcorr_out = row(mask_bgcorr_pixels, name)
+        mask_edge_out = row(mask_edge_pixels, name)
+        mask_bgcorr_edge_out = row(mask_bgcorr_edge_pixels, name)
 
         for k in mask_out.keys():
             features_dict[f"combined_{k}"] = mask_out[k]
-            features_dict[f"combined_bgcorr_{k}"] =  mask_bgcorr_out[k]
+            features_dict[f"combined_bgcorr_{k}"] = mask_bgcorr_out[k]
             features_dict[f"combined_edge_{k}"] = mask_edge_out[k]
             features_dict[f"combined_bgcorr_edge_{k}"] = mask_bgcorr_edge_out[k]
 

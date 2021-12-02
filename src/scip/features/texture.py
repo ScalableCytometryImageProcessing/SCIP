@@ -1,6 +1,5 @@
 import numpy
 from skimage.feature import greycomatrix, greycoprops
-from skimage.measure import shannon_entropy
 from skimage.filters import sobel
 import skimage
 
@@ -8,11 +7,11 @@ import skimage
 distances = [3, 5]
 
 
-def texture_features_meta(nchannels):
+def texture_features_meta(channel_names):
     greycoprops = ['contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation', 'ASM']
 
     out = {}
-    for i in range(nchannels):
+    for i in channel_names:
         for n in distances:
             out.update({f"glcm_mean_{p}_{n}_{i}": float for p in greycoprops})
             out.update({f"glcm_std_{p}_{n}_{i}": float for p in greycoprops})
@@ -29,7 +28,7 @@ def texture_features_meta(nchannels):
     return out
 
 
-def texture_features(sample, maximum_pixel_value):
+def texture_features(sample, channel_names, maximum_pixel_value):
     """
 
     Args:
@@ -79,14 +78,14 @@ def texture_features(sample, maximum_pixel_value):
 
     mask_pixels = sample["pixels"] * sample["mask"]
     combined_mask_pixels = sample["pixels"] * sample["combined_mask"][numpy.newaxis, ...]
-    for i in range(len(sample["pixels"])):
+    for i, name in enumerate(channel_names):
 
         # compute features on channel specific mask
         if numpy.any(sample["mask"][i]):
-            features_dict.update(row(mask_pixels[i], i))
+            features_dict.update(row(mask_pixels[i], name))
 
         # always compute features on combined mask (it can never be empty)
-        out = row(combined_mask_pixels[i], i)
+        out = row(combined_mask_pixels[i], name)
         for k in out.keys():
             features_dict[f"combined_{k}"] = out[k]
 

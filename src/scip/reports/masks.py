@@ -17,16 +17,16 @@ def get_blanks(s):
 
 
 @dask.delayed
-def plot1(percentage, channel_labels):
+def plot1(percentage, channel_names):
     # Missing mask bar plot
     fig, ax = plt.subplots()
-    ax.bar(channel_labels, percentage)
+    ax.bar(channel_names, percentage)
     return fig
 
 
 @dask.delayed
-def plot2(cc_counts, channel_labels):
-    fig, axes = plt.subplots(1, len(channel_labels), squeeze=False, sharey=True)
+def plot2(cc_counts, channel_names):
+    fig, axes = plt.subplots(1, len(channel_names), squeeze=False, sharey=True)
     axes = axes.ravel()
     for counts, ax in zip(cc_counts, axes):
         ax.bar(counts.keys(), counts.values())
@@ -62,7 +62,7 @@ def report(
         template,
         name,
         output,
-        channel_labels
+        channel_names
 ):
     """
     Calculate minima and maxima to find bins, followed by a binning of all
@@ -94,14 +94,14 @@ def report(
     cc_counts = cc_counts.fold(
         binop=add_to_count_dict,
         combine=merge_count_dicts,
-        initial=[Counter()] * len(channel_labels)
+        initial=[Counter()] * len(channel_names)
     )
 
     total = bag.count()
     percentage = dask.delayed(lambda v, t: v / t)(blanks_sum, total)
 
-    fig1 = plot1(percentage, channel_labels)
-    fig2 = plot2(cc_counts, channel_labels)
+    fig1 = plot1(percentage, channel_names)
+    fig2 = plot2(cc_counts, channel_names)
 
     return write_plots(
         fig1=fig1,
