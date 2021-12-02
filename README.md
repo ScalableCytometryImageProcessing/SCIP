@@ -1,18 +1,18 @@
-# SCIP: Scalable Cytometry Image Processing
+# SCIP: Scalable Image Processing
 
 ![main workflow badge](https://github.com/ScalableImagingPipeline/dask-pipeline/actions/workflows/main.yml/badge.svg)
-
-Scalable Cytometry Image Processing (SCIP) is an open-source tool that implements an image processing pipeline on top of Dask, a distributed computing framework written in Python. SCIP performs normalization, image segmentation and masking, feature extraction, and clustering and dimensionality reduction.
 
 ## Installation
 
 We recommend using [mamba](https://github.com/mamba-org/mamba) and pip to install SCIP.
 
-1. Create a new python 3.8 environment: `mamba create -n scip python=3.8`
+1. Create a new python environment:
+ - Python 3.8: `mamba create -n scip python=3.8`
+ - Python 3.9: `mamba create -n scip python=3.9`
 1. Activate environment: `conda activate scip`
 1. Install mpi4py: `mamba install -c conda-forge mpi4py`
 1. Install SCIP: `pip install .` or `pip install -e .` for development
-1. (Optional) Install SCIP development dependencies: `pip install -r requirements.txt`
+1. (Optional) Install development dependencies: `pip install -r requirements.txt`
 
 ## Usage
 

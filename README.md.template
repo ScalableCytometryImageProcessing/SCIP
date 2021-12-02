@@ -6,11 +6,13 @@
 
 We recommend using [mamba](https://github.com/mamba-org/mamba) and pip to install SCIP.
 
-1. Create a new python 3.8 environment: `mamba create -n scip python=3.8`
+1. Create a new python environment:
+ - Python 3.8: `mamba create -n scip python=3.8`
+ - Python 3.9: `mamba create -n scip python=3.9`
 1. Activate environment: `conda activate scip`
 1. Install mpi4py: `mamba install -c conda-forge mpi4py`
 1. Install SCIP: `pip install .` or `pip install -e .` for development
-1. (Optional) Install SCIP development dependencies: `pip install -r requirements.txt`
+1. (Optional) Install development dependencies: `pip install -r requirements.txt`
 
 ## Usage
 
