@@ -1,6 +1,8 @@
 import numpy
-from skimage.morphology import closing, disk, remove_small_holes, remove_small_objects, label
+from skimage.morphology import (
+    closing, disk, remove_small_holes, remove_small_objects, label)
 from skimage.filters import threshold_otsu, sobel, gaussian
+from skimage.segmentation import expand_labels
 from scipy.stats import normaltest
 
 
@@ -17,6 +19,7 @@ def get_mask(el, main, main_channel):
             x = remove_small_holes(x, area_threshold=100)
             x = remove_small_objects(x, min_size=20)
             x = label(x)
+            x = expand_labels(x, distance=1)
             mask[main_channel], cc = x > 0, x.max()
         regions[main_channel] = cc
     else:
@@ -32,19 +35,13 @@ def get_mask(el, main, main_channel):
 
             x = el["pixels"][dim, bbox[0]:bbox[2], bbox[1]:bbox[3]]
             x = gaussian(x, sigma=1)
-            if (normaltest(x.ravel()).pvalue > 0.05):
-                # accept H0 that image is gaussian noise = no signal measured
-                mask[dim], cc = numpy.zeros(shape=el["pixels"][dim].shape, dtype=bool), 0
-            else:
-                x = sobel(x)
-                x = closing(x, selem=disk(2))
-                x = threshold_otsu(x) < x
-                x[[0, -1], :] = 0
-                x[:, [0, -1]] = 0
-                x = remove_small_holes(x, area_threshold=100)
-                x = remove_small_objects(x, min_size=5)
-                x = label(x)
-                mask[dim, bbox[0]:bbox[2], bbox[1]:bbox[3]], cc = x > 0, x.max()
+            x = threshold_otsu(x) < x
+            x[[0, -1], :] = 0
+            x[:, [0, -1]] = 0
+            x = remove_small_holes(x, area_threshold=10)
+            x = remove_small_objects(x, min_size=5)
+            x = label(x)
+            mask[dim, bbox[0]:bbox[2], bbox[1]:bbox[3]], cc = x > 0, x.max()
             regions.append(cc)
 
     out = el.copy()

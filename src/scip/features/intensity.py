@@ -114,10 +114,10 @@ def intensity_features(sample, channel_names):
         else:
             # write default values
             for k in props:
-                features_dict[k] = 0
-                features_dict[f"bgcorr_{k}"] = 0
-                features_dict[f"edge_{k}"] = 0
-                features_dict[f"bgcorr_edge_{k}"] = 0
+                features_dict[f"{k}_{name}"] = 0
+                features_dict[f"bgcorr_{k}_{name}"] = 0
+                features_dict[f"edge_{k}_{name}"] = 0
+                features_dict[f"bgcorr_edge_{k}_{name}"] = 0
 
         # always compute features on combined mask (it can never be empty)
         mask_pixels = sample["pixels"][i][sample["combined_mask"]]
