@@ -1,5 +1,5 @@
 from scip.loading import multiframe_tiff
-from scip.segmentation import watershed, util
+from scip.masking import watershed, util
 from functools import partial
 
 

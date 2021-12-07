@@ -1,5 +1,5 @@
 from scip.loading import multiframe_tiff
-from scip.segmentation import threshold
+from scip.masking import threshold
 from scip.normalization import quantile_normalization
 import dask.bag
 import pickle

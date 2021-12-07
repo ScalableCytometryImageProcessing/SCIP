@@ -1,7 +1,7 @@
 from skimage.filters import sobel
 from skimage import morphology
 import numpy
-from scip.segmentation import util
+from scip.masking import util
 
 
 def get_mask(el):

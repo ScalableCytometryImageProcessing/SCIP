@@ -28,8 +28,7 @@ from scip.reports import (  # noqa: E402
     example_images, intensity_distribution, masks
 )  # noqa: E402
 from scip.features import feature_extraction  # noqa: E402
-from scip.segmentation import util as segmentation_util  # noqa: E402
-# from scip.analysis import fuzzy_c_mean  # noqa: E402
+from scip.masking import util as masking_util  # noqa: E402
 
 
 def get_images_bag(paths, channels, config, partition_size):
@@ -216,7 +215,7 @@ def main(
 
         method = config["masking"]["method"]
         if method is not None:
-            masking_module = import_module('scip.segmentation.%s' % config["masking"]["method"])
+            masking_module = import_module('scip.masking.%s' % config["masking"]["method"])
             logger.debug("creating masks on bag")
 
             # in the main phase of the masking procedure, only the main
@@ -242,14 +241,14 @@ def main(
             logger.debug("preparing bag for feature extraction")
 
             filter_func = partial(
-                segmentation_util.mask_predicate,
+                masking_util.mask_predicate,
                 bbox_channel_index=config["masking"]["bbox_channel_index"]
             )
             images = images.filter(filter_func)
 
             # all channels are bounding boxed based on the main channel mask
             images = images.map_partitions(
-                segmentation_util.bounding_box_partition,
+                masking_util.bounding_box_partition,
                 bbox_channel_index=config["masking"]["bbox_channel_index"]
             )
 
@@ -273,7 +272,7 @@ def main(
                 )
 
             # mask is applied and background values are computed
-            images = images.map_partitions(segmentation_util.apply_mask_partition)
+            images = images.map_partitions(masking_util.apply_mask_partition)
 
             if report:
                 logger.debug("reporting example images")

@@ -3,7 +3,7 @@ from skimage.filters import sobel, threshold_otsu
 from skimage import morphology
 from skimage.restoration import denoise_nl_means
 import numpy
-from scip.segmentation import util
+from scip.masking import util
 
 
 def get_mask(el, noisy_channels):
