@@ -87,8 +87,8 @@ prop_ids = [
 
 def shape_features_meta(channel_names):
     out = {}
-    for i in channel_names:
-        out.update({f"{p}_{i}": float for p in prop_names})
+    for name in channel_names + ["combined"]:
+        out.update({f"{p}_{name}": float for p in prop_names})
     return out
 
 
@@ -111,6 +111,10 @@ def shape_features(sample, channel_names):
         return props
 
     features_dict = {}
+    props = row(sample["combined_mask"])
+    for k, v in props.items():
+        features_dict[f"{k}_combined"] = numpy.mean(v)
+
     for i, name in enumerate(channel_names):
         if numpy.any(img[i]):
             props = row(img[i])
@@ -121,18 +125,18 @@ def shape_features(sample, channel_names):
             features_dict.update({
                 f"area_{name}": 0,
                 f"convex_area_{name}": 0,
-                f"eccentricity_{name}": None,
                 f"equivalent_diameter_{name}": 0,
-                f"euler_number_{name}": None,
                 f"feret_diameter_max_{name}": 0,
                 f"filled_area_{name}": 0,
                 f"major_axis_length_{name}": 0,
                 f"minor_axis_length_{name}": 0,
-                f"orientation_{name}": None,
                 f"perimeter_{name}": 0,
                 f"perimeter_crofton_{name}": 0,
                 f"solidity_{name}": 0,
                 f"extent_{name}": 0,
+                f"eccentricity_{name}": None,
+                f"euler_number_{name}": None,
+                f"orientation_{name}": None,
                 f"inertia_tensor-0-0_{name}": None,
                 f"inertia_tensor-0-1_{name}": None,
                 f"inertia_tensor-1-0_{name}": None,
