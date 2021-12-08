@@ -6,6 +6,7 @@ import zarr
 import numpy
 from pathlib import Path
 import re
+from typing import Tuple
 
 
 def load_image(event, z, channels, clip):
@@ -34,7 +35,16 @@ def load_image_partition(partition, z, channels, clip):
     return [load_image(event, z, channels, clip) for event in partition]
 
 
-def bag_from_directory(path, idx, channels, partition_size, clip, regex):
+def bag_from_directory(
+    *,
+    path: str,
+    idx: int,
+    channels: list,
+    partition_size: int,
+    clip: int,
+    regex: str
+) -> Tuple[dask.bag.Bag, dask.dataframe.DataFrame, int, int]:
+
     """
     Construct delayed ops for all tiffs in a directory
 

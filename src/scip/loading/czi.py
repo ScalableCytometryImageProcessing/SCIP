@@ -1,11 +1,5 @@
 from aicsimageio import AICSImage
-from skimage.filters import threshold_otsu
-from skimage.segmentation import watershed, expand_labels
-from skimage.restoration import denoise_nl_means
-from skimage import feature, measure
-import skimage
-from scipy.ndimage import distance_transform_edt
-
+from typing import Tuple, Callable
 import numpy
 import dask.bag
 import dask.dataframe
@@ -13,8 +7,8 @@ import dask.array
 import dask
 from centrosome import radial_power_spectrum
 import scipy.linalg
-from skimage.measure import regionprops
 import pandas
+from importlib import import_module
 
 
 def compute_powerslope(pixel_data):
@@ -55,42 +49,6 @@ def select_focused_plane(block):
 
 
 @dask.delayed
-def segment_block(block, *, idx, cell_diameter, dapi_channel):
-
-    plane = block[0, dapi_channel]
-    plane = skimage.img_as_float32(plane)
-
-    plane = denoise_nl_means(plane, patch_size=3, patch_distance=2, multichannel=False)
-
-    t = threshold_otsu(plane)
-    cells = plane > t
-    distance = distance_transform_edt(cells)
-
-    local_max_coords = feature.peak_local_max(distance, min_distance=cell_diameter)
-    local_max_mask = numpy.zeros(distance.shape, dtype=bool)
-    local_max_mask[tuple(local_max_coords.T)] = True
-    markers = measure.label(local_max_mask)
-
-    segmented_cells = watershed(-distance, markers, mask=cells)
-    segmented_cells = expand_labels(segmented_cells, distance=cell_diameter * 0.25)
-
-    events = []
-    props = regionprops(segmented_cells)
-    for i, prop in enumerate(props):
-        bbox = prop.bbox
-        events.append(dict(
-            pixels=block[0, :, bbox[0]: bbox[2], bbox[1]:bbox[3]],
-            mask=numpy.repeat(prop.image[numpy.newaxis], block.shape[1], axis=0),
-            idx=f"{idx}_{i}",
-            group=idx,
-            bbox=tuple(bbox),
-            regions=[1] * len(block.shape[1])
-        ))
-
-    return events
-
-
-@dask.delayed
 def meta_from_delayed(events, path, tile, scene):
     if len(events) > 0:
         df = pandas.DataFrame.from_records([
@@ -105,7 +63,19 @@ def meta_from_delayed(events, path, tile, scene):
     return df
 
 
-def bag_from_directory(*, path, idx, channels, partition_size, dapi_channel, cell_diameter, scenes):
+def bag_from_directory(
+    *,
+    path: str,
+    idx: int,
+    channels: list,
+    partition_size: int,
+    clip: int,
+    scenes: list,
+    segment_method: str,
+    segment_kw: dict
+) -> Tuple[dask.bag.Bag, dask.dataframe.DataFrame, int, int]:
+
+    segment_block = import_module('scip.segmentation.%s' % segment_method).segment_block
 
     def load_scene(scene):
         im = AICSImage(path, reconstruct_mosaic=False, chunk_dims=["Z", "C", "X", "Y"])
@@ -134,13 +104,13 @@ def bag_from_directory(*, path, idx, channels, partition_size, dapi_channel, cel
     cells = []
     meta = []
     for (scene, tile), block in zip(scenes_meta, delayed_blocks):
-        cells.append(segment_block(
-            block,
-            idx=f"{idx}_{scene}_{tile}",
-            cell_diameter=cell_diameter,
-            dapi_channel=dapi_channel
-        ))
-        meta.append(
-            meta_from_delayed(cells[-1], path=path, tile=tile, scene=scene))
+        cells.append(segment_block(block, idx=idx, group=f"{scene}_{tile}", **segment_kw))
+        meta.append(meta_from_delayed(cells[-1], path=path, tile=tile, scene=scene))
+        idx = idx + 1000
 
-    return dask.bag.from_delayed(cells), dask.dataframe.from_delayed(meta)
+    return (
+        dask.bag.from_delayed(cells),
+        dask.dataframe.from_delayed(meta),
+        clip,
+        idx
+    )

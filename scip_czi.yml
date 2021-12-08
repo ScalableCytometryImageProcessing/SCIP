@@ -5,9 +5,12 @@ loading:
     - DAPI
     - eGFP
   loader_kwargs:
-    cell_diameter: 30
-    dapi_channel: 0
+    segment_method: watershed_dapi
+    segment_kw:
+      cell_diameter: 30
+      dapi_channel: 0
     scenes: ["A2-A2", "A1-A1"]
+    clip: 65563
 masking:
   method:
   export: false
