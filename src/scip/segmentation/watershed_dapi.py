@@ -1,4 +1,3 @@
-from typing import Dict, List
 from skimage.filters import threshold_otsu
 from skimage.segmentation import watershed, expand_labels
 from skimage.restoration import denoise_nl_means
@@ -7,6 +6,7 @@ import skimage
 from scipy.ndimage import distance_transform_edt
 from skimage.measure import regionprops
 
+from typing import List
 import dask
 import numpy
 
