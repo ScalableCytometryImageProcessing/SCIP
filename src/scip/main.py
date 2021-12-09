@@ -61,7 +61,7 @@ def get_images_bag(
         meta.append(df)
 
     images, meta = dask.bag.concat(images), dask.dataframe.concat(meta)
-    meta = meta.repartition(npartitions=1)
+    meta = meta.repartition(npartitions=10)
     return images, meta, maximum_pixel_value
 
 
@@ -338,6 +338,7 @@ def main(
             types=config["feature_extraction"]["types"],
             maximum_pixel_value=maximum_pixel_value
         )
+
         bag_df = bag_df.set_index("idx", npartitions=10)
         bag_df = dask.dataframe.multi.concat(
             [bag_df, meta], axis=1, join="outer"
@@ -353,7 +354,7 @@ def main(
             )
         )
 
-        dask.compute(*futures, traverse=False)
+        dask.compute(*futures, traverse=False, optimize_graph=False)
 
         if debug:
             context.client.profile(filename=str(output / "profile.html"))

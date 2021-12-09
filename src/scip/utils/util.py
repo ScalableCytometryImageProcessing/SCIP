@@ -94,7 +94,6 @@ class ClientClusterContext:
             worker_options = {}
             comm = MPI.COMM_WORLD
             rank = comm.Get_rank()
-            print(rank)
             if rank == 2:
                 worker_options["resources"] = {'cellpose': 1}
 

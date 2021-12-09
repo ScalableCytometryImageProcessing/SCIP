@@ -49,18 +49,19 @@ def select_focused_plane(block):
     return numpy.vstack([block[:, i, j] for i, j in enumerate(indices)])[numpy.newaxis]
 
 
-@dask.delayed
+@dask.delayed(pure=True)
 def meta_from_delayed(events, path, tile, scene):
     if len(events) > 0:
         df = pandas.DataFrame.from_records([
             dict(idx=event["idx"], path=path, tile=tile, scene=scene) for event in events
-        ])
-        df = df.set_index("idx")
+        ], columns=["idx", "path", "tile", "scene"])
+        # df = df.set_index("idx")
     else:
-        df = pandas.DataFrame(columns=["path", "tile", "scene"])
-        df.index.name = "idx"
+        df = pandas.DataFrame(columns=["idx", "path", "tile", "scene"])
+        # df.index.name = "idx"
         df["tile"] = df["tile"].astype(int)
-    df.columns = [f"meta_{c}" for c in df.columns]
+        df["idx"] = df["idx"].astype(int)
+    df.columns = [f"meta_{c}" if c != "idx" else c for c in df.columns]
     return df
 
 
@@ -103,27 +104,26 @@ def bag_from_directory(
 
     delayed_blocks = data.to_delayed().flatten()
 
-    cells = []
+    events = []
     meta = []
     for (scene, tile), block in zip(scenes_meta, delayed_blocks):
         with dask.annotate(resources={"cellpose": 1}):
-            cells.append(
-                segment_block(
-                    block,
-                    idx=idx,
-                    group=f"{scene}_{tile}",
-                    gpu_accelerated=gpu_accelerated,
-                    **segment_kw
-                )
+            e = segment_block(
+                block,
+                idx=idx,
+                group=f"{scene}_{tile}",
+                gpu_accelerated=gpu_accelerated,
+                **segment_kw
             )
-        meta.append(meta_from_delayed(cells[-1], path=path, tile=tile, scene=scene))
+        events.append(e)
+        meta.append(meta_from_delayed(e, path=path, tile=tile, scene=scene))
         idx = idx + 1000
 
     return (
-        dask.bag.from_delayed(cells),
+        dask.bag.from_delayed(events),
         dask.dataframe.from_delayed(
-            meta, meta={"meta_tile": int, "meta_scene": str, "meta_path": str}
-        ).repartition(npartitions=1),
+            meta, meta={"idx": int, "meta_path": str, "meta_tile": int, "meta_scene": str}
+        ).set_index("idx", npartitions=1),
         clip,
         idx
     )
