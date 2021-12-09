@@ -1,6 +1,7 @@
 import dask
 import dask.bag
 import dask.dataframe
+import pandas
 
 from .shape import shape_features, shape_features_meta
 from .intensity import intensity_features, intensity_features_meta
@@ -69,6 +70,8 @@ def extract_features(  # noqa: C901
         return data
 
     images = images.map_partitions(features_partition)
+    images = images.map_partitions(
+        lambda p: pandas.DataFrame(p, columns=meta.keys()).astype(meta, copy=False))
 
     meta = {}
     if "bbox" in types:
@@ -81,6 +84,6 @@ def extract_features(  # noqa: C901
         meta.update(texture_features_meta(channel_names))
 
     full_meta = {**meta, **loader_meta, "idx": int}
-    images_df = images.to_dataframe(meta=full_meta)
+    images_df = images.to_dataframe(meta=full_meta, optimize_graph=False)
 
     return images_df

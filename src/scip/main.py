@@ -1,4 +1,5 @@
 import time
+from typing import List, Tuple
 import click
 import logging
 import logging.config
@@ -31,13 +32,21 @@ from scip.features import feature_extraction  # noqa: E402
 from scip.masking import util as masking_util  # noqa: E402
 
 
-def get_images_bag(paths, channels, config, partition_size):
+def get_images_bag(
+    *,
+    paths: List[str],
+    channels: List[int],
+    config: dict,
+    partition_size: int,
+    gpu_accelerated: bool
+) -> Tuple[dask.bag.Bag, dask.dataframe.DataFrame, int]:
 
     loader_module = import_module('scip.loading.%s' % config["loading"]["format"])
     loader = partial(
         loader_module.bag_from_directory,
         channels=channels,
         partition_size=partition_size,
+        gpu_accelerated=gpu_accelerated,
         **(config["loading"]["loader_kwargs"] or dict()))
 
     images = []
@@ -135,7 +144,8 @@ def main(
     port,
     debug,
     timing,
-    report
+    report,
+    gpu
 ):
     with util.ClientClusterContext(
             n_workers=n_workers,
@@ -188,7 +198,12 @@ def main(
 
         with dask.config.set(**{'array.slicing.split_large_chunks': False}):
             images, maximum_pixel_value, loader_meta = get_images_bag(
-                paths, channels, config, partition_size)
+                paths=paths,
+                channels=channels,
+                config=config,
+                partition_size=partition_size,
+                gpu_accelerated=gpu
+            )
 
         futures = []
         if report:
@@ -322,8 +337,7 @@ def main(
             maximum_pixel_value=maximum_pixel_value,
             loader_meta=loader_meta
         )
-        df = bag_df.compute()
-        bag_df = bag_df.set_index("idx", npartitions=1)
+        bag_df = bag_df.set_index("idx", npartitions=10)
 
         filename = config["export"]["filename"]
         futures.append(
@@ -335,7 +349,7 @@ def main(
             )
         )
 
-        dask.compute(*futures, traverse=False)
+        dask.compute(*futures, traverse=False, optimize_graph=False)
 
         if debug:
             context.client.profile(filename=str(output / "profile.html"))
@@ -384,6 +398,7 @@ def main(
     help="Set partition size")
 @click.option("--timing", default=None, type=click.Path(dir_okay=False))
 @click.option("--report/--no-report", default=True, is_flag=True, type=bool)
+@click.option("--gpu/--no-gpu", default=False, is_flag=True, type=bool)
 @click.option(
     "--local-directory", "-l", default=None, type=click.Path(file_okay=False, exists=True))
 @click.argument("output", type=click.Path(file_okay=False))

@@ -11,7 +11,9 @@ props = [
     'skewness',
     'kurtosis',
     'sum',
-    'modulation'
+    'modulation',
+    'lower_quartile',
+    'upper_quartile'
 ]
 
 

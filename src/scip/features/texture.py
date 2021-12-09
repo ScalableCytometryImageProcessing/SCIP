@@ -1,5 +1,5 @@
 import numpy
-from skimage.feature import greycomatrix, greycoprops
+from skimage.feature import graycomatrix, graycoprops
 from skimage.filters import sobel
 import skimage
 
@@ -8,15 +8,15 @@ distances = [3, 5]
 
 
 def texture_features_meta(channel_names):
-    greycoprops = ['contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation', 'ASM']
+    graycoprops = ['contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation', 'ASM']
 
     out = {}
     for i in channel_names:
         for n in distances:
-            out.update({f"glcm_mean_{p}_{n}_{i}": float for p in greycoprops})
-            out.update({f"glcm_std_{p}_{n}_{i}": float for p in greycoprops})
-            out.update({f"combined_glcm_mean_{p}_{n}_{i}": float for p in greycoprops})
-            out.update({f"combined_glcm_std_{p}_{n}_{i}": float for p in greycoprops})
+            out.update({f"glcm_mean_{p}_{n}_{i}": float for p in graycoprops})
+            out.update({f"glcm_std_{p}_{n}_{i}": float for p in graycoprops})
+            out.update({f"combined_glcm_mean_{p}_{n}_{i}": float for p in graycoprops})
+            out.update({f"combined_glcm_std_{p}_{n}_{i}": float for p in graycoprops})
         out[f"sobel_mean_{i}"] = float
         out[f"sobel_std_{i}"] = float
         out[f"sobel_max_{i}"] = float
@@ -50,7 +50,7 @@ def texture_features(sample, channel_names, maximum_pixel_value):
         int_img = skimage.img_as_int(pixels / maximum_pixel_value)
         bin_edges = numpy.histogram_bin_edges(int_img, bins=15)
         int_img = numpy.digitize(int_img, bins=bin_edges, right=True)
-        glcm = greycomatrix(
+        glcm = graycomatrix(
             int_img,
             distances=distances,
             angles=angles,
@@ -61,7 +61,7 @@ def texture_features(sample, channel_names, maximum_pixel_value):
 
         out = {}
         for prop in ['contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation', 'ASM']:
-            v = greycoprops(glcm, prop=prop)
+            v = graycoprops(glcm, prop=prop)
             for d, (mu, std) in enumerate(zip(v.mean(axis=1), v.std(axis=1))):
                 out[f'glcm_mean_{prop}_{distances[d]}_{i}'] = mu
                 out[f'glcm_std_{prop}_{distances[d]}_{i}'] = std

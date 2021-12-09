@@ -26,7 +26,8 @@ setuptools.setup(
         'mpi4py',
         'bokeh',
         'zarr',
-        'fastparquet'
+        'fastparquet',
+        'cellpose'
     ],
     entry_points={
         'console_scripts': [
