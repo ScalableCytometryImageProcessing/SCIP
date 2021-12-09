@@ -33,7 +33,7 @@ def load_image(event, channels=None):
     return newevent
 
 
-def bag_from_directory(path, idx, channels, partition_size):
+def bag_from_directory(path, channels, partition_size):
     """
     Construct delayed ops for all tiffs in a directory
 
@@ -49,9 +49,9 @@ def bag_from_directory(path, idx, channels, partition_size):
 
     events = []
     for i, p in enumerate(Path(path).glob("**/*.tiff")):
-        events.append(dict(path=str(p), idx=f"{idx}_{i}", group=str(p.parent)))
+        events.append(dict(path=str(p), group=str(p.parent)))
 
-    meta = pandas.DataFrame.from_records(data=events, index="idx")
+    meta = pandas.DataFrame.from_records(data=events)
     meta.columns = [f"meta_{c}" for c in meta.columns]
     meta = dask.dataframe.from_pandas(meta, chunksize=partition_size)
 

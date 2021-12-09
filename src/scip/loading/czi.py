@@ -52,7 +52,6 @@ def select_focused_plane(block):
 def bag_from_directory(
     *,
     path: str,
-    idx: int,
     channels: list,
     partition_size: int,
     gpu_accelerated: bool,
@@ -60,7 +59,7 @@ def bag_from_directory(
     scenes: list,
     segment_method: str,
     segment_kw: dict
-) -> Tuple[dask.bag.Bag, dask.dataframe.DataFrame, int, int]:
+) -> Tuple[dask.bag.Bag, dict, int]:
 
     segment_block = import_module('scip.segmentation.%s' % segment_method).segment_block
 
@@ -93,7 +92,6 @@ def bag_from_directory(
         with dask.annotate(resources={"cellpose": 1}):
             e = segment_block(
                 block,
-                idx=idx,
                 group=f"{scene}_{tile}",
                 gpu_accelerated=gpu_accelerated,
                 path=path,
@@ -102,11 +100,9 @@ def bag_from_directory(
                 **segment_kw
             )
         events.append(e)
-        idx = idx + 1000
 
     return (
         dask.bag.from_delayed(events),
-        dict(idx=int, path=str, tile=int, scene=str),
-        clip,
-        idx
+        dict(path=str, tile=int, scene=str),
+        clip
     )

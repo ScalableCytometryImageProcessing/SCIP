@@ -16,7 +16,6 @@ def segment_block(
     block: numpy.ndarray,
     *,
     group: str,
-    idx: int,
     cell_diameter: int,
     dapi_channel: int
 ) -> List[dict]:
@@ -46,7 +45,6 @@ def segment_block(
             pixels=block[0, :, bbox[0]: bbox[2], bbox[1]:bbox[3]],
             mask=numpy.repeat(prop.image[numpy.newaxis] > 0, block.shape[1], axis=0),
             combined_mask=prop.image > 0,
-            idx=idx+i,
             group=group,
             bbox=tuple(bbox),
             regions=[1] * block.shape[1],

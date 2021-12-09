@@ -52,10 +52,9 @@ def get_images_bag(
     images = []
     maximum_pixel_value = 0
 
-    idx = 0
     for path in paths:
         logging.info(f"Bagging {path}")
-        bag, loader_meta, maximum_pixel_value, idx = loader(path=path, idx=idx)
+        bag, loader_meta, maximum_pixel_value = loader(path=path)
         images.append(bag)
 
     images = dask.bag.concat(images)
@@ -65,9 +64,7 @@ def get_images_bag(
 def compute_features(images, channel_names, types, maximum_pixel_value, loader_meta):
 
     def rename(c):
-        if c == "idx":
-            return c
-        elif any([i in c for i in ["bbox", "regions"] + list(loader_meta.keys())]):
+        if any([i in c for i in ["bbox", "regions"] + list(loader_meta.keys())]):
             return f"meta_{c}"
         else:
             return f"feat_{c}"
@@ -337,7 +334,7 @@ def main(
             maximum_pixel_value=maximum_pixel_value,
             loader_meta=loader_meta
         )
-        bag_df = bag_df.set_index("idx", npartitions=10)
+        bag_df = bag_df.repartition(npartitions=5)
 
         filename = config["export"]["filename"]
         futures.append(

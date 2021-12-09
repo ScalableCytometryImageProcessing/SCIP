@@ -54,7 +54,6 @@ def extract_features(  # noqa: C901
         data = []
         for p in part:
             out = {k: p[k] for k in loader_meta.keys()}
-            out["idx"] = p["idx"]
 
             if "pixels" in p:
                 if "bbox" in types:
@@ -79,7 +78,7 @@ def extract_features(  # noqa: C901
     if "texture" in types:
         meta.update(texture_features_meta(channel_names))
 
-    full_meta = {**meta, **loader_meta, "idx": int}
+    full_meta = {**meta, **loader_meta}
 
     images = images.map_partitions(features_partition)
     images = images.map_partitions(

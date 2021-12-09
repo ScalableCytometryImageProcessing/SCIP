@@ -27,7 +27,7 @@ def test_distributed_partitioned_quantile(data, cluster):
 @pytest.mark.skip(reason="currently not working")
 def test_quantile_normalization(images_folder, cluster):
     bag, _ = multiframe_tiff.bag_from_directory(
-        images_folder, idx=0, channels=[0, 1, 2], partition_size=2)
+        images_folder, channels=[0, 1, 2], partition_size=2)
     bag = threshold.create_masks_on_bag(bag, main=True, main_channel=0)
     bag, quantiles = quantile_normalization.quantile_normalization(bag, 0.05, 0.95, 3)
 
@@ -37,7 +37,7 @@ def test_quantile_normalization(images_folder, cluster):
 
 def test_minmax_normalization(images_folder, cluster):
     bag, _ = multiframe_tiff.bag_from_directory(
-        images_folder, idx=0, channels=[0, 1, 2], partition_size=2)
+        images_folder, channels=[0, 1, 2], partition_size=2)
     bag = threshold.create_masks_on_bag(bag, main=True, main_channel=0)
     bag, quantiles = quantile_normalization.quantile_normalization(bag, 0, 1, 3)
 

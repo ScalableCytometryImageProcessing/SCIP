@@ -38,9 +38,9 @@ def load_image_partition(partition, z, channels, clip):
 def bag_from_directory(
     *,
     path: str,
-    idx: int,
     channels: list,
     partition_size: int,
+    gpu_accelerated: bool,
     clip: int,
     regex: str
 ) -> Tuple[dask.bag.Bag, dask.dataframe.DataFrame, int, int]:
@@ -65,8 +65,7 @@ def bag_from_directory(
         events.append({**groups, **{
             "path": str(path),
             "zarr_idx": i,
-            "object_number": obj,
-            "idx": idx + i,
+            "object_number": obj
         }})
 
     bag = dask.bag.from_sequence(events, partition_size=partition_size)
@@ -75,4 +74,4 @@ def bag_from_directory(
     loader_meta = dict(path=str, zarr_idx=int, object_number=int)
     for k in groups.keys():
         loader_meta[k] = str
-    return bag, loader_meta, clip, idx + len(z)
+    return bag, loader_meta, clip

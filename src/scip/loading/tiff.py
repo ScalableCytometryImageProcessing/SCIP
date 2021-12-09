@@ -32,7 +32,7 @@ def load_image(event, channels, clip):
         raise e
 
 
-def bag_from_directory(*, path, idx, channels, partition_size, gpu_accelerated, regex, clip):
+def bag_from_directory(*, path, channels, partition_size, gpu_accelerated, regex, clip):
 
     logger = logging.getLogger(__name__)
 
@@ -65,11 +65,9 @@ def bag_from_directory(*, path, idx, channels, partition_size, gpu_accelerated, 
     dropped = pre_filter - len(df)
     logger.warning("Dropped %d rows because of missing channel files in %s" % (dropped, str(path)))
 
-    df = df.set_index(pandas.RangeIndex(start=idx, stop=idx + len(df), name='idx'))
-
     bag = dask.bag.from_sequence(
-        df.reset_index(drop=False).to_dict(orient="records"), partition_size=partition_size)
+        df.to_dict(orient="records"), partition_size=partition_size)
     bag = bag.map_partitions(load_image_partition)
 
     loader_meta = {c: str for c in df.columns}
-    return bag, loader_meta, clip, idx + len(df)
+    return bag, loader_meta, clip

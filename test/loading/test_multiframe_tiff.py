@@ -3,7 +3,7 @@ from scip.loading import multiframe_tiff
 
 
 def test_load_image(image_path: Path):
-    event = dict(path=image_path, idx=0)
+    event = dict(path=image_path)
     im = multiframe_tiff.load_image(event)
 
     assert "path" in im
@@ -14,7 +14,7 @@ def test_load_image(image_path: Path):
 
 def test_bag_from_directory(images_folder, cluster):
     bag, meta = multiframe_tiff.bag_from_directory(
-        images_folder, idx=0, channels=None, partition_size=2)
+        images_folder, channels=None, partition_size=2)
     images = bag.compute()
     assert len(images) == 11
     assert len(images) == len(meta)
