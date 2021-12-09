@@ -155,7 +155,8 @@ def main(
             walltime=walltime,
             job_extra=job_extra,
             threads_per_process=n_threads,
-            project=project
+            project=project,
+            gpu=gpu
     ) as context:
 
         output = Path(output)
@@ -199,7 +200,7 @@ def main(
                 channels=channels,
                 config=config,
                 partition_size=partition_size,
-                gpu_accelerated=gpu
+                gpu_accelerated=gpu > 0
             )
 
         futures = []
@@ -382,8 +383,7 @@ def main(
     help="Expected required walltime for the job to finish")
 @click.option(
     "--project", "-p", type=str, default=None,
-    help="Project name for HPC cluster"
-)
+    help="Project name for HPC cluster")
 @click.option(
     "--job-extra", "-e", type=str, multiple=True, default=[],
     help="Extra arguments for job submission")
@@ -395,7 +395,8 @@ def main(
     help="Set partition size")
 @click.option("--timing", default=None, type=click.Path(dir_okay=False))
 @click.option("--report/--no-report", default=True, is_flag=True, type=bool)
-@click.option("--gpu/--no-gpu", default=False, is_flag=True, type=bool)
+@click.option(
+    "--gpu", default=0, type=click.IntRange(min=0), help="Specify the amount of available GPUs")
 @click.option(
     "--local-directory", "-l", default=None, type=click.Path(file_okay=False, exists=True))
 @click.argument("output", type=click.Path(file_okay=False))

@@ -4,6 +4,7 @@ import numpy
 from cellpose import models
 from skimage.measure import regionprops
 from dask.distributed import get_worker
+import torch
 
 
 @dask.delayed
@@ -25,7 +26,11 @@ def segment_block(
     if hasattr(w, "cellpose"):
         model = w.cellpose
     else:
-        model = models.Cellpose(gpu=gpu_accelerated, model_type='cyto2')
+        if gpu_accelerated:
+            device = torch.device(w.name - 2)
+            model = models.Cellpose(gpu=True, device=device, model_type='cyto2')
+        else:
+            model = models.Cellpose(gpu=False, model_type='cyto2')
         w.cellpose = model
 
     if dapi_channel_index is None:

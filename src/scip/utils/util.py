@@ -29,7 +29,8 @@ class ClientClusterContext:
             job_extra=[],
             walltime="01:00:00",
             threads_per_process=None,
-            project=None
+            project=None,
+            gpu=0
     ):
         """
         Sets up a cluster and client.
@@ -48,6 +49,7 @@ class ClientClusterContext:
         self.walltime = walltime
         self.threads_per_process = threads_per_process
         self.project = project
+        self.gpu = gpu
 
     def __enter__(self):
         if self.mode == "local":
@@ -94,7 +96,8 @@ class ClientClusterContext:
             worker_options = {}
             comm = MPI.COMM_WORLD
             rank = comm.Get_rank()
-            if rank == 2:
+
+            if (self.gpu > 0) and rank in range(2, 2 + self.gpu):
                 worker_options["resources"] = {'cellpose': 1}
 
             dask_mpi.core.initialize(
