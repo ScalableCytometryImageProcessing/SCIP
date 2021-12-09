@@ -1,11 +1,15 @@
 import numpy as np
 import dask
 import dask.bag
+from scip.utils.util import check
 
 
 def get_distributed_minmax(bag, nchannels):  # noqa: C901
 
     def combine_extent_partition(a, b):
+
+        if "pixels" not in b:
+            return a
 
         if "mask" in b:
             b = [b["pixels"][i][b["mask"][i]] for i in range(nchannels)]
@@ -82,6 +86,7 @@ def get_distributed_partitioned_quantile(bag, lower, upper):
     return qq
 
 
+@check
 def sample_normalization(sample, quantiles):
     """
     Perform min-max normalization using quantiles on original pixel data,

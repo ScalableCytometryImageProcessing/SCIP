@@ -157,3 +157,12 @@ def copy_without(event, without=[]):
         k: v for k, v in event.items()
         if k not in without
     }
+
+
+def check(func):
+    def inner(sample, *args, **kwargs):
+        if "pixels" in sample:
+            return func(sample, *args, **kwargs)
+        else:
+            return sample
+    return inner

@@ -6,6 +6,8 @@ from .shape import shape_features, shape_features_meta
 from .intensity import intensity_features, intensity_features_meta
 from .texture import texture_features, texture_features_meta
 
+from scip.utils.util import check
+
 
 def bbox_features_meta(channel_names):
     d = {
@@ -14,7 +16,7 @@ def bbox_features_meta(channel_names):
         "bbox_maxr": float,
         "bbox_maxc": float
     }
-    d.update({f"regions_{i}": int for i in channel_names})
+    d.update({f"regions_{i}": float for i in channel_names})
     return d
 
 
@@ -34,7 +36,8 @@ def extract_features(  # noqa: C901
     images: dask.bag.Bag,
     channel_names: list,
     types: list,
-    maximum_pixel_value: int
+    maximum_pixel_value: int,
+    loader_meta: dict = {}
 ) -> dask.dataframe.DataFrame:
     """
     Extract features from pixel data
@@ -49,21 +52,25 @@ def extract_features(  # noqa: C901
     def features_partition(part):
         data = []
         for p in part:
-            out = {"idx": p["idx"]}
-            if "bbox" in types:
-                out.update(bbox_features(p, channel_names))
-            if "shape" in types:
-                out.update(shape_features(p, channel_names))
-            if "intensity" in types:
-                out.update(intensity_features(p, channel_names))
-            if "texture" in types:
-                out.update(texture_features(p, channel_names, maximum_pixel_value))
+            out = {k: p[k] for k in loader_meta.keys()}
+            out["idx"] = p["idx"]
+
+            if "pixels" in p:
+                if "bbox" in types:
+                    out.update(bbox_features(p, channel_names))
+                if "shape" in types:
+                    out.update(shape_features(p, channel_names))
+                if "intensity" in types:
+                    out.update(intensity_features(p, channel_names))
+                if "texture" in types:
+                    out.update(texture_features(p, channel_names, maximum_pixel_value))
+
             data.append(out)
         return data
 
     images = images.map_partitions(features_partition)
 
-    meta = {"idx": int}
+    meta = {}
     if "bbox" in types:
         meta.update(bbox_features_meta(channel_names))
     if "shape" in types:
@@ -72,6 +79,8 @@ def extract_features(  # noqa: C901
         meta.update(intensity_features_meta(channel_names))
     if "texture" in types:
         meta.update(texture_features_meta(channel_names))
-    images_df = images.to_dataframe(meta=meta)
+
+    full_meta = {**meta, **loader_meta, "idx": int}
+    images_df = images.to_dataframe(meta=full_meta)
 
     return images_df

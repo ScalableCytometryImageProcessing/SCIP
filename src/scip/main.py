@@ -41,27 +41,24 @@ def get_images_bag(paths, channels, config, partition_size):
         **(config["loading"]["loader_kwargs"] or dict()))
 
     images = []
-    meta = []
     maximum_pixel_value = 0
 
     idx = 0
     for path in paths:
         logging.info(f"Bagging {path}")
-        bag, df, maximum_pixel_value, idx = loader(path=path, idx=idx)
+        bag, loader_meta, maximum_pixel_value, idx = loader(path=path, idx=idx)
         images.append(bag)
-        meta.append(df)
 
-    images, meta = dask.bag.concat(images), dask.dataframe.concat(meta)
-    meta = meta.repartition(npartitions=1)
-    return images, meta, maximum_pixel_value
+    images = dask.bag.concat(images)
+    return images, maximum_pixel_value, loader_meta
 
 
-def compute_features(images, channel_names, types, maximum_pixel_value):
+def compute_features(images, channel_names, types, maximum_pixel_value, loader_meta):
 
     def rename(c):
         if c == "idx":
             return c
-        elif any([i in c for i in ["bbox", "regions"]]):
+        elif any([i in c for i in ["bbox", "regions"] + list(loader_meta.keys())]):
             return f"meta_{c}"
         else:
             return f"feat_{c}"
@@ -70,7 +67,8 @@ def compute_features(images, channel_names, types, maximum_pixel_value):
         images=images,
         channel_names=channel_names,
         types=types,
-        maximum_pixel_value=maximum_pixel_value
+        maximum_pixel_value=maximum_pixel_value,
+        loader_meta=loader_meta
     )
     features = features.rename(columns=rename)
     return features
@@ -189,7 +187,7 @@ def main(
         logger.debug("loading images in to bags")
 
         with dask.config.set(**{'array.slicing.split_large_chunks': False}):
-            images, meta, maximum_pixel_value = get_images_bag(
+            images, maximum_pixel_value, loader_meta = get_images_bag(
                 paths, channels, config, partition_size)
 
         futures = []
@@ -244,7 +242,7 @@ def main(
                 masking_util.mask_predicate,
                 bbox_channel_index=config["masking"]["bbox_channel_index"]
             )
-            images = images.filter(filter_func)
+            images = images.map(filter_func)
 
             # all channels are bounding boxed based on the main channel mask
             images = images.map_partitions(
@@ -321,12 +319,11 @@ def main(
             images=images,
             channel_names=channel_names,
             types=config["feature_extraction"]["types"],
-            maximum_pixel_value=maximum_pixel_value
+            maximum_pixel_value=maximum_pixel_value,
+            loader_meta=loader_meta
         )
-        bag_df = bag_df.set_index("idx", npartitions=10)
-        bag_df = dask.dataframe.multi.concat(
-            [bag_df, meta], axis=1, join="outer"
-        )
+        df = bag_df.compute()
+        bag_df = bag_df.set_index("idx", npartitions=1)
 
         filename = config["export"]["filename"]
         futures.append(

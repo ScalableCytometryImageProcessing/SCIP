@@ -4,8 +4,10 @@ from skimage.morphology import (
 from skimage.filters import threshold_otsu, sobel, gaussian
 from skimage.segmentation import expand_labels
 from scipy.stats import normaltest
+from scip.utils.util import check
 
 
+@check
 def get_mask(el, main, main_channel):
 
     if main:
