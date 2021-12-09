@@ -39,7 +39,7 @@ def get_images_bag(
     config: dict,
     partition_size: int,
     gpu_accelerated: bool
-) -> Tuple[dask.bag.Bag, dask.dataframe.DataFrame, int]:
+) -> Tuple[dask.bag.Bag, int, dict]:
 
     loader_module = import_module('scip.loading.%s' % config["loading"]["format"])
     loader = partial(

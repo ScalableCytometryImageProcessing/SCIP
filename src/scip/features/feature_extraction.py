@@ -69,10 +69,6 @@ def extract_features(  # noqa: C901
             data.append(out)
         return data
 
-    images = images.map_partitions(features_partition)
-    images = images.map_partitions(
-        lambda p: pandas.DataFrame(p, columns=meta.keys()).astype(meta, copy=False))
-
     meta = {}
     if "bbox" in types:
         meta.update(bbox_features_meta(channel_names))
@@ -84,6 +80,10 @@ def extract_features(  # noqa: C901
         meta.update(texture_features_meta(channel_names))
 
     full_meta = {**meta, **loader_meta, "idx": int}
+
+    images = images.map_partitions(features_partition)
+    images = images.map_partitions(
+        lambda p: pandas.DataFrame(p, columns=full_meta.keys()).astype(meta, copy=False))
     images_df = images.to_dataframe(meta=full_meta, optimize_graph=False)
 
     return images_df

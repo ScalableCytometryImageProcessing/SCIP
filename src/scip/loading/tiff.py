@@ -32,7 +32,7 @@ def load_image(event, channels, clip):
         raise e
 
 
-def bag_from_directory(*, path, idx, channels, partition_size, regex, clip):
+def bag_from_directory(*, path, idx, channels, partition_size, gpu_accelerated, regex, clip):
 
     logger = logging.getLogger(__name__)
 
