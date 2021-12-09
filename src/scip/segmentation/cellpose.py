@@ -2,7 +2,6 @@ from typing import Optional, List
 import dask
 import numpy
 from cellpose import models
-import torch
 from skimage.measure import regionprops
 from dask.distributed import get_worker
 
@@ -13,17 +12,18 @@ def segment_block(
     *,
     group: str,
     idx: int,
+    gpu_accelerated: bool,
     cell_diameter: int,
     dapi_channel_index: Optional[int],
-    main_channel_index: int
+    main_channel_index: int,
+    **kwargs
 ) -> List[dict]:
 
     w = get_worker()
     if hasattr(w, "cellpose"):
         model = w.cellpose
     else:
-        # gpu_available = torch.cuda.is_available()
-        model = models.Cellpose(gpu=False, model_type='cyto2')
+        model = models.Cellpose(gpu=gpu_accelerated, model_type='cyto2')
         w.cellpose = model
 
     if dapi_channel_index is None:

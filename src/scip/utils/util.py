@@ -9,6 +9,7 @@ import math
 import shutil
 import click
 from datetime import datetime, timedelta
+import dask
 
 MODES = ["local", "jobqueue", "mpi"]
 
@@ -51,9 +52,10 @@ class ClientClusterContext:
     def __enter__(self):
         if self.mode == "local":
             from dask.distributed import LocalCluster
-            self.cluster = LocalCluster(
-                n_workers=self.n_workers, threads_per_worker=self.threads_per_process
-            )
+            with dask.config.set({"distributed.worker.resources.cellpose": 1}):
+                self.cluster = LocalCluster(
+                    n_workers=self.n_workers, threads_per_worker=self.threads_per_process
+                )
             self.client = Client(self.cluster)
         elif self.mode == "jobqueue":
             from dask_jobqueue import PBSCluster
@@ -87,15 +89,23 @@ class ClientClusterContext:
             self.client = Client(self.cluster)
         elif self.mode == "mpi":
             import dask_mpi.core
+            from mpi4py import MPI
+
+            worker_options = {}
+            comm = MPI.COMM_WORLD
+            rank = comm.Get_rank()
+            print(rank)
+            if rank == 2:
+                worker_options["resources"] = {'cellpose': 1}
 
             dask_mpi.core.initialize(
                 dashboard=True,
                 dashboard_address=None if self.port is None else f':{self.port}',
-                interface="ib0",
                 nthreads=self.threads_per_process,
                 local_directory=self.local_directory,
                 memory_limit=int(self.memory * 1e9),
-                worker_class='distributed.Nanny'
+                worker_class='distributed.Nanny',
+                worker_options=worker_options
             )
             self.client = Client()
 

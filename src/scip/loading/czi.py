@@ -1,5 +1,6 @@
 from aicsimageio import AICSImage
 from typing import Tuple, Callable
+from dask.dataframe.core import repartition
 import numpy
 import dask.bag
 import dask.dataframe
@@ -69,6 +70,7 @@ def bag_from_directory(
     idx: int,
     channels: list,
     partition_size: int,
+    gpu_accelerated: bool,
     clip: int,
     scenes: list,
     segment_method: str,
@@ -104,13 +106,24 @@ def bag_from_directory(
     cells = []
     meta = []
     for (scene, tile), block in zip(scenes_meta, delayed_blocks):
-        cells.append(segment_block(block, idx=idx, group=f"{scene}_{tile}", **segment_kw))
+        with dask.annotate(resources={"cellpose": 1}):
+            cells.append(
+                segment_block(
+                    block,
+                    idx=idx,
+                    group=f"{scene}_{tile}",
+                    gpu_accelerated=gpu_accelerated,
+                    **segment_kw
+                )
+            )
         meta.append(meta_from_delayed(cells[-1], path=path, tile=tile, scene=scene))
         idx = idx + 1000
 
     return (
         dask.bag.from_delayed(cells),
-        dask.dataframe.from_delayed(meta),
+        dask.dataframe.from_delayed(
+            meta, meta={"meta_tile": int, "meta_scene": str, "meta_path": str}
+        ).repartition(npartitions=1),
         clip,
         idx
     )
