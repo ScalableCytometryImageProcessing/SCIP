@@ -11,6 +11,9 @@ loading:
       cell_diameter: 30
       dapi_channel_index: 0
       main_channel_index: 2
+    project_method: "op"
+    project_kw: 
+      op: "max"
     scenes: ["A2-A2", "A1-A1"]
     clip: 65563
 masking:
