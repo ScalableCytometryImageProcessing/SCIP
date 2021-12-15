@@ -5,6 +5,7 @@ from cellpose import models
 from skimage.measure import regionprops
 from dask.distributed import get_worker
 import torch
+from skimage.restoration import denoise_nl_means, estimate_sigma
 
 
 @dask.delayed
@@ -13,7 +14,7 @@ def segment_block(
     *,
     group: str,
     gpu_accelerated: bool,
-    cell_diameter: int,
+    cell_diameter: Optional[int],
     dapi_channel_index: Optional[int],
     main_channel_index: int,
     path: str,
@@ -35,6 +36,9 @@ def segment_block(
 
     if dapi_channel_index is None:
         cp_input = block[0, main_channel_index]
+        sigma = estimate_sigma(cp_input)
+        cp_input = denoise_nl_means(
+            cp_input, sigma=sigma, h=0.9*sigma, patch_size=5, patch_distance=5)
         cp_channels = [0,0]
     else:
         cp_input = block[0, [dapi_channel_index, main_channel_index]]
@@ -48,7 +52,7 @@ def segment_block(
 
     events = []
     props = regionprops(masks)
-    for i, prop in enumerate(props):
+    for prop in props:
         bbox = prop.bbox
         events.append(dict(
             pixels=block[0, :, bbox[0]: bbox[2], bbox[1]:bbox[3]],
