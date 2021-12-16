@@ -81,8 +81,6 @@ def extract_features(  # noqa: C901
     full_meta = {**meta, **loader_meta}
 
     images = images.map_partitions(features_partition)
-    images = images.map_partitions(
-        lambda p: pandas.DataFrame(p, columns=full_meta.keys()).astype(meta, copy=False))
     images_df = images.to_dataframe(meta=full_meta, optimize_graph=False)
 
     return images_df
