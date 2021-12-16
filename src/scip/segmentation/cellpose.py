@@ -38,8 +38,8 @@ def segment_block(
         cp_input = block[0, main_channel_index]
         sigma = estimate_sigma(cp_input)
         cp_input = denoise_nl_means(
-            cp_input, sigma=sigma, h=0.9*sigma, patch_size=5, patch_distance=5)
-        cp_channels = [0,0]
+            cp_input, sigma=sigma, h=0.9 * sigma, patch_size=5, patch_distance=5)
+        cp_channels = [0, 0]
     else:
         cp_input = block[0, [dapi_channel_index, main_channel_index]]
         cp_channels = [1, 2]

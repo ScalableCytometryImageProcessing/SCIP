@@ -10,7 +10,7 @@ _OPS: dict[str, Callable[[numpy.ndarray], numpy.ndarray]] = {
 
 
 def project_block(
-    block: numpy.ndarray, 
+    block: numpy.ndarray,
     op: str
 ) -> numpy.ndarray:
     return _OPS[op](block)

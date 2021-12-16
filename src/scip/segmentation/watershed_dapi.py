@@ -39,7 +39,7 @@ def segment_block(
 
     events = []
     props = regionprops(segmented_cells)
-    for i, prop in enumerate(props):
+    for prop in props:
         bbox = prop.bbox
         events.append(dict(
             pixels=block[0, :, bbox[0]: bbox[2], bbox[1]:bbox[3]],

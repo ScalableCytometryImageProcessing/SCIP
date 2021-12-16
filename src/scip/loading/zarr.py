@@ -1,7 +1,6 @@
 import dask
 import dask.bag
 import dask.dataframe
-import pandas
 import zarr
 import numpy
 from pathlib import Path

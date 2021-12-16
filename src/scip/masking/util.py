@@ -12,8 +12,7 @@ def mask_predicate(s, bbox_channel_index):
     # a mask should be present in the bbox_channel_index
     # only one connected component should be found in the bbox channel
     if (
-        (not numpy.any(s["mask"][bbox_channel_index])) or
-        (s["regions"][bbox_channel_index] != 1)
+        (not numpy.any(s["mask"][bbox_channel_index])) or (s["regions"][bbox_channel_index] != 1)
     ):
         return copy_without(s, without=["mask", "pixels"])
 
