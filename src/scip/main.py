@@ -64,7 +64,7 @@ def get_images_bag(
 def compute_features(images, channel_names, types, maximum_pixel_value, loader_meta):
 
     def rename(c):
-        if any([i in c for i in ["bbox", "regions"] + list(loader_meta.keys())]):
+        if c in ["bbox", "regions"] + list(loader_meta.keys()):
             return f"meta_{c}"
         else:
             return f"feat_{c}"

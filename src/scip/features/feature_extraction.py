@@ -1,13 +1,10 @@
 import dask
 import dask.bag
 import dask.dataframe
-import pandas
 
 from .shape import shape_features, shape_features_meta
 from .intensity import intensity_features, intensity_features_meta
 from .texture import texture_features, texture_features_meta
-
-from scip.utils.util import check
 
 
 def bbox_features_meta(channel_names):
