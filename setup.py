@@ -10,7 +10,7 @@ setuptools.setup(
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
     package_dir={"scip": "src/scip"},
-    packages=["scip"],
+    packages=setuptools.find_packages(where="src"),
     install_requires=[
         'numpy',
         'Pillow',
