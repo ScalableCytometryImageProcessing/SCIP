@@ -1,4 +1,5 @@
 import setuptools
+import versioneer
 
 setuptools.setup(
     classifiers=[
@@ -6,7 +7,8 @@ setuptools.setup(
         "Operating System :: LInux",
     ],
     name="scip",
-    version="0.1.4",
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
     package_dir={"": "src"},
     install_requires=[
         'numpy',
