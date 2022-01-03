@@ -21,6 +21,23 @@ def bag_from_directory(
     project_method: Optional[str],
     project_kw: dict = {}
 ) -> Tuple[dask.bag.Bag, dict, int]:
+    """Creates a Dask bag from a directory of CZI files.
+
+    Args:
+        path (str): [description]
+        channels (list): [description]
+        partition_size (int): [description]
+        gpu_accelerated (bool): [description]
+        clip (int): [description]
+        scenes (list): [description]
+        segment_method (str): [description]
+        segment_kw (dict): [description]
+        project_method (Optional[str]): [description]
+        project_kw (dict, optional): [description]. Defaults to {}.
+
+    Returns:
+        Tuple[dask.bag.Bag, dict, int]: [description]
+    """
 
     def load_scene(scene):
         im = AICSImage(path, reconstruct_mosaic=False, chunk_dims=["Z", "C", "X", "Y"])

@@ -2,12 +2,12 @@ import dask
 import dask.bag
 import dask.dataframe
 
-from .shape import shape_features, shape_features_meta
-from .intensity import intensity_features, intensity_features_meta
-from .texture import texture_features, texture_features_meta
+from .shape import shape_features, _shape_features_meta
+from .intensity import intensity_features, _intensity_features_meta
+from .texture import texture_features, _texture_features_meta
 
 
-def bbox_features_meta(channel_names):
+def _bbox_features_meta(channel_names):
     d = {
         "bbox_minr": float,
         "bbox_minc": float,
@@ -67,13 +67,13 @@ def extract_features(  # noqa: C901
 
     meta = {}
     if "bbox" in types:
-        meta.update(bbox_features_meta(channel_names))
+        meta.update(_bbox_features_meta(channel_names))
     if "shape" in types:
-        meta.update(shape_features_meta(channel_names))
+        meta.update(_shape_features_meta(channel_names))
     if "intensity" in types:
-        meta.update(intensity_features_meta(channel_names))
+        meta.update(_intensity_features_meta(channel_names))
     if "texture" in types:
-        meta.update(texture_features_meta(channel_names))
+        meta.update(_texture_features_meta(channel_names))
 
     full_meta = {**meta, **loader_meta}
 

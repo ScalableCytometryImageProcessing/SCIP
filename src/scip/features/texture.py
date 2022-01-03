@@ -7,7 +7,7 @@ import skimage
 distances = [3, 5]
 
 
-def texture_features_meta(channel_names):
+def _texture_features_meta(channel_names):
     graycoprops = ['contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation', 'ASM']
 
     out = {}
@@ -39,7 +39,7 @@ def texture_features(sample, channel_names, maximum_pixel_value):
 
     """
 
-    def row(pixels, i):
+    def _row(pixels, i):
         angles = [
             numpy.pi / 4,  # 45 degrees
             3 * numpy.pi / 4,  # 135 degrees
@@ -82,10 +82,10 @@ def texture_features(sample, channel_names, maximum_pixel_value):
 
         # compute features on channel specific mask
         if numpy.any(sample["mask"][i]):
-            features_dict.update(row(mask_pixels[i], name))
+            features_dict.update(_row(mask_pixels[i], name))
 
         # always compute features on combined mask (it can never be empty)
-        out = row(combined_mask_pixels[i], name)
+        out = _row(combined_mask_pixels[i], name)
         for k in out.keys():
             features_dict[f"combined_{k}"] = out[k]
 

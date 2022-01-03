@@ -11,3 +11,4 @@ tmp/
 .mypy_cache/
 .pytest_cache/
 .commit
+docs/build

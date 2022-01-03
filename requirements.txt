@@ -7,3 +7,5 @@ pytest
 coverage
 types-PyYAML
 types-setuptools
+sphinx
+versioneer

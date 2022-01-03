@@ -85,7 +85,7 @@ prop_ids = [
 ]
 
 
-def shape_features_meta(channel_names):
+def _shape_features_meta(channel_names):
     out = {}
     for name in channel_names + ["combined"]:
         out.update({f"{p}_{name}": float for p in prop_names})
@@ -93,8 +93,8 @@ def shape_features_meta(channel_names):
 
 
 def shape_features(sample, channel_names):
-    """
-        compute regionpropse
+    """Compute regionprops.
+
     Args:
         sample (dict): dictionary containing image data
 
@@ -105,19 +105,19 @@ def shape_features(sample, channel_names):
 
     img = sample['mask']
 
-    def row(mask):
+    def _row(mask):
         label_img = label(mask)
         props = regionprops_table(label_image=label_img, properties=prop_ids)
         return props
 
     features_dict = {}
-    props = row(sample["combined_mask"])
+    props = _row(sample["combined_mask"])
     for k, v in props.items():
         features_dict[f"{k}_combined"] = numpy.mean(v)
 
     for i, name in enumerate(channel_names):
         if numpy.any(img[i]):
-            props = row(img[i])
+            props = _row(img[i])
             for k, v in props.items():
                 features_dict[f"{k}_{name}"] = numpy.mean(v)
         else:
