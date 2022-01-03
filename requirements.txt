@@ -9,3 +9,4 @@ types-PyYAML
 types-setuptools
 sphinx
 versioneer
+furo

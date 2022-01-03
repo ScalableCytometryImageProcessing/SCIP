@@ -9,7 +9,7 @@ setuptools.setup(
     name="scip",
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
-    package_dir={"scip": "src/scip"},
+    package_dir={"": "src"},
     packages=setuptools.find_packages(where="src"),
     install_requires=[
         'numpy',

@@ -1,3 +1,8 @@
+"""Functions for extracting features from images.
+"""
+
+from typing import Iterable, Mapping, Any
+
 import dask
 import dask.bag
 import dask.dataframe
@@ -7,7 +12,7 @@ from .intensity import intensity_features, _intensity_features_meta
 from .texture import texture_features, _texture_features_meta
 
 
-def _bbox_features_meta(channel_names):
+def _bbox_features_meta(channel_names: Iterable[str]) -> Mapping[str, type]:
     d = {
         "bbox_minr": float,
         "bbox_minc": float,
@@ -18,7 +23,19 @@ def _bbox_features_meta(channel_names):
     return d
 
 
-def bbox_features(p, channel_names):
+def bbox_features(p: Mapping, channel_names: Iterable[str]) -> Mapping[str, Any]:
+    """Extracts bbox features from image.
+
+    The bbox consist of four values: bbox_minr, bbox_minc, bbox_maxr, bbox_maxc.
+
+    Args:
+        p (Mapping): Contains a sequence of 4 numbers under key bbox.
+        channel_names (Iterable[str]): names of channels in the image.
+
+    Returns:
+        Mapping[str, Any]: extracted features.
+    """
+
     d = {
         "bbox_minr": p["bbox"][0],
         "bbox_minc": p["bbox"][1],
@@ -35,16 +52,25 @@ def extract_features(  # noqa: C901
     channel_names: list,
     types: list,
     maximum_pixel_value: int,
-    loader_meta: dict = {}
+    loader_meta: Mapping[str, type] = {}
 ) -> dask.dataframe.DataFrame:
-    """
-    Extract features from pixel data
+    """Extracts requested features from pixel values in images.
 
-    Args:
-        images (dask.bag): bag containing dictionaries of image data
+    Keyword Args:
+        images (dask.bag.Bag): bag of mappings containing image data. Check each feature
+          extraction method (:func:`bbox_features`, :func:`scip.features.intensity.intensity_features`,
+          :func:`shape_features` and :func:`texture_features`) to see what keys
+          must be present in each mapping.
+        channel_names (list): names of channels in the image.
+        types (list): feature types to be extracted from the image.
+        maximum_pixel_value (int): theoretical maximal value in the image.
+        loader_meta (Mapping[str, type], optional): data type mapping of meta keys extracted
+          by the loader. Defaults to {}.
 
     Returns:
-        dask.bag: bag containing dictionaries of image features
+        dask.dataframe.DataFrame:
+          dataframe containing all extracted features (columns) for all
+          images (rows) in the input bag.
     """
 
     def features_partition(part):

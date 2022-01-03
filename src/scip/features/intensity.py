@@ -1,3 +1,5 @@
+from typing import Mapping, List, Any
+
 import numpy
 import scipy.stats
 from scipy.ndimage import convolve
@@ -17,7 +19,7 @@ props = [
 ]
 
 
-def _intensity_features_meta(channel_names):
+def _intensity_features_meta(channel_names: List[str]) -> Mapping[str, type]:
     out = {}
     for i in channel_names:
         out.update({f"{p}_{i}": float for p in props})
@@ -31,7 +33,7 @@ def _intensity_features_meta(channel_names):
     return out
 
 
-def _row(pixels, i):
+def _row(pixels: numpy.ndarray, i: int) -> Mapping[str, Any]:
     quartiles = numpy.quantile(pixels, q=(0.25, 0.75))
 
     d = {
@@ -51,7 +53,7 @@ def _row(pixels, i):
     return d
 
 
-def intensity_features(sample, channel_names):
+def intensity_features(sample: Mapping[str, Any], channel_names: List[str]) -> Mapping[str, Any]:
     """Compute intensity features.
 
     Find following intensity features based on masked pixel values:
@@ -76,10 +78,12 @@ def intensity_features(sample, channel_names):
         8. Background substracted edge values of union of masks
 
     Args:
-        sample (dict): dictionary including image data
+        sample (Mapping): mapping with pixels, mask, combined_mask, background and
+          combined background key.
+        channel_names (List[str]): names of channels in the image.
 
     Returns:
-        dict: dictionary including computed intensity features
+        Mapping[str, Any]: extracted features
     """
 
     features_dict = {}
