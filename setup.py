@@ -9,7 +9,8 @@ setuptools.setup(
     name="scip",
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
-    package_dir={"": "src"},
+    package_dir={"scip": "src/scip"},
+    packages=["scip"],
     install_requires=[
         'numpy',
         'Pillow',
@@ -36,7 +37,6 @@ setuptools.setup(
             'scip=scip.main:cli'
         ]
     },
-    packages=setuptools.find_packages(where="src"),
     python_requires=">=3.8",
     package_data={
         'scip': ['logging.yml']
