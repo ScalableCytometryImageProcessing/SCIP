@@ -1,6 +1,7 @@
 # SCIP: Scalable Image Processing
 
 ![main workflow badge](https://github.com/ScalableImagingPipeline/dask-pipeline/actions/workflows/main.yml/badge.svg)
+[![Documentation Status](https://readthedocs.org/projects/scalable-cytometry-image-processing/badge/?version=latest)](https://scalable-cytometry-image-processing.readthedocs.io/en/latest/?badge=latest)
 
 ## Installation
 
@@ -45,6 +46,7 @@ Options:
                                   Set partition size  [x>=1]
   --timing FILE
   --report / --no-report
+  --gpu INTEGER RANGE             Specify the amount of available GPUs  [x>=0]
   -l, --local-directory DIRECTORY
   --help                          Show this message and exit.
 
