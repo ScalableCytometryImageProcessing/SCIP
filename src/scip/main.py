@@ -322,9 +322,10 @@ def main(
             )
             futures.append(channel_boundaries(quantiles, config=config, output=output))
             if report:
+                filtered_images = images.filter(lambda p: "pixels" in p)
                 logger.debug("reporting example masked images")
                 futures.append(example_images.report(
-                    images.filter(lambda p: "pixels" in p),
+                    filtered_images,
                     template_dir=template_dir,
                     template="example_images.html",
                     name="normalized",
@@ -333,7 +334,7 @@ def main(
 
                 logger.debug("reporting distribution of masked images")
                 futures.append(intensity_distribution.report(
-                    images.filter(lambda p: "pixels" in p),
+                    filtered_images,
                     template_dir=template_dir,
                     template="intensity_distribution.html",
                     bin_amount=20,
