@@ -15,10 +15,46 @@
 # You should have received a copy of the GNU General Public License
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
-import pytest
 from pathlib import Path
+
+import pytest
+import numpy
 from dask.distributed import (Client, LocalCluster)
+import dask.bag
+
 from scip.utils import util
+
+
+def get_images_data(n=10):
+    return numpy.tile(numpy.arange(0, 100).reshape(10, 10)[numpy.newaxis], (n, 3, 1, 1))
+
+
+def get_mask_data(n=10):
+    return numpy.full(shape=(10, 3, 10, 10), fill_value=True, dtype=bool)
+
+
+def to_records(images, masks):
+    assert len(images) == len(masks)
+    return [{
+        "pixels": image,
+        "mask": mask,
+        "group": "one"
+    } for image, mask in zip(images, masks)]
+
+
+@pytest.fixture(scope="function")
+def images_bag():
+    images = get_images_data()
+    masks = get_mask_data()
+    records = to_records(images, masks)
+
+    bag = dask.bag.from_sequence(records, partition_size=5)
+    return bag
+
+
+@pytest.fixture(scope="session")
+def image_nchannels():
+    return 3
 
 
 @pytest.fixture(scope="session")

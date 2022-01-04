@@ -18,6 +18,7 @@
 import numpy as np
 import dask
 import dask.bag
+import dask.array
 from scip.utils.util import check
 
 
@@ -63,46 +64,6 @@ def get_distributed_minmax(bag, nchannels):  # noqa: C901
     return out
 
 
-def get_distributed_partitioned_quantile(bag, lower, upper):
-    """
-    Third method for quantile calculation:
-    In every partition intensities are grouped together per channel, on this grouping
-    a quantile calculation is performed. The found quantiles per partition are then reduced
-    with a median.
-    """
-
-    def concatenate_lists(a, b):
-        """
-        Concatenates the numpy vectors in list a and b element-wise
-        """
-        for i in range(len(b)):
-            a[i] = np.concatenate((a[i].flatten(), b[i].flatten()))
-
-        return a
-
-    def reduce_quantiles(a, b):
-        """
-        Reduces numpy vectors in lists a and b to their quantiles and concatenates them
-        """
-
-        if not hasattr(a, "shape"):
-            a = np.array([np.quantile(v, (lower, upper)) for v in a])[..., np.newaxis]
-        b = np.array([np.quantile(v, (lower, upper)) for v in b])[..., np.newaxis]
-        return np.concatenate([a, b], axis=-1)
-
-    qq = bag.fold(concatenate_lists, reduce_quantiles)
-
-    def quantiles(a):
-        out = np.empty(shape=(len(a), 2))
-        out[:, 0] = np.min(a[:, 0], axis=-1)
-        out[:, 1] = np.max(a[:, 1], axis=-1)
-        return out
-
-    qq = qq.apply(quantiles)
-
-    return qq
-
-
 @check
 def sample_normalization(sample, quantiles):
     """
@@ -142,11 +103,7 @@ def quantile_normalization(images: dask.bag.Bag, lower, upper, nchannels):
     def normalize_partition(part, quantiles):
         return [sample_normalization(p, quantiles) for p in part]
 
-    if lower == 0 and upper == 1:
-        quantiles = get_distributed_minmax(images, nchannels)
-    else:
-        quantiles = get_distributed_partitioned_quantile(images, lower, upper)
-
+    quantiles = get_distributed_minmax(images, nchannels)
     images = images.map_partitions(
         normalize_partition, quantiles.to_delayed()[0])
 
