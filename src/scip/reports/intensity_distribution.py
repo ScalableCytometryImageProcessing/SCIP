@@ -31,7 +31,7 @@ def get_bin_edges(min_maxes, bin_amount=20):
     Find bin edges using the minimum and maximum of every channel
 
     Args:
-        min_max: array of overall minima and maxima for every channel
+        min_max: array of overall minima and maxima for every channel for every group
         bin_amount (int, optional): amount of bins you want to create. Defaults to 50.
 
     Returns:
@@ -89,8 +89,7 @@ def report(
         bin_amount,
         channel_names,
         output,
-        name,
-        extent=None
+        name
 ):
     """
     Calculate minima and maxima to find bins, followed by a binning of all
@@ -145,9 +144,7 @@ def report(
 
         return True
 
-    if extent is None:
-        extent = get_distributed_minmax(bag, len(channel_names))
-        extent = extent.to_delayed()[0]
+    extent = get_distributed_minmax(bag, len(channel_names))
 
     # Get bins from the extrema
     bins = get_bin_edges(extent, bin_amount=bin_amount)

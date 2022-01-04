@@ -33,7 +33,7 @@ def plot_with_masks(images):
         for j in range(len(tmp)):
             inner_grid = outer_grid[i, j].subgridspec(1, 2, wspace=0, hspace=0)
             axes = [fig.add_subplot(inner_grid[0, 0]), fig.add_subplot(inner_grid[0, 1])]
-            axes[0].imshow(images[i]["pixels"][j])
+            axes[0].imshow(images[i]["pixels"][j] * images[i]["mask"][j])
             axes[1].imshow(images[i]["mask"][j], cmap="Greys")
 
             for ax in axes:
@@ -55,7 +55,7 @@ def plot_no_masks(images):
 @dask.delayed
 def report(bag, *, template_dir, template, name, output):
 
-    images = bag[:5]
+    images = bag[:20]
 
     if "mask" in images[0]:
         fig = plot_with_masks(images)

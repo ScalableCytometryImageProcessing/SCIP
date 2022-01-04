@@ -25,7 +25,6 @@ import dask.bag
 import dask.dataframe
 from functools import partial
 from importlib import import_module
-import numpy
 import os
 import socket
 import pandas
@@ -235,7 +234,7 @@ def main(
                 images,
                 template_dir=template_dir,
                 template="intensity_distribution.html",
-                bin_amount=100,
+                bin_amount=20,
                 channel_names=channel_names,
                 output=output,
                 name="raw"
@@ -268,11 +267,11 @@ def main(
 
             logger.debug("preparing bag for feature extraction")
 
-            filter_func = partial(
+            func = partial(
                 masking_util.mask_predicate,
                 bbox_channel_index=config["masking"]["bbox_channel_index"]
             )
-            images = images.map(filter_func)
+            images = images.map(func)
 
             # all channels are bounding boxed based on the main channel mask
             images = images.map_partitions(
@@ -305,7 +304,7 @@ def main(
             if report:
                 logger.debug("reporting example images")
                 futures.append(example_images.report(
-                    images,
+                    images.filter(lambda p: "pixels" in p),
                     template_dir=template_dir,
                     template="example_images.html",
                     name="masked",
@@ -325,7 +324,7 @@ def main(
             if report:
                 logger.debug("reporting example masked images")
                 futures.append(example_images.report(
-                    images,
+                    images.filter(lambda p: "pixels" in p),
                     template_dir=template_dir,
                     template="example_images.html",
                     name="normalized",
@@ -334,14 +333,13 @@ def main(
 
                 logger.debug("reporting distribution of masked images")
                 futures.append(intensity_distribution.report(
-                    images,
+                    images.filter(lambda p: "pixels" in p),
                     template_dir=template_dir,
                     template="intensity_distribution.html",
-                    bin_amount=100,
+                    bin_amount=20,
                     channel_names=channel_names,
                     output=output,
-                    name="normalized",
-                    extent=numpy.array([(0, 1)] * len(channels))
+                    name="normalized"
                 ))
 
         logger.debug("computing features")

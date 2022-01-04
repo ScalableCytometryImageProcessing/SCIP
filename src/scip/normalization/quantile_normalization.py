@@ -19,7 +19,7 @@ import numpy as np
 import dask
 import dask.bag
 import dask.array
-from scip.utils.util import check
+from scip.utils.util import check, copy_without
 
 
 def get_distributed_minmax(bag, nchannels):  # noqa: C901
@@ -79,11 +79,14 @@ def sample_normalization(sample, quantiles):
 
     qq = dict(quantiles)[sample["group"]]
 
+    pixels = np.empty_like(sample["pixels"])
     for i in range(len(sample["pixels"])):
-        flat = sample["pixels"][i][sample["mask"][i]]
-        sample["pixels"][i][sample["mask"][i]] = np.clip(
-            (flat - qq[i, 0]) / (qq[i, 1] - qq[i, 0]), 0, 1)
-    return sample
+        pixels[i] = (sample["pixels"][i] - qq[i, 0]) / (qq[i, 1] - qq[i, 0])
+
+    newsample = copy_without(sample, without="pixels")
+    newsample["pixels"] = pixels
+
+    return newsample
 
 
 def quantile_normalization(images: dask.bag.Bag, lower, upper, nchannels):

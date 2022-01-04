@@ -45,8 +45,9 @@ def plot1(percentage, channel_names):
 def plot2(cc_counts, channel_names):
     fig, axes = plt.subplots(1, len(channel_names), squeeze=False, sharey=True)
     axes = axes.ravel()
-    for counts, ax in zip(cc_counts, axes):
+    for counts, ax, name in zip(cc_counts, axes, channel_names):
         ax.bar(counts.keys(), counts.values())
+        ax.set_title(name)
     return fig
 
 
