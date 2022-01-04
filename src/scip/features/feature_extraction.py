@@ -1,3 +1,20 @@
+# Copyright (C) 2022 Maxim Lippeveld
+#
+# This file is part of SCIP.
+#
+# SCIP is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# SCIP is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
+
 """Functions for extracting features from images.
 """
 
@@ -58,9 +75,11 @@ def extract_features(  # noqa: C901
 
     Keyword Args:
         images (dask.bag.Bag): bag of mappings containing image data. Check each feature
-          extraction method (:func:`bbox_features`, :func:`scip.features.intensity.intensity_features`,
-          :func:`shape_features` and :func:`texture_features`) to see what keys
-          must be present in each mapping.
+          extraction method (:func:`bbox_features`,
+          :func:`scip.features.intensity.intensity_features`,
+          :func:`scip.features.shape.shape_features` and
+          :func:`scip.features.texture.texture_features`)
+          to see what keys must be present in each mapping.
         channel_names (list): names of channels in the image.
         types (list): feature types to be extracted from the image.
         maximum_pixel_value (int): theoretical maximal value in the image.

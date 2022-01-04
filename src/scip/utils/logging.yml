@@ -21,4 +21,3 @@ loggers:
     level: DEBUG
     handlers: [file]
     propagate: 0
-  
