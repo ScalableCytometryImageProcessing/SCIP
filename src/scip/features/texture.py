@@ -1,3 +1,5 @@
+from typing import Any, Mapping, List
+
 import numpy
 from skimage.feature import graycomatrix, graycoprops
 from skimage.filters import sobel
@@ -7,7 +9,7 @@ import skimage
 distances = [3, 5]
 
 
-def _texture_features_meta(channel_names):
+def _texture_features_meta(channel_names: List[str]) -> Mapping[str, Any]:
     graycoprops = ['contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation', 'ASM']
 
     out = {}
@@ -28,14 +30,26 @@ def _texture_features_meta(channel_names):
     return out
 
 
-def texture_features(sample, channel_names, maximum_pixel_value):
-    """
+def texture_features(
+    sample: Mapping[str, Any],
+    channel_names: List[str],
+    maximum_pixel_value: int
+):
+    """Extracts texture features from image.
+
+    Texture features are computed based on the gray co-occurence level matrix and sobel map.
+    From the former, a contrast, dissimilarity, homogeneity, energy, correlation and ASM metric
+    is computed. From the latter, mean, standard deviation, maximum and minimum values are computed.
+
+    Features are not computed on background-substracted values (as in
+    :func:scip.features.intensity.intensity_features) because all features are computed on
+    relative changes of neighboring pixels; a substraction does not influence these values.
 
     Args:
-        sample (dict): dictionary containing image data
+        sample (Mapping[str, Any]): mapping with pixels, mask and combined mask keys.
 
     Returns:
-        dict: dictionary including new texture features
+        Mapping[str, Any]: extacted features.
 
     """
 

@@ -1,6 +1,6 @@
 # SCIP: Scalable Image Processing
 
-![main workflow badge](https://github.com/ScalableImagingPipeline/dask-pipeline/actions/workflows/main.yml/badge.svg)
+![main workflow badge](https://github.com/ScalableImagingPipeline/dask-pipeline/actions/workflows/main.yml/badge.svg) [![Documentation Status](https://readthedocs.org/projects/scalable-cytometry-image-processing/badge/?version=latest)](https://scalable-cytometry-image-processing.readthedocs.io/en/latest/?badge=latest)
 
 ## Installation
 

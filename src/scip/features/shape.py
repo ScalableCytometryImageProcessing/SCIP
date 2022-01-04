@@ -1,3 +1,5 @@
+from typing import Mapping, List, Any
+
 import numpy
 from skimage.measure import label, regionprops_table
 
@@ -85,22 +87,25 @@ prop_ids = [
 ]
 
 
-def _shape_features_meta(channel_names):
+def _shape_features_meta(channel_names: List[str]) -> Mapping[str, type]:
     out = {}
     for name in channel_names + ["combined"]:
         out.update({f"{p}_{name}": float for p in prop_names})
     return out
 
 
-def shape_features(sample, channel_names):
-    """Compute regionprops.
+def shape_features(sample: Mapping[str, Any], channel_names: List[str]) -> Mapping[str, Any]:
+    """Extracts shape features from image.
+
+    The shape features are extracted using :func:regionprops from scikit-image. These include
+    features like eccentricity, convex area or equivalent diameter.
 
     Args:
-        sample (dict): dictionary containing image data
+        sample (Mapping[str, Any]): mapping with mask and combined mask keys.
+        channel_names (List[str]): names of channels in the image.
 
     Returns:
-        dict: dictionary including new features
-
+        Mapping[str, Any]: extracted shape features.
     """
 
     img = sample['mask']

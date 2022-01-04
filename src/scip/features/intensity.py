@@ -79,7 +79,7 @@ def intensity_features(sample: Mapping[str, Any], channel_names: List[str]) -> M
 
     Args:
         sample (Mapping): mapping with pixels, mask, combined_mask, background and
-          combined background key.
+          combined background keys.
         channel_names (List[str]): names of channels in the image.
 
     Returns:
