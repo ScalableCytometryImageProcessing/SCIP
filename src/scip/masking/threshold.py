@@ -33,7 +33,7 @@ def get_mask(el, main, main_channel):
         x = el["pixels"][main_channel]
         if (normaltest(x.ravel()).pvalue < 0.05):
             x = sobel(x)
-            x = closing(x, selem=disk(2))
+            x = closing(x, footprint=disk(2))
             x = threshold_otsu(x) < x
             x = remove_small_holes(x, area_threshold=100)
             x = remove_small_objects(x, min_size=20)

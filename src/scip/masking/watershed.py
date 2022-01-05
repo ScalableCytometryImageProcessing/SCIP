@@ -35,7 +35,7 @@ def get_mask(el, noisy_channels):
             image[dim] = denoise_nl_means(image[dim], patch_size=2, patch_distance=1)
 
         elev_map = sobel(image[dim])
-        closed = morphology.closing(elev_map, selem=morphology.disk(2))
+        closed = morphology.closing(elev_map, footprint=morphology.disk(2))
 
         # markers = numpy.zeros_like(image[dim])
         # markers[closed < numpy.quantile(closed, 0.7)] = 1

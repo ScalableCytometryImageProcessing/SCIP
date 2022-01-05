@@ -29,7 +29,7 @@ def get_mask(el):
     for dim in range(len(image)):
 
         elev_map = sobel(image[dim])
-        closed = morphology.closing(elev_map, selem=morphology.disk(2))
+        closed = morphology.closing(elev_map, footprint=morphology.disk(2))
 
         segmentation = numpy.full(shape=closed.shape, fill_value=False, dtype=bool)
         segmentation[closed > numpy.quantile(closed, 0.9)] = True
