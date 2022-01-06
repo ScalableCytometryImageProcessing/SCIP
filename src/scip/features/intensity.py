@@ -20,19 +20,22 @@ from typing import Mapping, List, Any
 import numpy
 import scipy.stats
 from scipy.ndimage import convolve
+from numba import njit, jit
 
 props = [
     'mean',
+    'median',
     'max',
     'min',
+    'std',
     'var',
     'mad',
-    'skewness',
-    'kurtosis',
     'lower_quartile',
     'upper_quartile',
     'sum',
-    'modulation'
+    'modulation',
+    'skewness',
+    'kurtosis',
 ]
 
 
@@ -50,19 +53,20 @@ def _intensity_features_meta(channel_names: List[str]) -> Mapping[str, type]:
     return out
 
 
-def _row(pixels: numpy.ndarray) -> Mapping[str, Any]:
-    quartiles = numpy.quantile(pixels, q=(0.25, 0.75))
+@njit(cache=True)
+def _row(pixels: numpy.ndarray) -> list:
+    percentiles = numpy.percentile(pixels, q=(0, 25, 50, 75, 100))
 
     d = [
         numpy.mean(pixels),
-        numpy.max(pixels),
-        numpy.min(pixels),
+        percentiles[2],
+        percentiles[4],
+        percentiles[0],
+        numpy.std(pixels),
         numpy.var(pixels),
-        scipy.stats.median_abs_deviation(pixels),
-        scipy.stats.skew(pixels),
-        scipy.stats.kurtosis(pixels),
-        quartiles[0],
-        quartiles[1],
+        numpy.median(numpy.absolute(pixels - percentiles[2])),
+        percentiles[1],
+        percentiles[3],
         numpy.sum(pixels)
     ]
     d.append((d[1] - d[2]) / (d[1] + d[2]))  # modulation
@@ -70,7 +74,20 @@ def _row(pixels: numpy.ndarray) -> Mapping[str, Any]:
     return d
 
 
-def intensity_features(sample: Mapping[str, Any]) -> Mapping[str, Any]:
+def _row2(pixels: numpy.ndarray) -> list:
+    return [
+        scipy.stats.skew(pixels),
+        scipy.stats.kurtosis(pixels)
+    ]
+
+
+def intensity_features(
+    pixels: numpy.ndarray,
+    mask: numpy.ndarray,
+    combined_mask: numpy.ndarray,
+    background: numpy.ndarray,
+    combined_background: numpy.ndarray,
+) -> numpy.ndarray:
     """Compute intensity features.
 
     Find following intensity features based on masked pixel values:
@@ -97,56 +114,55 @@ def intensity_features(sample: Mapping[str, Any]) -> Mapping[str, Any]:
     Args:
         sample (Mapping): mapping with pixels, mask, combined_mask, background and
           combined background keys.
-        channel_names (List[str]): names of channels in the image.
 
     Returns:
         Mapping[str, Any]: extracted features
     """
 
-    out = numpy.empty(shape=(len(sample["pixels"]), 8, len(props)), dtype=float)
+    out = numpy.empty(shape=(len(pixels), 8, len(props)), dtype=float)
 
     conv = convolve(
-        sample["combined_mask"],
+        combined_mask,
         weights=numpy.ones(shape=[3, 3], dtype=int),
         mode="constant"
     )
     combined_edge = (conv > 0) & (conv < 9)
 
-    for i in range(len(sample["pixels"])):
+    for i in range(len(pixels)):
 
         # compute features on channel specific mask
-        if numpy.any(sample["mask"][i]):
+        if numpy.any(mask[i]):
 
-            mask_pixels = sample["pixels"][i][sample["mask"][i]]
-            mask_bgcorr_pixels = mask_pixels - sample["background"][i]
+            mask_pixels = pixels[i][mask[i]]
+            mask_bgcorr_pixels = mask_pixels - background[i]
 
             conv = convolve(
-                sample["mask"][i],
+                mask[i],
                 weights=numpy.ones(shape=[3, 3], dtype=int),
                 mode="constant"
             )
             edge = (conv > 0) & (conv < 9)
-            mask_edge_pixels = sample["pixels"][i][edge]
-            mask_bgcorr_edge_pixels = mask_edge_pixels - sample["background"][i]
+            mask_edge_pixels = pixels[i][edge]
+            mask_bgcorr_edge_pixels = mask_edge_pixels - background[i]
 
-            out[i, 0] = _row(mask_pixels)
-            out[i, 1] = _row(mask_bgcorr_pixels)
-            out[i, 2] = _row(mask_edge_pixels)
-            out[i, 3] = _row(mask_bgcorr_edge_pixels)
+            out[i, 0] = _row(mask_pixels) + _row2(mask_pixels)
+            out[i, 1] = _row(mask_bgcorr_pixels) + _row2(mask_bgcorr_pixels)
+            out[i, 2] = _row(mask_edge_pixels) + _row2(mask_edge_pixels)
+            out[i, 3] = _row(mask_bgcorr_edge_pixels) + _row2(mask_bgcorr_edge_pixels)
         else:
             # write default values
             out[i, :4] = 0
 
         # always compute features on combined mask (it can never be empty)
-        mask_pixels = sample["pixels"][i][sample["combined_mask"]]
-        mask_bgcorr_pixels = mask_pixels - sample["combined_background"][i]
+        mask_pixels = pixels[i][combined_mask]
+        mask_bgcorr_pixels = mask_pixels - combined_background[i]
 
-        mask_edge_pixels = sample["pixels"][i][combined_edge]
-        mask_bgcorr_edge_pixels = mask_edge_pixels - sample["combined_background"][i]
+        mask_edge_pixels = pixels[i][combined_edge]
+        mask_bgcorr_edge_pixels = mask_edge_pixels - combined_background[i]
 
-        out[i, 4] = _row(mask_pixels)
-        out[i, 5] = _row(mask_bgcorr_pixels)
-        out[i, 6] = _row(mask_edge_pixels)
-        out[i, 7] = _row(mask_bgcorr_edge_pixels)
+        out[i, 4] = _row(mask_pixels) + _row2(mask_pixels)
+        out[i, 5] = _row(mask_bgcorr_pixels) + _row2(mask_bgcorr_pixels)
+        out[i, 6] = _row(mask_edge_pixels) + _row2(mask_edge_pixels)
+        out[i, 7] = _row(mask_bgcorr_edge_pixels) + _row2(mask_bgcorr_edge_pixels)
 
     return out.flatten()

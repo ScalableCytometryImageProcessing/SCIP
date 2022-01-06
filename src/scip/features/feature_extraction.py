@@ -24,6 +24,7 @@ import numpy
 import dask
 import dask.bag
 import dask.dataframe
+from numba import jit
 
 from .shape import shape_features, _shape_features_meta
 from .intensity import intensity_features, _intensity_features_meta
@@ -55,6 +56,46 @@ def bbox_features(p: Mapping) -> Mapping[str, Any]:
 
     return list(p["bbox"]) + p["regions"]
 
+@jit(forceobj=True)
+def features_partition(
+    part: Iterable[dict],
+    *,
+    loader_meta_keys: Iterable[str],
+    types: Iterable[str],
+    lengths: Mapping[str, int],
+    maximum_pixel_value: int
+):
+
+    out = numpy.empty(shape=(len(part), lengths["full"]), dtype=object)
+    for i, p in enumerate(part):
+        for j, k in enumerate(loader_meta_keys):
+            out[i, j] = p[k]
+        c = len(loader_meta_keys)
+
+        if "pixels" in p:
+            if "bbox" in types:
+                out[i, c:c+lengths["bbox"]] = bbox_features(p)
+                c += lengths["bbox"]
+            if "shape" in types:
+                out[i, c:c+lengths["shape"]] = shape_features(
+                    mask=p["mask"],
+                    combined_mask=p["combined_mask"]
+                )
+                c += lengths["shape"]
+            if "intensity" in types:
+                out[i, c:c+lengths["intensity"]] = intensity_features(
+                    pixels=p["pixels"],
+                    mask=p["mask"],
+                    combined_mask=p["combined_mask"],
+                    background=p["background"],
+                    combined_background=p["combined_background"]
+                )
+                c += lengths["intensity"]
+            if "texture" in types:
+                out[i, c:c+lengths["texture"]] = texture_features(p, maximum_pixel_value)
+
+    return out
+
 
 def extract_features(  # noqa: C901
     *,
@@ -85,28 +126,6 @@ def extract_features(  # noqa: C901
           images (rows) in the input bag.
     """
 
-    def features_partition(part):
-        out = numpy.empty(shape=(len(part), len(full_meta)), dtype=object)
-        for i, p in enumerate(part):
-            for j, k in enumerate(loader_meta.keys()):
-                out[i, j] = p[k]
-            c = len(loader_meta)
-
-            if "pixels" in p:
-                if "bbox" in types:
-                    out[i, c:c+len(metas["bbox"])] = bbox_features(p)
-                    c += len(metas["bbox"])
-                if "shape" in types:
-                    out[i, c:c+len(metas["shape"])] = shape_features(p)
-                    c += len(metas["shape"])
-                if "intensity" in types:
-                    out[i, c:c+len(metas["intensity"])] = intensity_features(p)
-                    c += len(metas["intensity"])
-                if "texture" in types:
-                    out[i, c:c+len(metas["texture"])] = texture_features(p, maximum_pixel_value)
-
-        return out
-
     metas = {}
     if "bbox" in types:
         metas["bbox"] = _bbox_features_meta(channel_names)
@@ -118,10 +137,19 @@ def extract_features(  # noqa: C901
         metas["texture"] = _texture_features_meta(channel_names)
 
     full_meta = loader_meta.copy()
-    for _, v in metas.items():
+    lengths = {}
+    for k, v in metas.items():
         full_meta.update(v)
+        lengths[k] = len(v)
+    lengths["full"] = len(full_meta)
 
-    images = images.map_partitions(features_partition)
+    images = images.map_partitions(
+        features_partition,
+        loader_meta_keys=list(loader_meta.keys()),
+        types=types,
+        lengths=lengths,
+        maximum_pixel_value=maximum_pixel_value
+    )
     images_df = images.to_dataframe(meta=full_meta, optimize_graph=False)
 
     return images_df

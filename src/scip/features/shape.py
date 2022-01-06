@@ -15,10 +15,11 @@
 # You should have received a copy of the GNU General Public License
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Mapping, List, Any
+from typing import Mapping, List
 
 import numpy
 from skimage.measure import label, regionprops_table
+
 
 prop_names = [
     "area",
@@ -111,7 +112,16 @@ def _shape_features_meta(channel_names: List[str]) -> Mapping[str, type]:
     return out
 
 
-def shape_features(sample: Mapping[str, Any]) -> Mapping[str, Any]:
+def _row(mask: numpy.ndarray) -> numpy.ndarray:
+    label_img = label(mask)
+    props = regionprops_table(label_image=label_img, properties=prop_ids)
+    return numpy.array(list(props.values()))[:, 0]
+
+
+def shape_features(
+    mask: numpy.ndarray,
+    combined_mask: numpy.ndarray
+) -> numpy.ndarray:
     """Extracts shape features from image.
 
     The shape features are extracted using :func:regionprops from scikit-image. These include
@@ -124,22 +134,12 @@ def shape_features(sample: Mapping[str, Any]) -> Mapping[str, Any]:
         Mapping[str, Any]: extracted shape features.
     """
 
-    img = sample['mask']
+    out = numpy.empty(shape=(len(prop_names*(len(mask) + 1)),), dtype=float)
+    out[:len(prop_names)] = _row(combined_mask)
 
-    def _row(mask):
-        label_img = label(mask)
-        props = regionprops_table(label_image=label_img, properties=prop_ids)
-        return props
-
-    out = numpy.empty(shape=(len(prop_names*(len(sample["mask"]) + 1)),), dtype=float)
-    props = _row(sample["combined_mask"])
-    out[:len(prop_names)] = numpy.array(list(props.values()))[:, 0]
-
-    for i in range(len(img)):
-        if numpy.any(img[i]):
-            props = _row(img[i])
-            out[(i+1)*len(prop_names):(i+2)*len(prop_names)] = numpy.array(
-                list(props.values()))[:, 0]
+    for i in range(len(mask)):
+        if numpy.any(mask[i]):
+            out[(i+1)*len(prop_names):(i+2)*len(prop_names)] = _row(mask[i])
         else:
             # setting proper default values if possible when the mask is empty
             out[(i+1)*len(prop_names):(i+2)*len(prop_names)] = [

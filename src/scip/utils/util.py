@@ -73,7 +73,8 @@ class ClientClusterContext:
             from dask.distributed import LocalCluster
             with dask.config.set({"distributed.worker.resources.cellpose": 1}):
                 self.cluster = LocalCluster(
-                    n_workers=self.n_workers, threads_per_worker=self.threads_per_process
+                    n_workers=self.n_workers, threads_per_worker=self.threads_per_process,
+                    processes=True
                 )
             self.client = Client(self.cluster)
         elif self.mode == "jobqueue":
