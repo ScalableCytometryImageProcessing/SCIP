@@ -58,7 +58,8 @@ def bag_from_directory(
     partition_size: int,
     gpu_accelerated: bool,
     clip: int,
-    regex: str
+    regex: str,
+    limit: int = -1
 ) -> Tuple[dask.bag.Bag, dask.dataframe.DataFrame, int, int]:
 
     """
@@ -77,7 +78,11 @@ def bag_from_directory(
     z = zarr.open(path)
     path = Path(path)
     events = []
-    for i, obj in enumerate(z.attrs["object_number"]):
+
+    if limit == -1:
+        limit = len(z)
+
+    for i, obj in enumerate(z.attrs["object_number"][:limit]):
         events.append({**groups, **{
             "path": str(path),
             "zarr_idx": i,
