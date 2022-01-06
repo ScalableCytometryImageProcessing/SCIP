@@ -43,6 +43,7 @@ from scip.reports import (  # noqa: E402
     example_images, intensity_distribution, masks
 )  # noqa: E402
 from scip.features import feature_extraction  # noqa: E402
+from scip.masking import util as masking_util
 
 
 def get_images_bag(
