@@ -20,6 +20,7 @@
 
 from typing import Iterable, Mapping, Any
 
+import numpy
 import dask
 import dask.bag
 import dask.dataframe
@@ -40,27 +41,19 @@ def _bbox_features_meta(channel_names: Iterable[str]) -> Mapping[str, type]:
     return d
 
 
-def bbox_features(p: Mapping, channel_names: Iterable[str]) -> Mapping[str, Any]:
+def bbox_features(p: Mapping) -> Mapping[str, Any]:
     """Extracts bbox features from image.
 
     The bbox consist of four values: bbox_minr, bbox_minc, bbox_maxr, bbox_maxc.
 
     Args:
         p (Mapping): Contains a sequence of 4 numbers under key bbox.
-        channel_names (Iterable[str]): names of channels in the image.
 
     Returns:
         Mapping[str, Any]: extracted features.
     """
 
-    d = {
-        "bbox_minr": p["bbox"][0],
-        "bbox_minc": p["bbox"][1],
-        "bbox_maxr": p["bbox"][2],
-        "bbox_maxc": p["bbox"][3],
-    }
-    d.update({f"regions_{i}": c for i, c in zip(channel_names, p["regions"])})
-    return d
+    return list(p["bbox"]) + p["regions"]
 
 
 def extract_features(  # noqa: C901
@@ -93,34 +86,38 @@ def extract_features(  # noqa: C901
     """
 
     def features_partition(part):
-        data = []
-        for p in part:
-            out = {k: p[k] for k in loader_meta.keys()}
+        out = numpy.empty(shape=(len(part), len(full_meta)), dtype=object)
+        for i, p in enumerate(part):
+            for j, k in enumerate(loader_meta.keys()):
+                out[i, j] = p[k]
+            c = len(loader_meta)
 
             if "pixels" in p:
                 if "bbox" in types:
-                    out.update(bbox_features(p, channel_names))
+                    out[i, c:c+len(metas["bbox"])] = bbox_features(p)
+                    c += len(metas["bbox"])
                 if "shape" in types:
-                    out.update(shape_features(p, channel_names))
-                if "intensity" in types:
-                    out.update(intensity_features(p, channel_names))
-                if "texture" in types:
-                    out.update(texture_features(p, channel_names, maximum_pixel_value))
+                    out[i, c:c+len(metas["shape"])] = shape_features(p, len(channel_names))
+                # if "intensity" in types:
+                #     out.update(intensity_features(p, channel_names))
+                # if "texture" in types:
+                #     out.update(texture_features(p, channel_names, maximum_pixel_value))
 
-            data.append(out)
-        return data
+        return out
 
-    meta = {}
+    metas = {}
     if "bbox" in types:
-        meta.update(_bbox_features_meta(channel_names))
+        metas["bbox"] = _bbox_features_meta(channel_names)
     if "shape" in types:
-        meta.update(_shape_features_meta(channel_names))
-    if "intensity" in types:
-        meta.update(_intensity_features_meta(channel_names))
-    if "texture" in types:
-        meta.update(_texture_features_meta(channel_names))
+        metas["shape"] = _shape_features_meta(channel_names)
+    # if "intensity" in types:
+    #     meta.update(_intensity_features_meta(channel_names))
+    # if "texture" in types:
+    #     meta.update(_texture_features_meta(channel_names))
 
-    full_meta = {**meta, **loader_meta}
+    full_meta = loader_meta.copy()
+    for _, v in metas.items():
+        full_meta.update(v)
 
     images = images.map_partitions(features_partition)
     images_df = images.to_dataframe(meta=full_meta, optimize_graph=False)
