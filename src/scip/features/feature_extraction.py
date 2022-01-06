@@ -97,11 +97,13 @@ def extract_features(  # noqa: C901
                     out[i, c:c+len(metas["bbox"])] = bbox_features(p)
                     c += len(metas["bbox"])
                 if "shape" in types:
-                    out[i, c:c+len(metas["shape"])] = shape_features(p, len(channel_names))
-                # if "intensity" in types:
-                #     out.update(intensity_features(p, channel_names))
-                # if "texture" in types:
-                #     out.update(texture_features(p, channel_names, maximum_pixel_value))
+                    out[i, c:c+len(metas["shape"])] = shape_features(p)
+                    c += len(metas["intensity"])
+                if "intensity" in types:
+                    out[i, c:c+len(metas["intensity"])] = intensity_features(p)
+                    c += len(metas["shape"])
+                if "texture" in types:
+                    out[i, c:c+len(metas["texture"])] = texture_features(p, maximum_pixel_value)
 
         return out
 
@@ -110,10 +112,10 @@ def extract_features(  # noqa: C901
         metas["bbox"] = _bbox_features_meta(channel_names)
     if "shape" in types:
         metas["shape"] = _shape_features_meta(channel_names)
-    # if "intensity" in types:
-    #     meta.update(_intensity_features_meta(channel_names))
-    # if "texture" in types:
-    #     meta.update(_texture_features_meta(channel_names))
+    if "intensity" in types:
+        metas["intensity"] = _intensity_features_meta(channel_names)
+    if "texture" in types:
+        metas["texture"] = _texture_features_meta(channel_names)
 
     full_meta = loader_meta.copy()
     for _, v in metas.items():

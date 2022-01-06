@@ -111,7 +111,7 @@ def _shape_features_meta(channel_names: List[str]) -> Mapping[str, type]:
     return out
 
 
-def shape_features(sample: Mapping[str, Any], channels: int) -> Mapping[str, Any]:
+def shape_features(sample: Mapping[str, Any]) -> Mapping[str, Any]:
     """Extracts shape features from image.
 
     The shape features are extracted using :func:regionprops from scikit-image. These include
@@ -131,7 +131,7 @@ def shape_features(sample: Mapping[str, Any], channels: int) -> Mapping[str, Any
         props = regionprops_table(label_image=label_img, properties=prop_ids)
         return props
 
-    out = numpy.empty(shape=(len(prop_names*(channels + 1)),), dtype=float)
+    out = numpy.empty(shape=(len(prop_names*(len(sample["mask"]) + 1)),), dtype=float)
     props = _row(sample["combined_mask"])
     out[:len(prop_names)] = numpy.array(list(props.values()))[:, 0]
 

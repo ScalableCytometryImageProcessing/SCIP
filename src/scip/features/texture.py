@@ -24,22 +24,25 @@ import skimage
 
 
 distances = [3, 5]
+graycoprop_names = ['contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation', 'ASM']
 
 
 def _texture_features_meta(channel_names: List[str]) -> Mapping[str, Any]:
-    graycoprops = ['contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation', 'ASM']
 
     out = {}
     for i in channel_names:
         for n in distances:
-            out.update({f"glcm_mean_{p}_{n}_{i}": float for p in graycoprops})
-            out.update({f"glcm_std_{p}_{n}_{i}": float for p in graycoprops})
-            out.update({f"combined_glcm_mean_{p}_{n}_{i}": float for p in graycoprops})
-            out.update({f"combined_glcm_std_{p}_{n}_{i}": float for p in graycoprops})
+            out.update({f"glcm_mean_{p}_{n}_{i}": float for p in graycoprop_names})
+        for n in distances:
+            out.update({f"glcm_std_{p}_{n}_{i}": float for p in graycoprop_names})
         out[f"sobel_mean_{i}"] = float
         out[f"sobel_std_{i}"] = float
         out[f"sobel_max_{i}"] = float
         out[f"sobel_min_{i}"] = float
+        for n in distances:
+            out.update({f"combined_glcm_mean_{p}_{n}_{i}": float for p in graycoprop_names})
+        for n in distances:
+            out.update({f"combined_glcm_std_{p}_{n}_{i}": float for p in graycoprop_names})
         out[f"combined_sobel_mean_{i}"] = float
         out[f"combined_sobel_std_{i}"] = float
         out[f"combined_sobel_max_{i}"] = float
@@ -49,7 +52,6 @@ def _texture_features_meta(channel_names: List[str]) -> Mapping[str, Any]:
 
 def texture_features(
     sample: Mapping[str, Any],
-    channel_names: List[str],
     maximum_pixel_value: int
 ):
     """Extracts texture features from image.
@@ -59,8 +61,8 @@ def texture_features(
     is computed. From the latter, mean, standard deviation, maximum and minimum values are computed.
 
     Features are not computed on background-substracted values (as in
-    :func:scip.features.intensity.intensity_features) because all features are computed on
-    relative changes of neighboring pixels; a substraction does not influence these values.
+    :func:scip.features.intensity.intensity_features), because all features are computed on
+    relative changes of neighbouring pixels; a substraction does not influence these values.
 
     Args:
         sample (Mapping[str, Any]): mapping with pixels, mask and combined mask keys.
@@ -69,8 +71,9 @@ def texture_features(
         Mapping[str, Any]: extacted features.
 
     """
+    num_features = len(graycoprop_names)*2*len(distances)+4
 
-    def _row(pixels, i):
+    def _row(pixels):
         angles = [
             numpy.pi / 4,  # 45 degrees
             3 * numpy.pi / 4,  # 135 degrees
@@ -90,34 +93,33 @@ def texture_features(
             symmetric=True
         )
 
-        out = {}
-        for prop in ['contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation', 'ASM']:
+        out = numpy.empty(shape=(num_features,), dtype=float)
+        for i, prop in enumerate(graycoprop_names):
             v = graycoprops(glcm, prop=prop)
-            for d, (mu, std) in enumerate(zip(v.mean(axis=1), v.std(axis=1))):
-                out[f'glcm_mean_{prop}_{distances[d]}_{i}'] = mu
-                out[f'glcm_std_{prop}_{distances[d]}_{i}'] = std
+            out[i:i + len(distances)] = v.mean(axis=1)
+            i += len(distances)
+            out[i:i + len(distances)] = v.std(axis=1)
+            i += len(distances)
 
         s = sobel(pixels)
-        out[f"sobel_mean_{i}"] = s.mean()
-        out[f"sobel_std_{i}"] = s.std()
-        out[f"sobel_max_{i}"] = s.max()
-        out[f"sobel_min_{i}"] = s.min()
+        out[-4] = s.mean()
+        out[-3] = s.std()
+        out[-2] = s.max()
+        out[-1] = s.min()
 
         return out
 
-    features_dict = {}
+    out = numpy.empty(shape=(len(sample["pixels"]), 2, num_features), dtype=float)
 
     mask_pixels = sample["pixels"] * sample["mask"]
     combined_mask_pixels = sample["pixels"] * sample["combined_mask"][numpy.newaxis, ...]
-    for i, name in enumerate(channel_names):
+    for i in range(len(sample["pixels"])):
 
         # compute features on channel specific mask
         if numpy.any(sample["mask"][i]):
-            features_dict.update(_row(mask_pixels[i], name))
+            out[i, 0] = _row(mask_pixels[i])
 
         # always compute features on combined mask (it can never be empty)
-        out = _row(combined_mask_pixels[i], name)
-        for k in out.keys():
-            features_dict[f"combined_{k}"] = out[k]
+        out[i, 1] = _row(combined_mask_pixels[i])
 
-    return features_dict
+    return out.flatten()

@@ -29,10 +29,10 @@ props = [
     'mad',
     'skewness',
     'kurtosis',
-    'sum',
-    'modulation',
     'lower_quartile',
-    'upper_quartile'
+    'upper_quartile',
+    'sum',
+    'modulation'
 ]
 
 
@@ -50,27 +50,27 @@ def _intensity_features_meta(channel_names: List[str]) -> Mapping[str, type]:
     return out
 
 
-def _row(pixels: numpy.ndarray, i: int) -> Mapping[str, Any]:
+def _row(pixels: numpy.ndarray) -> Mapping[str, Any]:
     quartiles = numpy.quantile(pixels, q=(0.25, 0.75))
 
-    d = {
-        f'mean_{i}': numpy.mean(pixels),
-        f'max_{i}': numpy.mean(pixels),
-        f'min_{i}': numpy.min(pixels),
-        f'var_{i}': numpy.var(pixels),
-        f'mad_{i}': scipy.stats.median_abs_deviation(pixels),
-        f'skewness_{i}': scipy.stats.skew(pixels),
-        f'kurtosis_{i}': scipy.stats.kurtosis(pixels),
-        f'lower_quartile_{i}': quartiles[0],
-        f'upper_quartile_{i}': quartiles[1],
-        f'sum_{i}': numpy.sum(pixels)
-    }
-    d[f"modulation_{i}"] = (d[f"max_{i}"] - d[f"min_{i}"]) / ((d[f"max_{i}"] + d[f"min_{i}"]))
+    d = [
+        numpy.mean(pixels),
+        numpy.max(pixels),
+        numpy.min(pixels),
+        numpy.var(pixels),
+        scipy.stats.median_abs_deviation(pixels),
+        scipy.stats.skew(pixels),
+        scipy.stats.kurtosis(pixels),
+        quartiles[0],
+        quartiles[1],
+        numpy.sum(pixels)
+    ]
+    d.append((d[1] - d[2]) / (d[1] + d[2]))  # modulation
 
     return d
 
 
-def intensity_features(sample: Mapping[str, Any], channel_names: List[str]) -> Mapping[str, Any]:
+def intensity_features(sample: Mapping[str, Any]) -> Mapping[str, Any]:
     """Compute intensity features.
 
     Find following intensity features based on masked pixel values:
@@ -103,7 +103,7 @@ def intensity_features(sample: Mapping[str, Any], channel_names: List[str]) -> M
         Mapping[str, Any]: extracted features
     """
 
-    features_dict = {}
+    out = numpy.empty(shape=(len(sample["pixels"]), 8, len(props)), dtype=float)
 
     conv = convolve(
         sample["combined_mask"],
@@ -112,7 +112,7 @@ def intensity_features(sample: Mapping[str, Any], channel_names: List[str]) -> M
     )
     combined_edge = (conv > 0) & (conv < 9)
 
-    for i, name in enumerate(channel_names):
+    for i in range(len(sample["pixels"])):
 
         # compute features on channel specific mask
         if numpy.any(sample["mask"][i]):
@@ -129,23 +129,13 @@ def intensity_features(sample: Mapping[str, Any], channel_names: List[str]) -> M
             mask_edge_pixels = sample["pixels"][i][edge]
             mask_bgcorr_edge_pixels = mask_edge_pixels - sample["background"][i]
 
-            mask_out = _row(mask_pixels, name)
-            mask_bgcorr_out = _row(mask_bgcorr_pixels, name)
-            mask_edge_out = _row(mask_edge_pixels, name)
-            mask_bgcorr_edge_out = _row(mask_bgcorr_edge_pixels, name)
-
-            for k in mask_out.keys():
-                features_dict[k] = mask_out[k]
-                features_dict[f"bgcorr_{k}"] = mask_bgcorr_out[k]
-                features_dict[f"edge_{k}"] = mask_edge_out[k]
-                features_dict[f"bgcorr_edge_{k}"] = mask_bgcorr_edge_out[k]
+            out[i, 0] = _row(mask_pixels)
+            out[i, 1] = _row(mask_bgcorr_pixels)
+            out[i, 2] = _row(mask_edge_pixels)
+            out[i, 3] = _row(mask_bgcorr_edge_pixels)
         else:
             # write default values
-            for k in props:
-                features_dict[f"{k}_{name}"] = 0
-                features_dict[f"bgcorr_{k}_{name}"] = 0
-                features_dict[f"edge_{k}_{name}"] = 0
-                features_dict[f"bgcorr_edge_{k}_{name}"] = 0
+            out[i, :4] = 0
 
         # always compute features on combined mask (it can never be empty)
         mask_pixels = sample["pixels"][i][sample["combined_mask"]]
@@ -154,15 +144,9 @@ def intensity_features(sample: Mapping[str, Any], channel_names: List[str]) -> M
         mask_edge_pixels = sample["pixels"][i][combined_edge]
         mask_bgcorr_edge_pixels = mask_edge_pixels - sample["combined_background"][i]
 
-        mask_out = _row(mask_pixels, name)
-        mask_bgcorr_out = _row(mask_bgcorr_pixels, name)
-        mask_edge_out = _row(mask_edge_pixels, name)
-        mask_bgcorr_edge_out = _row(mask_bgcorr_edge_pixels, name)
+        out[i, 4] = _row(mask_pixels)
+        out[i, 5] = _row(mask_bgcorr_pixels)
+        out[i, 6] = _row(mask_edge_pixels)
+        out[i, 7] = _row(mask_bgcorr_edge_pixels)
 
-        for k in mask_out.keys():
-            features_dict[f"combined_{k}"] = mask_out[k]
-            features_dict[f"combined_bgcorr_{k}"] = mask_bgcorr_out[k]
-            features_dict[f"combined_edge_{k}"] = mask_edge_out[k]
-            features_dict[f"combined_bgcorr_edge_{k}"] = mask_bgcorr_edge_out[k]
-
-    return features_dict
+    return out.flatten()
