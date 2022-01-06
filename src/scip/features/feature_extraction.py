@@ -98,10 +98,10 @@ def extract_features(  # noqa: C901
                     c += len(metas["bbox"])
                 if "shape" in types:
                     out[i, c:c+len(metas["shape"])] = shape_features(p)
-                    c += len(metas["intensity"])
+                    c += len(metas["shape"])
                 if "intensity" in types:
                     out[i, c:c+len(metas["intensity"])] = intensity_features(p)
-                    c += len(metas["shape"])
+                    c += len(metas["intensity"])
                 if "texture" in types:
                     out[i, c:c+len(metas["texture"])] = texture_features(p, maximum_pixel_value)
 
