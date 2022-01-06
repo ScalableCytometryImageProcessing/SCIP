@@ -25,30 +25,17 @@ import re
 from typing import Tuple
 
 
-def load_image(event, z, channels, clip):
-    """
-    Load an image from a certain path
-
-    Args:
-        path (str): path of image,
-        z (zarr): zarr object
-        channels (list, optional): image channels to load. Defaults to None.
-
-    Returns:
-        dict: dictionary containing pixel values (ndarray) and path for each image
-    """
-
-    i = event["zarr_idx"]
-    if clip is not None:
-        event["pixels"] = numpy.clip(z[i].reshape(z.attrs["shape"][i])[channels], 0, clip)
-    else:
-        event["pixels"] = z[i].reshape(z.attrs["shape"][i])[channels]
-    event["pixels"] = event["pixels"].astype(numpy.float32)
-    return event
-
-
 def load_image_partition(partition, z, channels, clip):
-    return [load_image(event, z, channels, clip) for event in partition]
+    start, end = partition[0]["zarr_idx"], partition[-1]["zarr_idx"]
+    data = z[start:end+1]
+    shapes = z.attrs["shape"][start:end+1]
+    for i, event in enumerate(partition):
+        if clip is not None:
+            event["pixels"] = numpy.clip(data[i].reshape(shapes[i])[channels], 0, clip)
+        else:
+            event["pixels"] = data[i].reshape(shapes[i])[channels]
+    event["pixels"] = event["pixels"].astype(numpy.float32)
+    return partition
 
 
 def bag_from_directory(
