@@ -30,9 +30,7 @@ import socket
 import pandas
 from scip.utils.util import copy_without
 
-import matplotlib
 import warnings
-matplotlib.use("Agg")
 
 # dask issues a warning during normalization
 # when initializing the map-reduce operation
@@ -45,7 +43,6 @@ from scip.reports import (  # noqa: E402
     example_images, intensity_distribution, masks
 )  # noqa: E402
 from scip.features import feature_extraction  # noqa: E402
-from scip.masking import util as masking_util  # noqa: E402
 
 
 def get_images_bag(
@@ -239,6 +236,7 @@ def main(
                 output=output,
                 name="raw"
             ))
+
 
         method = config["masking"]["method"]
         if method is not None:
