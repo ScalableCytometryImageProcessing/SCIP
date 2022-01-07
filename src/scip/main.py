@@ -30,20 +30,15 @@ import socket
 import pandas
 from scip.utils.util import copy_without
 
-import warnings
+from scip.utils import util  # noqa: E402
+from scip.features import feature_extraction  # noqa: E402
+from scip.masking import util as masking_util
 
 # dask issues a warning during normalization
 # when initializing the map-reduce operation
 # this warning can only be fixed by fixing dask
+import warnings
 warnings.simplefilter("ignore", category=FutureWarning)
-
-from scip.utils import util  # noqa: E402
-from scip.normalization import quantile_normalization  # noqa: E402
-from scip.reports import (  # noqa: E402
-    example_images, intensity_distribution, masks
-)  # noqa: E402
-from scip.features import feature_extraction  # noqa: E402
-from scip.masking import util as masking_util
 
 
 def get_images_bag(
@@ -219,6 +214,9 @@ def main(
 
         futures = []
         if report:
+            from scip.reports import (  # noqa: E402
+                example_images, intensity_distribution
+            )  # noqa: E402
             logger.debug("reporting example images")
             futures.append(example_images.report(
                 images,
@@ -254,6 +252,7 @@ def main(
             )
 
             if report:
+                from scip.reports import masks  # noqa: E402
                 logger.debug("mask report")
                 futures.append(masks.report(
                     images,
@@ -313,6 +312,7 @@ def main(
         quantiles = None
         if config["normalization"] is not None:
             logger.debug("performing normalization")
+            from scip.normalization import quantile_normalization  # noqa: E402
             images, quantiles = quantile_normalization.quantile_normalization(
                 images,
                 config["normalization"]["lower"],

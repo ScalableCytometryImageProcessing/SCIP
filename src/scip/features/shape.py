@@ -134,15 +134,15 @@ def shape_features(
         Mapping[str, Any]: extracted shape features.
     """
 
-    out = numpy.empty(shape=(len(prop_names*(len(mask) + 1)),), dtype=float)
+    out = numpy.empty(shape=(len(prop_names * (len(mask) + 1)),), dtype=float)
     out[:len(prop_names)] = _row(combined_mask)
 
     for i in range(len(mask)):
         if numpy.any(mask[i]):
-            out[(i+1)*len(prop_names):(i+2)*len(prop_names)] = _row(mask[i])
+            out[(i + 1) * len(prop_names):(i + 2) * len(prop_names)] = _row(mask[i])
         else:
             # setting proper default values if possible when the mask is empty
-            out[(i+1)*len(prop_names):(i+2)*len(prop_names)] = [
+            out[(i + 1) * len(prop_names):(i + 2) * len(prop_names)] = [
                 0,
                 0,
                 0,

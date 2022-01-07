@@ -107,7 +107,7 @@ def texture_features(
         Mapping[str, Any]: extacted features.
 
     """
-    num_features = len(graycoprop_names)*2*len(distances)+4
+    num_features = len(graycoprop_names) * 2 * len(distances) + 4
 
     out = numpy.empty(shape=(len(sample["pixels"]), 2, num_features), dtype=float)
 

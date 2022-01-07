@@ -15,12 +15,12 @@
 # You should have received a copy of the GNU General Public License
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Mapping, List, Any
+from typing import Mapping, List
 
 import numpy
 import scipy.stats
 from scipy.ndimage import convolve
-from numba import njit, jit
+from numba import njit
 
 props = [
     'mean',

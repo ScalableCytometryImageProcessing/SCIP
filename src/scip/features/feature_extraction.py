@@ -56,6 +56,7 @@ def bbox_features(p: Mapping) -> Mapping[str, Any]:
 
     return list(p["bbox"]) + p["regions"]
 
+
 @jit(forceobj=True)
 def features_partition(
     part: Iterable[dict],
@@ -74,16 +75,16 @@ def features_partition(
 
         if "pixels" in p:
             if "bbox" in types:
-                out[i, c:c+lengths["bbox"]] = bbox_features(p)
+                out[i, c:c + lengths["bbox"]] = bbox_features(p)
                 c += lengths["bbox"]
             if "shape" in types:
-                out[i, c:c+lengths["shape"]] = shape_features(
+                out[i, c:c + lengths["shape"]] = shape_features(
                     mask=p["mask"],
                     combined_mask=p["combined_mask"]
                 )
                 c += lengths["shape"]
             if "intensity" in types:
-                out[i, c:c+lengths["intensity"]] = intensity_features(
+                out[i, c:c + lengths["intensity"]] = intensity_features(
                     pixels=p["pixels"],
                     mask=p["mask"],
                     combined_mask=p["combined_mask"],
@@ -92,7 +93,7 @@ def features_partition(
                 )
                 c += lengths["intensity"]
             if "texture" in types:
-                out[i, c:c+lengths["texture"]] = texture_features(p, maximum_pixel_value)
+                out[i, c:c + lengths["texture"]] = texture_features(p, maximum_pixel_value)
 
     return out
 

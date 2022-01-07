@@ -27,8 +27,8 @@ from typing import Tuple
 
 def load_image_partition(partition, z, channels, clip):
     start, end = partition[0]["zarr_idx"], partition[-1]["zarr_idx"]
-    data = z[start:end+1]
-    shapes = z.attrs["shape"][start:end+1]
+    data = z[start:end + 1]
+    shapes = z.attrs["shape"][start:end + 1]
     for i, event in enumerate(partition):
         if clip is not None:
             event["pixels"] = numpy.clip(data[i].reshape(shapes[i])[channels], 0, clip)
