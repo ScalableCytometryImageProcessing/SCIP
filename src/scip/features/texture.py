@@ -31,18 +31,16 @@ def _texture_features_meta(channel_names: List[str]) -> Mapping[str, Any]:
 
     out = {}
     for i in channel_names:
-        for n in distances:
-            out.update({f"glcm_mean_{p}_{n}_{i}": float for p in graycoprop_names})
-        for n in distances:
-            out.update({f"glcm_std_{p}_{n}_{i}": float for p in graycoprop_names})
+        for p in graycoprop_names:
+            out.update({f"glcm_mean_{p}_{n}_{i}": float for n in distances})
+            out.update({f"glcm_std_{p}_{n}_{i}": float for n in distances})
         out[f"sobel_mean_{i}"] = float
         out[f"sobel_std_{i}"] = float
         out[f"sobel_max_{i}"] = float
         out[f"sobel_min_{i}"] = float
-        for n in distances:
-            out.update({f"combined_glcm_mean_{p}_{n}_{i}": float for p in graycoprop_names})
-        for n in distances:
-            out.update({f"combined_glcm_std_{p}_{n}_{i}": float for p in graycoprop_names})
+        for p in graycoprop_names:
+            out.update({f"combined_glcm_mean_{p}_{n}_{i}": float for n in distances})
+            out.update({f"combined_glcm_std_{p}_{n}_{i}": float for n in distances})
         out[f"combined_sobel_mean_{i}"] = float
         out[f"combined_sobel_std_{i}"] = float
         out[f"combined_sobel_max_{i}"] = float
@@ -70,12 +68,11 @@ def _row(pixels, maximum_pixel_value, num_features):
     )
 
     out = numpy.empty(shape=(num_features,), dtype=float)
+    step = len(distances)*2
     for i, prop in enumerate(graycoprop_names):
         v = graycoprops(glcm, prop=prop)
-        out[i:i + len(distances)] = v.mean(axis=1)
-        i += len(distances)
-        out[i:i + len(distances)] = v.std(axis=1)
-        i += len(distances)
+        out[i*step:i*step+len(distances)] = v.mean(axis=1)
+        out[i*step+len(distances):(i+1)*step] = v.std(axis=1)
 
     s = sobel(pixels)
     out[-4] = s.mean()
