@@ -128,39 +128,46 @@ def intensity_features(
 
     for i in range(len(pixels)):
 
-        # compute features on channel specific mask
-        if numpy.any(mask[i]):
+        try:
+            # compute features on channel specific mask
+            if numpy.any(mask[i]):
 
-            mask_pixels = pixels[i][mask[i]]
-            mask_bgcorr_pixels = mask_pixels - background[i]
+                mask_pixels = pixels[i][mask[i]]
+                mask_bgcorr_pixels = mask_pixels - background[i]
 
-            conv = convolve(
-                mask[i],
-                weights=numpy.ones(shape=[3, 3], dtype=int),
-                mode="constant"
-            )
-            edge = (conv > 0) & (conv < 9)
-            mask_edge_pixels = pixels[i][edge]
-            mask_bgcorr_edge_pixels = mask_edge_pixels - background[i]
+                conv = convolve(
+                    mask[i],
+                    weights=numpy.ones(shape=[3, 3], dtype=int),
+                    mode="constant"
+                )
+                edge = (conv > 0) & (conv < 9)
+                mask_edge_pixels = pixels[i][edge]
+                mask_bgcorr_edge_pixels = mask_edge_pixels - background[i]
 
-            out[i, 0] = _row(mask_pixels) + _row2(mask_pixels)
-            out[i, 1] = _row(mask_bgcorr_pixels) + _row2(mask_bgcorr_pixels)
-            out[i, 2] = _row(mask_edge_pixels) + _row2(mask_edge_pixels)
-            out[i, 3] = _row(mask_bgcorr_edge_pixels) + _row2(mask_bgcorr_edge_pixels)
-        else:
-            # write default values
-            out[i, :4] = 0
+                out[i, 0] = _row(mask_pixels) + _row2(mask_pixels)
+                out[i, 1] = _row(mask_bgcorr_pixels) + _row2(mask_bgcorr_pixels)
+                out[i, 2] = _row(mask_edge_pixels) + _row2(mask_edge_pixels)
+                out[i, 3] = _row(mask_bgcorr_edge_pixels) + _row2(mask_bgcorr_edge_pixels)
+            else:
+                # write default values
+                out[i, :4] = 0
 
-        # always compute features on combined mask (it can never be empty)
-        mask_pixels = pixels[i][combined_mask]
-        mask_bgcorr_pixels = mask_pixels - combined_background[i]
+            # always compute features on combined mask (it can never be empty)
+            mask_pixels = pixels[i][combined_mask]
+            mask_bgcorr_pixels = mask_pixels - combined_background[i]
 
-        mask_edge_pixels = pixels[i][combined_edge]
-        mask_bgcorr_edge_pixels = mask_edge_pixels - combined_background[i]
+            mask_edge_pixels = pixels[i][combined_edge]
+            mask_bgcorr_edge_pixels = mask_edge_pixels - combined_background[i]
 
-        out[i, 4] = _row(mask_pixels) + _row2(mask_pixels)
-        out[i, 5] = _row(mask_bgcorr_pixels) + _row2(mask_bgcorr_pixels)
-        out[i, 6] = _row(mask_edge_pixels) + _row2(mask_edge_pixels)
-        out[i, 7] = _row(mask_bgcorr_edge_pixels) + _row2(mask_bgcorr_edge_pixels)
+            out[i, 4] = _row(mask_pixels) + _row2(mask_pixels)
+            out[i, 5] = _row(mask_bgcorr_pixels) + _row2(mask_bgcorr_pixels)
+            out[i, 6] = _row(mask_edge_pixels) + _row2(mask_edge_pixels)
+            out[i, 7] = _row(mask_bgcorr_edge_pixels) + _row2(mask_bgcorr_edge_pixels)
+
+        except ZeroDivisionError as e:
+            print(e)
+            print(len(pixels[i]))
+            print(len(mask[i]))
+
 
     return out.flatten()
