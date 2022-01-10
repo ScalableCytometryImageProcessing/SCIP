@@ -28,7 +28,6 @@ props = [
     'max',
     'min',
     'std',
-    'var',
     'mad',
     'lower_quartile',
     'upper_quartile',
@@ -63,13 +62,12 @@ def _row(pixels: numpy.ndarray) -> list:
         percentiles[4],
         percentiles[0],
         numpy.std(pixels),
-        numpy.var(pixels),
         numpy.median(numpy.absolute(pixels - percentiles[2])),
         percentiles[1],
         percentiles[3],
         numpy.sum(pixels)
     ]
-    d.append((d[1] - d[2]) / (d[1] + d[2]))  # modulation
+    d.append((d[2] - d[3]) / (d[2] + d[3]))  # modulation
 
     return d
 
