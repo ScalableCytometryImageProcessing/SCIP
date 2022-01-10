@@ -73,7 +73,7 @@ def get_images_bag(
 def compute_features(images, channel_names, types, maximum_pixel_value, loader_meta):
 
     def rename(c):
-        if c in ["bbox", "regions"] + list(loader_meta.keys()):
+        if any(c.startswith(a) for a in ["bbox", "regions"] + list(loader_meta.keys())):
             return f"meta_{c}"
         else:
             return f"feat_{c}"
@@ -214,9 +214,9 @@ def main(
 
         futures = []
         if report:
-            from scip.reports import (  # noqa: E402
-                example_images, intensity_distribution
-            )  # noqa: E402
+            import matplotlib  # noqa: E402
+            matplotlib.use("Agg")
+            from scip.reports import example_images, intensity_distribution  # noqa: E402
             logger.debug("reporting example images")
             futures.append(example_images.report(
                 images,
@@ -235,7 +235,6 @@ def main(
                 output=output,
                 name="raw"
             ))
-
 
         method = config["masking"]["method"]
         if method is not None:
