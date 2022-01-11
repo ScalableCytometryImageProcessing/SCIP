@@ -25,7 +25,6 @@ setuptools.setup(
         'umap-learn',
         'dask_mpi',
         'aicsimageio[czi]',
-        'centrosome',
         'mpi4py',
         'bokeh',
         'zarr',
