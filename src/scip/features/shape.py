@@ -114,8 +114,8 @@ def _shape_features_meta(channel_names: List[str]) -> Mapping[str, type]:
 
 def _row(mask: numpy.ndarray) -> numpy.ndarray:
     label_img = label(mask)
-    props = regionprops_table(label_image=label_img, properties=prop_ids)
-    return numpy.array(list(props.values()))[:, 0]
+    props = regionprops_table(label_image=label_img, properties=prop_ids, cache=False)
+    return [numpy.mean(props[k]) for k in prop_names]
 
 
 def shape_features(
