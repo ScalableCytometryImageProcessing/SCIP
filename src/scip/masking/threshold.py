@@ -32,8 +32,10 @@ def get_mask(el, main, main_channel):
         mask, cc = numpy.full(shape=el["pixels"].shape, dtype=bool, fill_value=False), 0
         x = el["pixels"][main_channel]
         if (normaltest(x.ravel()).pvalue < 0.05):
+            x = gaussian(x, sigma=1)
             x = sobel(x)
             x = closing(x, footprint=disk(2))
+            x = gaussian(x, sigma=3)
             x = threshold_otsu(x) < x
             x = remove_small_holes(x, area_threshold=100)
             x = remove_small_objects(x, min_size=20)
@@ -54,10 +56,12 @@ def get_mask(el, main, main_channel):
 
             x = el["pixels"][dim, bbox[0]:bbox[2], bbox[1]:bbox[3]]
             x = gaussian(x, sigma=1)
+            x = sobel(x)
+            x = gaussian(x, sigma=3)
             x = threshold_otsu(x) < x
             x[[0, -1], :] = 0
             x[:, [0, -1]] = 0
-            x = remove_small_holes(x, area_threshold=10)
+            x = remove_small_holes(x, area_threshold=100)
             x = remove_small_objects(x, min_size=5)
             x = label(x)
             mask[dim, bbox[0]:bbox[2], bbox[1]:bbox[3]], cc = x > 0, x.max()
