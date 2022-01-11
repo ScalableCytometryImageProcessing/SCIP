@@ -25,17 +25,17 @@ from scip.utils.util import check
 
 
 @check
-def get_mask(el, main, main_channel):
+def get_mask(el, main, main_channel, smooth):
 
     if main:
         regions = [0] * len(el["pixels"])
         mask, cc = numpy.full(shape=el["pixels"].shape, dtype=bool, fill_value=False), 0
         x = el["pixels"][main_channel]
         if (normaltest(x.ravel()).pvalue < 0.05):
-            x = gaussian(x, sigma=1)
+            x = gaussian(x, sigma=smooth)
             x = sobel(x)
             x = closing(x, footprint=disk(2))
-            x = gaussian(x, sigma=3)
+            x = gaussian(x, sigma=smooth*2)
             x = threshold_otsu(x) < x
             x = remove_small_holes(x, area_threshold=100)
             x = remove_small_objects(x, min_size=20)
@@ -55,9 +55,9 @@ def get_mask(el, main, main_channel):
                 continue
 
             x = el["pixels"][dim, bbox[0]:bbox[2], bbox[1]:bbox[3]]
-            x = gaussian(x, sigma=1)
+            x = gaussian(x, sigma=smooth)
             x = sobel(x)
-            x = gaussian(x, sigma=3)
+            x = gaussian(x, sigma=smooth*2)
             x = threshold_otsu(x) < x
             x[[0, -1], :] = 0
             x[:, [0, -1]] = 0
@@ -74,10 +74,10 @@ def get_mask(el, main, main_channel):
     return out
 
 
-def create_masks_on_bag(bag, main, main_channel):
+def create_masks_on_bag(bag, main, main_channel, smooth):
 
     def threshold_masking(partition):
-        return [get_mask(p, main, main_channel) for p in partition]
+        return [get_mask(p, main, main_channel, smooth) for p in partition]
 
     bag = bag.map_partitions(threshold_masking)
     return bag
