@@ -45,16 +45,14 @@ def get_mask(el, main, main_channel, smooth):
         regions[main_channel] = cc
     else:
         regions = []
-        # search for objects within the bounding box found on the main_channel
         mask = el["mask"]
-        bbox = el["bbox"]
         for dim in range(len(el["pixels"])):
             if dim == main_channel:
                 # in this phase the main channel always has 1 component
                 regions.append(1)
                 continue
 
-            x = el["pixels"][dim, bbox[0]:bbox[2], bbox[1]:bbox[3]]
+            x = el["pixels"][dim]
             x = gaussian(x, sigma=smooth)
             x = sobel(x)
             x = gaussian(x, sigma=smooth*2)
@@ -64,7 +62,7 @@ def get_mask(el, main, main_channel, smooth):
             x = remove_small_holes(x, area_threshold=100)
             x = remove_small_objects(x, min_size=5)
             x = label(x)
-            mask[dim, bbox[0]:bbox[2], bbox[1]:bbox[3]], cc = x > 0, x.max()
+            mask[dim], cc = x > 0, x.max()
             regions.append(cc)
 
     out = el.copy()

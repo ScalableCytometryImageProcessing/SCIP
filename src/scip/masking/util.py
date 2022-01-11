@@ -24,13 +24,29 @@ from skimage.segmentation import expand_labels
 from scip.utils.util import copy_without, check
 
 
+def _touching_border(mask):
+    return any(
+        v.sum() > 5
+        for v in [
+            mask[0,:],
+            mask[-1,:],
+            mask[:,0],
+            mask[:,-1]
+    ])
+
+
 def mask_predicate(s, bbox_channel_index):
 
     # a mask should be present in the bbox_channel_index
+    if not numpy.any(s["mask"][bbox_channel_index]):
+        return copy_without(s, without=["mask", "pixels"])
+
     # only one connected component should be found in the bbox channel
-    if (
-        (not numpy.any(s["mask"][bbox_channel_index])) or (s["regions"][bbox_channel_index] != 1)
-    ):
+    if s["regions"][bbox_channel_index] != 1:
+        return copy_without(s, without=["mask", "pixels"])
+
+    # mask should not touch the border of the image
+    if _touching_border(s["mask"][bbox_channel_index]):
         return copy_without(s, without=["mask", "pixels"])
 
     return s
