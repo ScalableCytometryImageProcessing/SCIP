@@ -40,7 +40,6 @@ def get_mask(el, main, main_channel, smooth):
             x = remove_small_holes(x, area_threshold=100)
             x = remove_small_objects(x, min_size=20)
             x = label(x)
-            x = expand_labels(x, distance=1)
             mask[main_channel], cc = x > 0, x.max()
         regions[main_channel] = cc
     else:
