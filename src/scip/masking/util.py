@@ -52,6 +52,35 @@ def mask_predicate(s, bbox_channel_index):
     return s
 
 
+def _regions_touching(arr):
+    # get all unique indices in the arr edges
+    idx = numpy.unique(numpy.concatenate([arr[0, :], arr[-1, :], arr[:, 0], arr[:, -1]]))
+    if idx[0] == 0:
+        return idx[1:]
+    else:
+        return idx
+
+
+def remove_regions_touching_border(p, bbox_channel_index):
+    mask = numpy.empty_like(p["mask"])
+    for i in range(len(mask)):
+        if i == bbox_channel_index:
+            mask[i] = p["mask"][i]
+
+        x = label(p["mask"][i])
+        indices = _regions_touching(x)
+        mask[i] = p["mask"][i] * ~numpy.isin(x, indices)
+
+    newevent = copy_without(p, without=["mask"])
+    newevent["mask"] = mask
+
+    return newevent
+
+
+def remove_regions_touching_border_partition(part, main_channel):
+    return [remove_regions_touching_border(p, main_channel) for p in part]
+
+
 def apply_mask_partition(part):
     return [apply(p) for p in part]
 

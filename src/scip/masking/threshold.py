@@ -52,17 +52,17 @@ def get_mask(el, main, main_channel, smooth):
                 regions.append(1)
                 continue
 
+            cc = 0
             x = el["pixels"][dim]
-            x = gaussian(x, sigma=smooth)
-            x = sobel(x)
-            x = gaussian(x, sigma=smooth*2)
-            x = threshold_otsu(x) < x
-            x[[0, -1], :] = 0
-            x[:, [0, -1]] = 0
-            x = remove_small_holes(x, area_threshold=100)
-            x = remove_small_objects(x, min_size=5)
-            x = label(x)
-            mask[dim], cc = x > 0, x.max()
+            if (normaltest(x.ravel()).pvalue < 0.05):
+                x = gaussian(x, sigma=smooth)
+                x = sobel(x)
+                x = gaussian(x, sigma=smooth*2)
+                x = threshold_otsu(x) < x
+                x = remove_small_holes(x, area_threshold=1000)
+                x = remove_small_objects(x, min_size=20)
+                x = label(x)
+                mask[dim], cc = x > 0, x.max()
             regions.append(cc)
 
     out = el.copy()

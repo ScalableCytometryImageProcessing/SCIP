@@ -284,6 +284,11 @@ def main(
                 **(config["masking"]["kwargs"] or dict())
             )
 
+            images = images.map_partitions(
+                masking_util.remove_regions_touching_border_partition,
+                bbox_channel_index=config["masking"]["bbox_channel_index"]
+            )
+
             if config["masking"]["export"]:
                 no_pixels = images.map(remove_pixels)
                 no_pixels.to_avro(
