@@ -29,7 +29,7 @@ from numba import njit
 @njit(cache=True)
 def _touching_border(mask):
 
-    limit = 5
+    limit = 10
 
     if mask[0, :].sum() > limit:
         return True
@@ -60,8 +60,10 @@ def mask_predicate(s, bbox_channel_index):
     return s
 
 
-@njit(cache=True)
 def _regions_touching(arr):
+
+    limit = 10
+
     # get all unique indices in the arr edges
 
     top = arr[0, :]
@@ -69,13 +71,12 @@ def _regions_touching(arr):
     left = arr[:, 0]
     right = arr[:, -1]
     a = numpy.concatenate((top, bottom, left, right))
-    idx = numpy.unique(a)
+    idx, counts = numpy.unique(a, return_counts=True)
 
     if idx[0] == 0:
-        return idx[1:]
+        return idx[1:][counts[1:] > limit]
     else:
-        return idx
-
+        return idx[counts > limit]
 
 @check
 def remove_regions_touching_border(p, bbox_channel_index):
