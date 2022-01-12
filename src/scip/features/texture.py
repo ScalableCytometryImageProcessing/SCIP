@@ -67,7 +67,7 @@ def _row(pixels, maximum_pixel_value, num_features):
         symmetric=True
     )
 
-    out = numpy.empty(shape=(num_features,), dtype=float)
+    out = numpy.full(shape=(num_features,), fill_value=None, dtype=float)
     step = len(distances)*2
     for i, prop in enumerate(graycoprop_names):
         v = graycoprops(glcm, prop=prop)
@@ -106,7 +106,7 @@ def texture_features(
     """
     num_features = len(graycoprop_names) * 2 * len(distances) + 4
 
-    out = numpy.empty(shape=(len(sample["pixels"]), 2, num_features), dtype=float)
+    out = numpy.full(shape=(len(sample["pixels"]), 2, num_features), fill_value=None, dtype=float)
 
     mask_pixels = sample["pixels"] * sample["mask"]
     combined_mask_pixels = sample["pixels"] * sample["combined_mask"][numpy.newaxis, ...]

@@ -67,7 +67,7 @@ def features_partition(
     maximum_pixel_value: int
 ):
 
-    out = numpy.empty(shape=(len(part), lengths["full"]), dtype=object)
+    out = numpy.full(shape=(len(part), lengths["full"]), fill_value=None, dtype=object)
     for i, p in enumerate(part):
         for j, k in enumerate(loader_meta_keys):
             out[i, j] = p[k]

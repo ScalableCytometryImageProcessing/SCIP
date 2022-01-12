@@ -107,7 +107,7 @@ prop_ids = [
 
 def _shape_features_meta(channel_names: List[str]) -> Mapping[str, type]:
     out = {}
-    for name in channel_names + ["combined"]:
+    for name in ["combined"] + channel_names:
         out.update({f"{p}_{name}": float for p in prop_names})
     return out
 
@@ -134,7 +134,7 @@ def shape_features(
         Mapping[str, Any]: extracted shape features.
     """
 
-    out = numpy.empty(shape=(len(prop_names * (len(mask) + 1)),), dtype=float)
+    out = numpy.full(shape=(len(prop_names * (len(mask) + 1)),), fill_value=None, dtype=float)
     out[:len(prop_names)] = _row(combined_mask)
 
     for i in range(len(mask)):

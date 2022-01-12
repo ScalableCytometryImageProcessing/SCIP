@@ -117,7 +117,7 @@ def intensity_features(
         Mapping[str, Any]: extracted features
     """
 
-    out = numpy.empty(shape=(len(pixels), 8, len(props)), dtype=float)
+    out = numpy.full(shape=(len(pixels), 8, len(props)), fill_value=None, dtype=float)
 
     conv = convolve(
         combined_mask,
