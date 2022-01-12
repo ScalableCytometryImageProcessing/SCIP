@@ -77,8 +77,8 @@ def remove_regions_touching_border(p, bbox_channel_index):
     return newevent
 
 
-def remove_regions_touching_border_partition(part, main_channel):
-    return [remove_regions_touching_border(p, main_channel) for p in part]
+def remove_regions_touching_border_partition(part, bbox_channel_index):
+    return [remove_regions_touching_border(p, bbox_channel_index) for p in part]
 
 
 def apply_mask_partition(part):
