@@ -23,16 +23,24 @@ from skimage.segmentation import expand_labels
 
 from scip.utils.util import copy_without, check
 
+from numba import njit
 
+
+@njit(cache=True)
 def _touching_border(mask):
-    return any(
-        v.sum() > 5
-        for v in [
-            mask[0,:],
-            mask[-1,:],
-            mask[:,0],
-            mask[:,-1]
-    ])
+
+    limit = 5
+
+    if mask[0, :].sum() > limit:
+        return True
+    if mask[-1, :].sum() > limit:
+        return True
+    if mask[:, 0].sum() > limit:
+        return True
+    if mask[:, -1].sum() > limit:
+        return True
+
+    return False
 
 
 def mask_predicate(s, bbox_channel_index):
@@ -52,9 +60,17 @@ def mask_predicate(s, bbox_channel_index):
     return s
 
 
+@njit(cache=True)
 def _regions_touching(arr):
     # get all unique indices in the arr edges
-    idx = numpy.unique(numpy.concatenate([arr[0, :], arr[-1, :], arr[:, 0], arr[:, -1]]))
+
+    top = arr[0, :]
+    bottom = arr[-1, :]
+    left = arr[:, 0]
+    right = arr[:, -1]
+    a = numpy.concatenate((top, bottom, left, right))
+    idx = numpy.unique(a)
+
     if idx[0] == 0:
         return idx[1:]
     else:
@@ -67,6 +83,7 @@ def remove_regions_touching_border(p, bbox_channel_index):
     for i in range(len(mask)):
         if i == bbox_channel_index:
             mask[i] = p["mask"][i]
+            continue
 
         x = label(p["mask"][i])
         indices = _regions_touching(x)
