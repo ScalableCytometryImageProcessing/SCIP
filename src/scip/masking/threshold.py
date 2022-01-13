@@ -37,7 +37,7 @@ def get_mask(el, main, main_channel, smooth):
             x = closing(x, footprint=disk(2))
             x = gaussian(x, sigma=smooth*2)
             x = threshold_otsu(x) < x
-            x = remove_small_holes(x, area_threshold=100)
+            x = remove_small_holes(x, area_threshold=(x.shape[0]*x.shape[1])/4)
             x = remove_small_objects(x, min_size=20)
             x = label(x)
             mask[main_channel], cc = x > 0, x.max()
@@ -58,7 +58,7 @@ def get_mask(el, main, main_channel, smooth):
                 x = sobel(x)
                 x = gaussian(x, sigma=smooth*2)
                 x = threshold_otsu(x) < x
-                x = remove_small_holes(x, area_threshold=1000)
+                x = remove_small_holes(x, area_threshold=(x.shape[0]*x.shape[1])/4)
                 x = remove_small_objects(x, min_size=20)
                 x = label(x)
                 mask[dim], cc = x > 0, x.max()
