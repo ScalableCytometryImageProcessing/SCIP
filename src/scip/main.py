@@ -270,12 +270,6 @@ def main(
             )
             images = images.map(func)
 
-            # all channels are bounding boxed based on the main channel mask
-            images = images.map_partitions(
-                masking_util.bounding_box_partition,
-                bbox_channel_index=config["masking"]["bbox_channel_index"]
-            )
-
             # in the non-main phase of the masking procedure, the masks for the non-main
             # channels are computed and applied
             images = masking_module.create_masks_on_bag(
@@ -288,6 +282,8 @@ def main(
                 masking_util.remove_regions_touching_border_partition,
                 bbox_channel_index=config["masking"]["bbox_channel_index"]
             )
+
+            images = images.map_partitions(masking_util.bounding_box_partition)
 
             if config["masking"]["export"]:
                 no_pixels = images.map(remove_pixels)

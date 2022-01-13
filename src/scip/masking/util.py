@@ -139,19 +139,20 @@ def apply(sample):
     return output
 
 
-def bounding_box_partition(part, bbox_channel_index):
-    return [get_bounding_box(event, bbox_channel_index) for event in part]
+def bounding_box_partition(part):
+    return [get_bounding_box(event) for event in part]
 
 
 @check
 def get_bounding_box(event):
     minr, minc, maxr, maxc = 0, 0, event["pixels"].shape[0], event["pixels"].shape[1]
     for mask in event["mask"]:
-        b = regionprops(mask.astype(int))[0].bbox
-        minr = min(b[0], minr)
-        minc = min(b[1], minc)
-        maxr = max(b[2], maxr)
-        maxc = max(b[3], maxc)
+        if numpy.any(mask):
+            b = regionprops(mask.astype(int))[0].bbox
+            minr = min(b[0], minr)
+            minc = min(b[1], minc)
+            maxr = max(b[2], maxr)
+            maxc = max(b[3], maxc)
 
     newevent = event.copy()
     newevent["bbox"] = [minr, minc, maxr, maxc]
