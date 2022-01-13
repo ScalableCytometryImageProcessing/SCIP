@@ -131,12 +131,8 @@ def apply(sample):
             background[i] = 0
         combined_background[i] = img[i][~combined_mask].mean()
 
-    minr, minc, maxr, maxc = sample["bbox"]
-
-    output = copy_without(sample, ["pixels", "mask"])
-    output["pixels"] = img[:, minr:maxr, minc:maxc]
-    output["mask"] = mask[:, minr:maxr, minc:maxc]
-    output["combined_mask"] = combined_mask[minr:maxr, minc:maxc]
+    output = sample.copy()
+    output["combined_mask"] = combined_mask
     output["background"] = background.tolist()
     output["combined_background"] = combined_background.tolist()
 
@@ -148,12 +144,17 @@ def bounding_box_partition(part, bbox_channel_index):
 
 
 @check
-def get_bounding_box(event, bbox_channel_index):
-    mask = np.where(event["mask"][bbox_channel_index], 1, 0)
-    bbox = list(regionprops(mask)[0].bbox)
+def get_bounding_box(event):
+    minr, minc, maxr, maxc = 0, 0, event["pixels"].shape[0], event["pixels"].shape[1]
+    for mask in event["mask"]:
+        b = regionprops(mask.astype(int))[0].bbox
+        minr = min(b[0], minr)
+        minc = min(b[1], minc)
+        maxr = max(b[2], maxr)
+        maxc = max(b[3], maxc)
 
     newevent = event.copy()
-    newevent["bbox"] = tuple(bbox)
+    newevent["bbox"] = [minr, minc, maxr, maxc]
 
     return newevent
 
