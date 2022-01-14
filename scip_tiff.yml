@@ -15,6 +15,7 @@ masking:
   bbox_channel_index: 0
   export: false
   kwargs:
+    smooth: 1
 normalization:
   lower: 0
   upper: 1

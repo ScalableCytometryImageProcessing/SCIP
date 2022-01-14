@@ -15,6 +15,7 @@ masking:
   export: false
   kwargs:
     noisy_channels: [0]
+filter:
 normalization:
 export:
   format: parquet

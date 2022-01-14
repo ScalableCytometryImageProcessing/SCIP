@@ -23,18 +23,46 @@ import numpy
 from pathlib import Path
 import re
 from typing import Tuple
+import copy
+
+
+def reload_image_partition(
+    partition,
+    channels,
+    clip: int,
+    regex: str,
+    limit: int = -1
+):
+    z = zarr.open(partition[0]["path"])
+    indices = [p["zarr_idx"] for p in partition]
+    data = z.get_coordinate_selection(indices)
+    shapes = numpy.array(z.attrs["shape"])[indices]
+
+    newpartition = copy.deepcopy(partition)
+    for i in range(len(partition)):
+        if "mask" not in partition[i]:
+            continue
+
+        if clip is not None:
+            newpartition[i]["pixels"] = numpy.clip(data[i].reshape(shapes[i])[channels], 0, clip)
+        else:
+            newpartition[i]["pixels"] = data[i].reshape(shapes[i])[channels]
+        newpartition[i]["pixels"] = newpartition[i]["pixels"].astype(numpy.float32)
+    return newpartition
 
 
 def load_image_partition(partition, z, channels, clip):
+
     start, end = partition[0]["zarr_idx"], partition[-1]["zarr_idx"]
     data = z[start:end + 1]
     shapes = z.attrs["shape"][start:end + 1]
-    for i, event in enumerate(partition):
+
+    for i in range(len(partition)):
         if clip is not None:
-            event["pixels"] = numpy.clip(data[i].reshape(shapes[i])[channels], 0, clip)
+            partition[i]["pixels"] = numpy.clip(data[i].reshape(shapes[i])[channels], 0, clip)
         else:
-            event["pixels"] = data[i].reshape(shapes[i])[channels]
-    event["pixels"] = event["pixels"].astype(numpy.float32)
+            partition[i]["pixels"] = data[i].reshape(shapes[i])[channels]
+        partition[i]["pixels"] = partition[i]["pixels"].astype(numpy.float32)
     return partition
 
 

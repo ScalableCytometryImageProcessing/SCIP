@@ -47,10 +47,10 @@ def get_images_bag(
     channels: List[int],
     config: dict,
     partition_size: int,
-    gpu_accelerated: bool
+    gpu_accelerated: bool,
+    loader_module
 ) -> Tuple[dask.bag.Bag, int, dict]:
 
-    loader_module = import_module('scip.loading.%s' % config["loading"]["format"])
     loader = partial(
         loader_module.bag_from_directory,
         channels=channels,
@@ -109,7 +109,7 @@ def get_schema(event):
 
 
 def remove_pixels(event):
-    newevent = copy_without(event, ["pixels", "shape", "mask"])
+    newevent = copy_without(event, ["pixels", "mask"])
     newevent["shape"] = list(event["mask"].shape)
     newevent["mask"] = event["mask"].ravel()
     return newevent
@@ -203,13 +203,15 @@ def main(
 
         logger.debug("loading images in to bags")
 
+        loader_module = import_module('scip.loading.%s' % config["loading"]["format"])
         with dask.config.set(**{'array.slicing.split_large_chunks': False}):
             images, maximum_pixel_value, loader_meta = get_images_bag(
                 paths=paths,
                 channels=channels,
                 config=config,
                 partition_size=partition_size,
-                gpu_accelerated=gpu > 0
+                gpu_accelerated=gpu > 0,
+                loader_module=loader_module
             )
 
         futures = []
@@ -308,6 +310,23 @@ def main(
                     name="masked",
                     output=output
                 ))
+
+        if config["filter"] is not None:
+            filter_module = import_module('scip.loading.%s' % config["filter"]["name"])
+
+            images = images.map_partitions(filter_module.feature_partition)
+            images = images.map(copy_without, without=["pixels"]).persist()
+            filter_items = filter_module.grouped_item(images, key="group")
+
+            filter_items = filter_items["mu"].compute()
+
+            images = images.map(filter_module.predicate, **filter_items)
+
+            images = images.map_partitions(
+                loader_module.reload_image_partition,
+                channels=channels,
+                **(config["loading"]["loader_kwargs"] or dict())
+            )
 
         quantiles = None
         if config["normalization"] is not None:
