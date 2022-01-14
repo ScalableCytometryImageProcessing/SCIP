@@ -68,11 +68,11 @@ def _row(pixels, maximum_pixel_value, num_features):
     )
 
     out = numpy.full(shape=(num_features,), fill_value=None, dtype=float)
-    step = len(distances)*2
+    step = len(distances) * 2
     for i, prop in enumerate(graycoprop_names):
         v = graycoprops(glcm, prop=prop)
-        out[i*step:i*step+len(distances)] = v.mean(axis=1)
-        out[i*step+len(distances):(i+1)*step] = v.std(axis=1)
+        out[i * step:i * step + len(distances)] = v.mean(axis=1)
+        out[i * step + len(distances):(i + 1) * step] = v.std(axis=1)
 
     s = sobel(pixels)
     out[-4] = s.mean()

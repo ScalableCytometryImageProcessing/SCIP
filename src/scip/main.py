@@ -130,7 +130,7 @@ def channel_boundaries(quantiles, *, config, output):
         pandas.DataFrame(data=data, index=index).to_csv(str(output / "channel_boundaries.csv"))
 
 
-def main(
+def main(  # noqa: C901
     *,
     paths,
     output,

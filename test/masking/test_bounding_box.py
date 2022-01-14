@@ -26,7 +26,7 @@ def test_bounding_box(images_folder, cluster):
         images_folder, channels=[0, 1, 2], partition_size=2)
     bag = watershed.create_masks_on_bag(bag, noisy_channels=[0])
     bag = bag.filter(partial(util.mask_predicate, bbox_channel_index=0))
-    bag = bag.map_partitions(util.bounding_box_partition, bbox_channel_index=0)
+    bag = bag.map_partitions(util.bounding_box_partition)
 
     bag = bag.compute()
 

@@ -78,6 +78,7 @@ def _regions_touching(arr):
     else:
         return idx[counts > limit]
 
+
 @check
 def remove_regions_touching_border(p, bbox_channel_index):
     mask = numpy.empty_like(p["mask"])
