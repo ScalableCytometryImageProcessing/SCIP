@@ -26,28 +26,30 @@ def main():
 
     output = Path(os.environ["VSC_DATA_VO_USER"]) / "results/scip_benchmark"
     output = output / Path("benchmark_%s" % datetime.now().strftime("%Y%m%d%H%M%S"))
-    output.mkdir()
+    output.mkdir(parents=True)
     (output / "results").mkdir()
 
-    iterations = 5
-    total_mem = 120
+    iterations = 3
+    total_mem = 88
+    n_workers = 10
+    partition_size = 200
 
     commands = []
-    for partition_size in [100, 200, 400, 800, 1600]:
-        for n_workers in [1, 2, 4, 8, 16, 26]:
-            for _ in range(iterations):
-                ident = uuid.uuid4()
+    for limit in [1000, 10000, 100000]:
+        for _ in range(iterations):
+            ident = uuid.uuid4()
 
-                o = str(output / "results" / str(ident))
+            o = str(output / "results" / str(ident))
 
-                commands.append(dict(
-                    n_workers=n_workers,
-                    memory=total_mem // n_workers,
-                    partition_size=partition_size,
-                    output=o,
-                    np=n_workers + 2,
-                    prefix=str(output)
-                ))
+            commands.append(dict(
+                n_workers=n_workers,
+                memory=total_mem // n_workers,
+                partition_size=partition_size,
+                output=o,
+                np=n_workers + 2,
+                limit=limit,
+                prefix=str(output)
+            ))
 
     pandas.DataFrame(commands).to_csv(str(output / "data.csv"), index=False)
 

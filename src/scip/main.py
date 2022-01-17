@@ -51,6 +51,7 @@ def get_images_bag(
     config: dict,
     partition_size: int,
     gpu_accelerated: bool,
+    limit: int,
     loader_module
 ) -> Tuple[dask.bag.Bag, int, dict]:
 
@@ -59,6 +60,7 @@ def get_images_bag(
         channels=channels,
         partition_size=partition_size,
         gpu_accelerated=gpu_accelerated,
+        limit=limit,
         **(config["loading"]["loader_kwargs"] or dict()))
 
     images = []
@@ -154,7 +156,8 @@ def main(  # noqa: C901
     debug,
     timing,
     report,
-    gpu
+    gpu,
+    limit
 ):
     with util.ClientClusterContext(
             n_workers=n_workers,
@@ -223,6 +226,7 @@ def main(  # noqa: C901
                 config=config,
                 partition_size=partition_size,
                 gpu_accelerated=gpu > 0,
+                limit=limit,
                 loader_module=loader_module
             )
 
@@ -446,6 +450,10 @@ def _print_version(ctx, param, value):
 @click.option(
     "--partition-size", "-s", default=50, type=click.IntRange(min=1),
     help="Set partition size")
+@click.option(
+    "--limit", default=-1, type=int,
+    help="Limit the number of events to load from each file or directory"
+)
 @click.option("--timing", default=None, type=click.Path(dir_okay=False))
 @click.option("--report/--no-report", default=True, is_flag=True, type=bool)
 @click.option(

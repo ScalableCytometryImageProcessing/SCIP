@@ -72,9 +72,9 @@ def bag_from_directory(
     channels: list,
     partition_size: int,
     gpu_accelerated: bool,
+    limit: int = -1,
     clip: int,
     regex: str,
-    limit: int = -1
 ) -> Tuple[dask.bag.Bag, dask.dataframe.DataFrame, int, int]:
 
     """
