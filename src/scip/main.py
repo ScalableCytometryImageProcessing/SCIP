@@ -199,6 +199,16 @@ def main(  # noqa: C901
         logger.info(f"Output is saved in {str(output)}")
 
         config = util.load_yaml_config(config)
+        assert all([
+            k in config
+            for k in [
+                "filter",
+                "normalization",
+                "loading",
+                "masking",
+                "feature_extraction",
+                "export"
+            ]])
         logger.info(f"Running with following config: {config}")
 
         host = context.client.run_on_scheduler(socket.gethostname)
