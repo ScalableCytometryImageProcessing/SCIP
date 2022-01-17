@@ -16,23 +16,26 @@
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
 import time
-from typing import List, Tuple
-import click
-import logging
-import logging.config
-from pathlib import Path
-import dask.bag
-import dask.dataframe
-from functools import partial
-from importlib import import_module
 import os
 import socket
-import pandas
-from scip.utils.util import copy_without
+import logging
+import logging.config
+from datetime import datetime
+from typing import List, Tuple
+from pathlib import Path
+from functools import partial
+from importlib import import_module
 
+import click
+import dask.bag
+import dask.dataframe
+import pandas
+
+from scip.utils.util import copy_without
 from scip.utils import util  # noqa: E402
 from scip.features import feature_extraction  # noqa: E402
 from scip.masking import util as masking_util
+from ._version import get_versions
 
 # dask issues a warning during normalization
 # when initializing the map-reduce operation
@@ -173,9 +176,18 @@ def main(  # noqa: C901
 
         util.configure_logging(output, debug)
         logger = logging.getLogger("scip")
+
+        version = get_versions["version"]
+        logger.info(f"SCIP version {version}")
+
+        t = datetime.utcnow().isoformat(timespec="seconds")
+        logger.info(f"Starting at {t}")
         logger.info(f"Running pipeline for {','.join(paths)}")
         logger.info(f"Running with {n_workers} workers and {n_threads} threads per worker")
-        logger.info(f"Mode? {mode}")
+        logger.info(f"Mode: {mode}")
+        logger.info(f"GPUs: {gpu}")
+        logger.info(f"Partition size: {partition_size}")
+        logger.info(f"Exporting reports? {report}")
         logger.info(f"Output is saved in {str(output)}")
 
         config = util.load_yaml_config(config)
@@ -391,6 +403,13 @@ def main(  # noqa: C901
     return runtime
 
 
+def _print_version(ctx, param, value):
+    if not value or ctx.resilient_parsing:
+        return
+    click.echo(get_versions()['version'])
+    ctx.exit()
+
+
 @click.command(name="Scalable imaging pipeline")
 @click.option("--port", "-d", type=int, default=None, help="dask dashboard port")
 @click.option("--debug", envvar="DEBUG", is_flag=True, help="sets logging level to debug")
@@ -433,6 +452,11 @@ def main(  # noqa: C901
     "--gpu", default=0, type=click.IntRange(min=0), help="Specify the amount of available GPUs")
 @click.option(
     "--local-directory", "-l", default=None, type=click.Path(file_okay=False, exists=True))
+@click.option(
+    "-V", "--version", default=False, is_flag=True, is_eager=True,
+    expose_value=False, callback=_print_version,
+    help="Display version information"
+)
 @click.argument("output", type=click.Path(file_okay=False))
 @click.argument("config", type=click.Path(dir_okay=False, exists=True))
 @click.argument("paths", nargs=-1, type=click.Path(exists=True))
