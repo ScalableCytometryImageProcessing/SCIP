@@ -110,4 +110,4 @@ def bag_from_directory(
     loader_meta = dict(path=str, zarr_idx=int, object_number=int)
     for k in groups.keys():
         loader_meta[k] = str
-    return bag, loader_meta, clip
+    return bag, loader_meta, clip, len(events)

@@ -31,6 +31,7 @@ def bag_from_directory(
     channels: list,
     partition_size: int,
     gpu_accelerated: bool,
+    limit: int = -1,
     clip: int,
     scenes: list,
     segment_method: str,
@@ -55,6 +56,8 @@ def bag_from_directory(
     Returns:
         Tuple[dask.bag.Bag, dict, int]: [description]
     """
+
+    assert limit == -1, "Limiting is not supported for CZI. (limit is set to {limit})."
 
     def load_scene(scene):
         im = AICSImage(path, reconstruct_mosaic=False, chunk_dims=["Z", "C", "X", "Y"])
@@ -101,5 +104,6 @@ def bag_from_directory(
     return (
         dask.bag.from_delayed(events),
         dict(path=str, tile=int, scene=str),
-        clip
+        clip,
+        0
     )
