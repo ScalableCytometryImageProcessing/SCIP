@@ -16,6 +16,7 @@ masking:
   export: false
   kwargs:
     smooth: 1
+filter:
 normalization:
   lower: 0
   upper: 1

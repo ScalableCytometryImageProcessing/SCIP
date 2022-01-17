@@ -35,7 +35,7 @@ from scip.utils.util import copy_without
 from scip.utils import util  # noqa: E402
 from scip.features import feature_extraction  # noqa: E402
 from scip.masking import util as masking_util
-from ._version import get_versions
+from scip._version import get_versions
 
 # dask issues a warning during normalization
 # when initializing the map-reduce operation
@@ -177,7 +177,7 @@ def main(  # noqa: C901
         util.configure_logging(output, debug)
         logger = logging.getLogger("scip")
 
-        version = get_versions["version"]
+        version = get_versions()["version"]
         logger.info(f"SCIP version {version}")
 
         t = datetime.utcnow().isoformat(timespec="seconds")
