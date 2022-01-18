@@ -37,7 +37,7 @@ def main(a):
         n_workers = 10
         partition_size = 200
 
-        for limit in [50000, 200000]:
+        for limit in [25000, 150000, 750000, 300000]:
             for _ in range(iterations):
                 ident = uuid.uuid4()
 
@@ -58,7 +58,7 @@ def main(a):
         partition_size = 200
         limit = 100000
 
-        for n_workers in [1, 2, 4, 8, 16]:
+        for n_workers in [32]:
             for _ in range(iterations):
                 ident = uuid.uuid4()
 
