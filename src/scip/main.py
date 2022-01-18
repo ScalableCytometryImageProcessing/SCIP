@@ -343,7 +343,7 @@ def main(  # noqa: C901
                 ))
 
         if config["filter"] is not None:
-            filter_module = import_module('scip.loading.%s' % config["filter"]["name"])
+            filter_module = import_module('scip.filter.%s' % config["filter"]["name"])
 
             images = images.map_partitions(filter_module.feature_partition)
             images = images.map(copy_without, without=["pixels"]).persist()
