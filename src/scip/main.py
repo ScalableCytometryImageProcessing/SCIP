@@ -347,7 +347,7 @@ def main(  # noqa: C901
 
             images = images.map_partitions(filter_module.feature_partition)
             images = images.map(copy_without, without=["pixels"]).persist()
-            filter_items = filter_module.grouped_item(images, key="group")
+            filter_items = filter_module.item(images)
 
             images = images.map(filter_module.predicate, **filter_items)
 
