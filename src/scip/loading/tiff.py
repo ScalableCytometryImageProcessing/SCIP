@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
+from typing import List
+
 import pandas
 import re
 from pathlib import Path
@@ -49,12 +51,22 @@ def load_image(event, channels, clip):
         raise e
 
 
-def bag_from_directory(*, path, channels, partition_size, gpu_accelerated, regex, clip):
+def load_image_partition(partition, channels, clip):
+    return [load_image(event, channels, clip) for event in partition]
+
+
+def bag_from_directory(
+    *,
+    path: str,
+    channels: List[int],
+    partition_size: int,
+    gpu_accelerated: bool,
+    limit: int = -1,
+    regex: str,
+    clip: int
+):
 
     logger = logging.getLogger(__name__)
-
-    def load_image_partition(partition):
-        return [load_image(event, channels, clip) for event in partition]
 
     path = Path(path)
 
@@ -82,9 +94,12 @@ def bag_from_directory(*, path, channels, partition_size, gpu_accelerated, regex
     dropped = pre_filter - len(df)
     logger.warning("Dropped %d rows because of missing channel files in %s" % (dropped, str(path)))
 
+    if limit != -1:
+        df = df.iloc[:limit]
+
     bag = dask.bag.from_sequence(
         df.to_dict(orient="records"), partition_size=partition_size)
-    bag = bag.map_partitions(load_image_partition)
+    bag = bag.map_partitions(load_image_partition, channels=channels, clip=clip)
 
     loader_meta = {c: str for c in df.columns}
-    return bag, loader_meta, clip
+    return bag, loader_meta, clip, len(df)
