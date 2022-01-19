@@ -10,4 +10,5 @@ if __name__ == "__main__":
     x = df["feat_area_combined"]
     y = df["feat_eccentricity_combined"]
     plt.scatter(x, y, s=1, alpha=0.5)
+    plt.title(len(df))
     plt.savefig("test.png")

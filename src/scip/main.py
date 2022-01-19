@@ -127,7 +127,8 @@ def main(  # noqa: C901
     timing,
     report,
     gpu,
-    limit
+    limit,
+    reach_limit
 ):
     with util.ClientClusterContext(
             n_workers=n_workers,
@@ -207,7 +208,8 @@ def main(  # noqa: C901
                 partition_size=partition_size,
                 gpu_accelerated=gpu > 0,
                 limit=limit,
-                loader_module=loader_module
+                loader_module=loader_module,
+                reach_limit=reach_limit
             )
 
         futures = []
@@ -434,6 +436,13 @@ def _print_version(ctx, param, value):
 )
 @click.option("--timing", default=None, type=click.Path(dir_okay=False))
 @click.option("--report/--no-report", default=True, is_flag=True, type=bool)
+@click.option(
+    "--reach-limit",
+    default=False,
+    is_flag=True,
+    type=bool,
+    help="If set the dataset will be repeated until the limit is reached."
+)
 @click.option(
     "--gpu", default=0, type=click.IntRange(min=0), help="Specify the amount of available GPUs")
 @click.option(
