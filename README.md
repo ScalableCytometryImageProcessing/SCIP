@@ -1,7 +1,8 @@
 # SCIP: Scalable Image Processing
 
-![main workflow badge](https://github.com/ScalableImagingPipeline/dask-pipeline/actions/workflows/main.yml/badge.svg)
-[![Documentation Status](https://readthedocs.org/projects/scalable-cytometry-image-processing/badge/?version=latest)](https://scalable-cytometry-image-processing.readthedocs.io/en/latest/?badge=latest)
+![main workflow badge](https://github.com/ScalableImagingPipeline/dask-pipeline/actions/workflows/main.yml/badge.svg) [![Documentation Status](https://readthedocs.org/projects/scalable-cytometry-image-processing/badge/?version=latest)](https://scalable-cytometry-image-processing.readthedocs.io/en/latest/?badge=latest)
+
+Check the docs for installation and usage instructions.
 
 ## Installation
 
@@ -44,10 +45,15 @@ Options:
                                   input
   -s, --partition-size INTEGER RANGE
                                   Set partition size  [x>=1]
+  --limit INTEGER                 Limit the number of events to load from each
+                                  file or directory
   --timing FILE
   --report / --no-report
+  --reach-limit                   If set the dataset will be repeated until
+                                  the limit is reached.
   --gpu INTEGER RANGE             Specify the amount of available GPUs  [x>=0]
   -l, --local-directory DIRECTORY
+  -V, --version                   Display version information
   --help                          Show this message and exit.
 
 ```

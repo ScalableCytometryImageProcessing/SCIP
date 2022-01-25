@@ -5,7 +5,6 @@ import logging
 import dask.bag
 
 
-
 def get_images_bag(
     *,
     paths: List[str],
