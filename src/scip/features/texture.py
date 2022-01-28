@@ -20,7 +20,6 @@ from typing import Any, Mapping, List
 import numpy
 from skimage.feature import graycomatrix, graycoprops
 from skimage.filters import sobel
-import skimage
 
 
 distances = [3, 5]
@@ -48,7 +47,8 @@ def _texture_features_meta(channel_names: List[str]) -> Mapping[str, Any]:
     return out
 
 
-def _row(pixels, maximum_pixel_value, num_features):
+def _row(pixels, num_features):
+    bins = 15
     angles = [
         numpy.pi / 4,  # 45 degrees
         3 * numpy.pi / 4,  # 135 degrees
@@ -56,16 +56,16 @@ def _row(pixels, maximum_pixel_value, num_features):
         7 * numpy.pi / 4  # 315 degrees
     ]
 
-    int_img = skimage.img_as_int(pixels / maximum_pixel_value)
-    bin_edges = numpy.histogram_bin_edges(int_img, bins=9)
-    int_img = numpy.digitize(int_img, bins=bin_edges, right=True)
+    r = (numpy.nanmin(pixels), numpy.nanmax(pixels))
+    bin_edges = numpy.histogram_bin_edges(pixels, bins=bins, range=r)
+    int_img = numpy.digitize(pixels, bins=bin_edges, right=True)
     glcm = graycomatrix(
         int_img,
         distances=distances,
         angles=angles,
-        levels=10,
+        levels=bins + 2,
         symmetric=True
-    )
+    )[:-1, :-1]
 
     out = numpy.full(shape=(num_features,), fill_value=None, dtype=float)
     step = len(distances) * 2
@@ -75,17 +75,16 @@ def _row(pixels, maximum_pixel_value, num_features):
         out[i * step + len(distances):(i + 1) * step] = v.std(axis=1)
 
     s = sobel(pixels)
-    out[-4] = s.mean()
-    out[-3] = s.std()
-    out[-2] = s.max()
-    out[-1] = s.min()
+    out[-4] = numpy.nanmean(s)
+    out[-3] = numpy.nanstd(s)
+    out[-2] = numpy.nanmax(s)
+    out[-1] = numpy.nanmin(s)
 
     return out
 
 
 def texture_features(
-    sample: Mapping[str, Any],
-    maximum_pixel_value: int
+    sample: Mapping[str, Any]
 ):
     """Extracts texture features from image.
 
@@ -108,15 +107,15 @@ def texture_features(
 
     out = numpy.full(shape=(len(sample["pixels"]), 2, num_features), fill_value=None, dtype=float)
 
-    mask_pixels = sample["pixels"] * sample["mask"]
-    combined_mask_pixels = sample["pixels"] * sample["combined_mask"][numpy.newaxis, ...]
+    mask_pixels = numpy.where(sample["mask"], sample["pixels"], numpy.nan)
+    combined_mask_pixels = numpy.where(sample["combined_mask"], sample["pixels"], numpy.nan)
     for i in range(len(sample["pixels"])):
 
         # compute features on channel specific mask
         if numpy.any(sample["mask"][i]):
-            out[i, 0] = _row(mask_pixels[i], maximum_pixel_value, num_features)
+            out[i, 0] = _row(mask_pixels[i], num_features)
 
         # always compute features on combined mask (it can never be empty)
-        out[i, 1] = _row(combined_mask_pixels[i], maximum_pixel_value, num_features)
+        out[i, 1] = _row(combined_mask_pixels[i], num_features)
 
     return out.flatten()

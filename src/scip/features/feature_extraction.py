@@ -63,8 +63,7 @@ def features_partition(
     *,
     loader_meta_keys: Iterable[str],
     types: Iterable[str],
-    lengths: Mapping[str, int],
-    maximum_pixel_value: int
+    lengths: Mapping[str, int]
 ):
 
     out = numpy.full(shape=(len(part), lengths["full"]), fill_value=None, dtype=object)
@@ -93,7 +92,7 @@ def features_partition(
                 )
                 c += lengths["intensity"]
             if "texture" in types:
-                out[i, c:c + lengths["texture"]] = texture_features(p, maximum_pixel_value)
+                out[i, c:c + lengths["texture"]] = texture_features(p)
 
     return out
 
@@ -103,7 +102,6 @@ def extract_features(  # noqa: C901
     images: dask.bag.Bag,
     channel_names: list,
     types: list,
-    maximum_pixel_value: int,
     loader_meta: Mapping[str, type] = {}
 ) -> dask.dataframe.DataFrame:
     """Extracts requested features from pixel values in images.
@@ -148,8 +146,7 @@ def extract_features(  # noqa: C901
         features_partition,
         loader_meta_keys=list(loader_meta.keys()),
         types=types,
-        lengths=lengths,
-        maximum_pixel_value=maximum_pixel_value
+        lengths=lengths
     )
     images_df = images.to_dataframe(meta=full_meta, optimize_graph=False)
 

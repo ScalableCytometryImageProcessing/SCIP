@@ -44,7 +44,7 @@ import warnings
 warnings.simplefilter("ignore", category=FutureWarning)
 
 
-def compute_features(images, channel_names, types, maximum_pixel_value, loader_meta):
+def compute_features(images, channel_names, types, loader_meta):
 
     def rename(c):
         if any(c.startswith(a) for a in ["bbox", "regions"] + list(loader_meta.keys())):
@@ -56,7 +56,6 @@ def compute_features(images, channel_names, types, maximum_pixel_value, loader_m
         images=images,
         channel_names=channel_names,
         types=types,
-        maximum_pixel_value=maximum_pixel_value,
         loader_meta=loader_meta
     )
     features = features.rename(columns=rename)
@@ -200,7 +199,7 @@ def main(  # noqa: C901
 
         loader_module = import_module('scip.loading.%s' % config["loading"]["format"])
         with dask.config.set(**{'array.slicing.split_large_chunks': False}):
-            images, maximum_pixel_value, loader_meta = get_images_bag(
+            images, _, loader_meta = get_images_bag(
                 paths=paths,
                 channels=channels,
                 config=config,
@@ -361,7 +360,6 @@ def main(  # noqa: C901
             images=images,
             channel_names=channel_names,
             types=config["feature_extraction"]["types"],
-            maximum_pixel_value=maximum_pixel_value,
             loader_meta=loader_meta
         )
         bag_df = bag_df.repartition(npartitions=5)
