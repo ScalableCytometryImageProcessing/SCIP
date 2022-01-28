@@ -75,10 +75,20 @@ def _row(pixels, num_features):
         out[i * step + len(distances):(i + 1) * step] = v.std(axis=1)
 
     s = sobel(pixels)
-    out[-4] = numpy.nanmean(s)
-    out[-3] = numpy.nanstd(s)
-    out[-2] = numpy.nanmax(s)
-    out[-1] = numpy.nanmin(s)
+    if numpy.all(numpy.isnan(s)):
+        # eventhough at this stage the mask is never empty, the sobel map could be
+        # all NaN. For really small cells the kernel will always contain at least
+        # one NaN value
+
+        out[-4] = numpy.nan
+        out[-3] = numpy.nan
+        out[-2] = numpy.nan
+        out[-1] = numpy.nan
+    else:
+        out[-4] = numpy.nanmean(s)
+        out[-3] = numpy.nanstd(s)
+        out[-2] = numpy.nanmax(s)
+        out[-1] = numpy.nanmin(s)
 
     return out
 
