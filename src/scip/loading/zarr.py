@@ -94,7 +94,7 @@ def bag_from_directory(
     path = Path(path)
     events = []
 
-    if limit == -1:
+    if limit < 0:
         limit = len(z)
 
     for i, obj in enumerate(z.attrs["object_number"][:limit]):
