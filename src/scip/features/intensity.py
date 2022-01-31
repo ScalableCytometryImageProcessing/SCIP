@@ -117,13 +117,6 @@ def intensity_features(
 
     out = numpy.full(shape=(len(pixels), 8, len(props)), fill_value=None, dtype=float)
 
-    conv = convolve(
-        combined_mask,
-        weights=numpy.ones(shape=[3, 3], dtype=int),
-        mode="constant"
-    )
-    combined_edge = (conv > 0) & (conv < 9)
-
     for i in range(len(pixels)):
 
         # compute features on channel specific mask
@@ -133,11 +126,11 @@ def intensity_features(
             mask_bgcorr_pixels = mask_pixels - background[i]
 
             conv = convolve(
-                mask[i],
-                weights=numpy.ones(shape=[3, 3], dtype=int),
+                mask[i].astype(int),
+                weights=numpy.ones(shape=[4, 4], dtype=int),
                 mode="constant"
             )
-            edge = (conv > 0) & (conv < 9)
+            edge = ((conv > 0) & (conv < 15)) * mask[i]
             mask_edge_pixels = pixels[i][edge]
             mask_bgcorr_edge_pixels = mask_edge_pixels - background[i]
 
@@ -152,6 +145,13 @@ def intensity_features(
         # always compute features on combined mask (it can never be empty)
         mask_pixels = pixels[i][combined_mask]
         mask_bgcorr_pixels = mask_pixels - combined_background[i]
+
+        conv = convolve(
+            combined_mask.astype(int),
+            weights=numpy.ones(shape=[4, 4], dtype=int),
+            mode="constant"
+        )
+        combined_edge = ((conv > 0) & (conv < 15)) * combined_mask
 
         mask_edge_pixels = pixels[i][combined_edge]
         mask_bgcorr_edge_pixels = mask_edge_pixels - combined_background[i]
