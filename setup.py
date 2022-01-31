@@ -38,6 +38,6 @@ setuptools.setup(
     },
     python_requires=">=3.8",
     package_data={
-        'scip': ['logging.yml']
+        'scip': ['utils/logging.yml']
     }
 )

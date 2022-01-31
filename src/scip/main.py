@@ -370,7 +370,7 @@ def main(  # noqa: C901
                 str(output),
                 name_function=lambda x: f"{filename}.{x}.parquet",
                 write_metadata_file=False,
-                engine="fastparquet"
+                engine="pyarrow"
             )
         )
 
