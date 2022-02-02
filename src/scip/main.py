@@ -154,6 +154,8 @@ def main(  # noqa: C901
         t = datetime.utcnow().isoformat(timespec="seconds")
         logger.info(f"Starting at {t}")
         logger.info(f"Running pipeline for {','.join(paths)}")
+
+        n_workers = len(context.client.scheduler_info()["workers"])
         logger.info(f"Running with {n_workers} workers and {n_threads} threads per worker")
         logger.info(f"Mode: {mode}")
         logger.info(f"GPUs: {gpu}")
