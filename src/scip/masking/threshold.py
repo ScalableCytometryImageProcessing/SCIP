@@ -30,7 +30,9 @@ def get_mask(el, main_channel, smooth):
     regions = [0] * len(el["pixels"])
     mask = numpy.full(shape=el["pixels"].shape, dtype=bool, fill_value=False)
 
-    for dim in range(len(el["pixels"])):
+    # load over channels, starting with main_channel
+    arr = numpy.arange(len(el["pixels"]))
+    for dim in [main_channel] + numpy.delete(arr, arr == main_channel).tolist():
         cc = 0
 
         x = el["pixels"][dim]
