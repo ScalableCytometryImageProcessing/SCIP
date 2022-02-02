@@ -20,48 +20,41 @@ from skimage.morphology import (
     closing, disk, remove_small_holes, remove_small_objects, label)
 from skimage.filters import threshold_otsu, sobel, gaussian
 from scipy.stats import normaltest
-from scip.utils.util import check
+from scip.utils.util import check, copy_without
+from scip.masking.util import mask_predicate
 
 
 @check
-def get_mask(el, main, main_channel, smooth):
+def get_mask(el, main_channel, smooth):
 
-    if main:
-        regions = [0] * len(el["pixels"])
-        mask, cc = numpy.full(shape=el["pixels"].shape, dtype=bool, fill_value=False), 0
-        x = el["pixels"][main_channel]
+    regions = [0] * len(el["pixels"])
+    mask = numpy.full(shape=el["pixels"].shape, dtype=bool, fill_value=False)
+
+    for dim in range(len(el["pixels"])):
+        cc = 0
+
+        x = el["pixels"][dim]
         if (normaltest(x.ravel()).pvalue < 0.05):
             x = gaussian(x, sigma=smooth)
             x = sobel(x)
-            x = closing(x, footprint=disk(2))
+
+            if dim == main_channel:
+                x = closing(x, footprint=disk(2))
+
             x = gaussian(x, sigma=smooth * 2)
             x = threshold_otsu(x) < x
             x = remove_small_holes(x, area_threshold=(x.shape[0] * x.shape[1]) / 4)
             x = remove_small_objects(x, min_size=20)
             x = label(x)
-            mask[main_channel], cc = x > 0, x.max()
-        regions[main_channel] = cc
-    else:
-        regions = []
-        mask = el["mask"]
-        for dim in range(len(el["pixels"])):
-            if dim == main_channel:
-                # in this phase the main channel always has 1 component
-                regions.append(1)
-                continue
 
-            cc = 0
-            x = el["pixels"][dim]
-            if (normaltest(x.ravel()).pvalue < 0.05):
-                x = gaussian(x, sigma=smooth)
-                x = sobel(x)
-                x = gaussian(x, sigma=smooth * 2)
-                x = threshold_otsu(x) < x
-                x = remove_small_holes(x, area_threshold=(x.shape[0] * x.shape[1]) / 4)
-                x = remove_small_objects(x, min_size=20)
-                x = label(x)
-                mask[dim], cc = x > 0, x.max()
-            regions.append(cc)
+            mask[dim], cc = x > 0, x.max()
+        elif dim == main_channel:
+            out = copy_without(el, without=["pixels"])
+            out["regions"] = regions
+            out["mask"] = mask
+            return out
+
+        regions[dim] = cc
 
     out = el.copy()
     out["mask"] = mask
@@ -70,10 +63,13 @@ def get_mask(el, main, main_channel, smooth):
     return out
 
 
-def create_masks_on_bag(bag, main, main_channel, smooth):
+def create_masks_on_bag(bag, main_channel, smooth):
 
     def threshold_masking(partition):
-        return [get_mask(p, main, main_channel, smooth) for p in partition]
+        return [
+            mask_predicate(get_mask(p, main_channel, smooth), main_channel)
+            for p in partition
+        ]
 
     bag = bag.map_partitions(threshold_masking)
     return bag

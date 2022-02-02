@@ -22,7 +22,6 @@ import logging
 import logging.config
 from datetime import datetime
 from pathlib import Path
-from functools import partial
 from importlib import import_module
 
 import click
@@ -239,11 +238,8 @@ def main(  # noqa: C901
             masking_module = import_module('scip.masking.%s' % config["masking"]["method"])
             logger.debug("creating masks on bag")
 
-            # in the main phase of the masking procedure, only the main
-            # channel is masked and that mask is applied to all other channels
             images = masking_module.create_masks_on_bag(
                 images,
-                main=True,
                 main_channel=config["masking"]["bbox_channel_index"],
                 **(config["masking"]["kwargs"] or dict())
             )
@@ -261,20 +257,6 @@ def main(  # noqa: C901
                 ))
 
             logger.debug("preparing bag for feature extraction")
-
-            func = partial(
-                masking_util.mask_predicate,
-                bbox_channel_index=config["masking"]["bbox_channel_index"]
-            )
-            images = images.map(func)
-
-            # in the non-main phase of the masking procedure, the masks for the non-main
-            # channels are computed and applied
-            images = masking_module.create_masks_on_bag(
-                images,
-                main=False, main_channel=config["masking"]["bbox_channel_index"],
-                **(config["masking"]["kwargs"] or dict())
-            )
 
             images = images.map_partitions(
                 masking_util.remove_regions_touching_border_partition,
