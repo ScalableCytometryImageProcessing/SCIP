@@ -279,7 +279,10 @@ def main(  # noqa: C901
                 )
 
             # mask is applied and background values are computed
-            images = images.map_partitions(masking_util.apply_mask_partition)
+            images = images.map_partitions(
+                masking_util.apply_mask_partition,
+                combined_indices=config["masking"]["combined_indices"]
+            )
 
             if report:
                 logger.debug("reporting example images")

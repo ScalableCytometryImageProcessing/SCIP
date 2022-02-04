@@ -14,6 +14,7 @@ masking:
   method: threshold
   bbox_channel_index: 0
   export: false
+  combined_indices: [0, 2, 3]
   kwargs:
     smooth: 1
 filter:

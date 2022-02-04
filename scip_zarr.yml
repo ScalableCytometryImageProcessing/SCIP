@@ -12,6 +12,7 @@ loading:
 masking:
   method: watershed
   bbox_channel_index: 0
+  combined_indices: [0, 1]
   export: false
   kwargs:
     noisy_channels: [0]

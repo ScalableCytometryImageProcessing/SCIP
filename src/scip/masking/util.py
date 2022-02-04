@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
+from typing import Mapping, Any, List
+
 import numpy as np
 from skimage.measure import regionprops
 import numpy
@@ -101,18 +103,18 @@ def remove_regions_touching_border_partition(part, bbox_channel_index):
     return [remove_regions_touching_border(p, bbox_channel_index) for p in part]
 
 
-def apply_mask_partition(part):
-    return [apply(p) for p in part]
+def apply_mask_partition(part, combined_indices=None):
+    return [apply(p, combined_indices) for p in part]
 
 
 @check
-def apply(sample):
+def apply(sample: Mapping[str, Any], combined_indices: List[int] = None):
     """
     Apply binary mask on every channel
 
     Args:
-        dict_sample (dict): dictionary containg image data
-        origin (str): key of mask to apply
+        sample: dictionary containg image data
+        combined_indices: list of indices to be included in combined mask
 
     Returns:
         dict: dictionary including applied mask
@@ -120,7 +122,7 @@ def apply(sample):
 
     img = sample["pixels"]
     mask = sample["mask"]
-    combined_mask = numpy.sum(mask, axis=0) > 0
+    combined_mask = numpy.sum(mask[combined_indices], axis=0) > 0
     background = np.empty(shape=(len(img),), dtype=float)
     combined_background = np.empty(shape=(len(img),), dtype=float)
 
