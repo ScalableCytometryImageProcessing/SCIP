@@ -12,3 +12,4 @@ tmp/
 .pytest_cache/
 .commit
 docs/build
+*.xml

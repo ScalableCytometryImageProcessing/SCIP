@@ -19,7 +19,18 @@ jobs:
       - name: Install package
         run: |
           pip install .
-      - name: Test with pytest (lint with flake8 and run coverage)
-        run: coverage run --source=src/ -m pytest
-      - name: Coverage report
-        run: coverage report -m
+      - name: Run style enforcement
+        run: flake8
+      - name: Test with pytest (and run coverage)
+        run: pytest-cov
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v2
+        with:
+          directory: ./coverage/reports/
+          env_vars: OS,PYTHON
+          fail_ci_if_error: true
+          files: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          path_to_write_report: ./coverage/codecov_report.txt
+          verbose: true
