@@ -25,7 +25,7 @@ from dask.distributed import (Client, LocalCluster)
 from scip.utils import util
 
 
-## HELPERS
+# HELPERS
 
 def fake_mask(image_nchannels, n=10, full=True):
     mask = numpy.full(shape=(n, image_nchannels, 10, 10), fill_value=True, dtype=bool)
@@ -51,7 +51,7 @@ def to_records(images, masks):
     } for image, mask in zip(images, masks)]
 
 
-## FIXTURES
+# FIXTURES
 
 @pytest.fixture
 def fake_images(image_nchannels, n=10):
