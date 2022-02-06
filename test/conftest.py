@@ -25,12 +25,18 @@ from dask.distributed import (Client, LocalCluster)
 from scip.utils import util
 
 
-def get_images_data(n=10):
-    return numpy.tile(numpy.arange(0, 100).reshape(10, 10)[numpy.newaxis], (n, 3, 1, 1))
+@pytest.fixture
+def fake_images(image_nchannels, n=10):
+    return numpy.tile(
+        numpy.arange(0, 100).reshape(10, 10)[numpy.newaxis], (n, image_nchannels, 1, 1))
 
 
-def get_mask_data(n=10):
-    return numpy.full(shape=(10, 3, 10, 10), fill_value=True, dtype=bool)
+@pytest.fixture
+def fake_mask(image_nchannels, n=10):
+    mask = numpy.full(shape=(n, image_nchannels, 10, 10), fill_value=True, dtype=bool)
+    mask[:, :, [0, 1, -1, -2], :] = False
+    mask[:, :, :, [0, 1, -1, -2]] = False
+    return mask
 
 
 def to_records(images, masks):
@@ -38,16 +44,18 @@ def to_records(images, masks):
     return [{
         "pixels": image,
         "mask": mask,
-        "group": "one"
+        "combined_mask": mask[0],
+        "background": [0] * len(images[0]),
+        "combined_background": [0] * len(images[0]),
+        "group": "one",
+        "bbox": (2, 2, 8, 8),
+        "regions": [1] * len(images[0])
     } for image, mask in zip(images, masks)]
 
 
 @pytest.fixture(scope="function")
-def images_bag():
-    images = get_images_data()
-    masks = get_mask_data()
-    records = to_records(images, masks)
-
+def images_bag(fake_images, fake_mask):
+    records = to_records(fake_images, fake_mask)
     bag = dask.bag.from_sequence(records, partition_size=5)
     return bag
 
