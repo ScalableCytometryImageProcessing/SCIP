@@ -26,3 +26,12 @@ def test_distributed_minmax(images_bag, image_nchannels):
     assert len(quantiles) == 1
     assert quantiles[0][0] == "one"
     assert numpy.array_equal(quantiles[0][1], numpy.array([[0., 99.]] * image_nchannels))
+
+
+def test_masked_distributed_minmax(images_masked_bag, image_nchannels):
+    quantiles = quantile_normalization.get_distributed_minmax(images_masked_bag, image_nchannels)
+    quantiles = quantiles.compute()
+
+    assert len(quantiles) == 1
+    assert quantiles[0][0] == "one"
+    assert numpy.array_equal(quantiles[0][1], numpy.array([[22., 77.]] * image_nchannels))

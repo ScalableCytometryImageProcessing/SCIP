@@ -1,6 +1,7 @@
 from scip.features import feature_extraction
 from dask.dataframe import DataFrame
 
+
 def test_extract_features(images_bag, image_nchannels):
     features = feature_extraction.extract_features(
         images=images_bag,
