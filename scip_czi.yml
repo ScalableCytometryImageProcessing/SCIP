@@ -15,7 +15,6 @@ loading:
     project_kw:
       op: "max"
     scenes: ["A2-A2", "A1-A1"]
-    clip: 65563
 masking:
   method:
   export: false

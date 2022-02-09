@@ -200,7 +200,7 @@ def main(  # noqa: C901
 
         loader_module = import_module('scip.loading.%s' % config["loading"]["format"])
         with dask.config.set(**{'array.slicing.split_large_chunks': False}):
-            images, _, loader_meta = get_images_bag(
+            images, loader_meta = get_images_bag(
                 paths=paths,
                 channels=channels,
                 config=config,

@@ -8,7 +8,6 @@ loading:
     - BF2
   loader_kwargs:
     regex: (?P<type>[^_\/]+)_T(?P<group>[0-9]+)_R(?P<replicate>[0-9]+)_?(?P<suffix>[0-9]+)?.zarr$
-    clip: 4096
 masking:
   method: watershed
   bbox_channel_index: 0

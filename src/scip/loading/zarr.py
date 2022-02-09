@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
+from typing import Mapping, List, Any
+
 import dask
 import dask.bag
 import dask.dataframe
@@ -27,9 +29,8 @@ import copy
 
 
 def reload_image_partition(
-    partition,
-    channels,
-    clip: int,
+    partition: List,
+    channels: List[int],
     regex: str,
     limit: int = -1
 ):
@@ -40,45 +41,33 @@ def reload_image_partition(
 
     newpartition = copy.deepcopy(partition)
     for i in range(len(partition)):
-        if "mask" not in partition[i]:
-            continue
-
-        if clip is not None:
-            newpartition[i]["pixels"] = numpy.clip(data[i].reshape(shapes[i])[channels], 0, clip)
-        else:
-            newpartition[i]["pixels"] = data[i].reshape(shapes[i])[channels]
-        newpartition[i]["pixels"] = newpartition[i]["pixels"].astype(numpy.float32)
+        if "mask" in partition[i]:
+            newpartition[i]["pixels"] = data[i].reshape(shapes[i])[channels].astype(numpy.float32)
     return newpartition
 
 
-def load_image_partition(partition, z, channels, clip):
+def load_image_partition(partition, z, channels):
 
     start, end = partition[0]["zarr_idx"], partition[-1]["zarr_idx"]
     data = z[start:end + 1]
     shapes = z.attrs["shape"][start:end + 1]
 
     for i in range(len(partition)):
-        if clip is not None:
-            partition[i]["pixels"] = numpy.clip(data[i].reshape(shapes[i])[channels], 0, clip)
-        else:
-            partition[i]["pixels"] = data[i].reshape(shapes[i])[channels]
-        partition[i]["pixels"] = partition[i]["pixels"].astype(numpy.float32)
+        partition[i]["pixels"] = data[i].reshape(shapes[i])[channels].astype(numpy.float32)
+
     return partition
 
 
 def bag_from_directory(
     *,
     path: str,
-    channels: list,
+    channels: List[int],
     partition_size: int,
     gpu_accelerated: bool,
     limit: int = -1,
-    clip: int,
     regex: str,
-) -> Tuple[dask.bag.Bag, dask.dataframe.DataFrame, int, int]:
-
+) -> Tuple[dask.bag.Bag, dask.dataframe.DataFrame, Mapping[str, Any], int]:
     """
-    Construct delayed ops for all tiffs in a directory
 
     Args:
         path (str): Directory to find tiffs
@@ -105,9 +94,9 @@ def bag_from_directory(
         }})
 
     bag = dask.bag.from_sequence(events, partition_size=partition_size)
-    bag = bag.map_partitions(load_image_partition, z, channels, clip)
+    bag = bag.map_partitions(load_image_partition, z, channels)
 
     loader_meta = dict(path=str, zarr_idx=int, object_number=int)
     for k in groups.keys():
         loader_meta[k] = str
-    return bag, loader_meta, clip, len(events)
+    return bag, loader_meta, len(events)

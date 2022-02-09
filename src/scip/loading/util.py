@@ -1,21 +1,22 @@
-from typing import List, Tuple
-from functools import partial
+from typing import List, Tuple, Mapping, Any
 import logging
 
 import dask.bag
+
+from functools import partial
 
 
 def get_images_bag(
     *,
     paths: List[str],
     channels: List[int],
-    config: dict,
+    config: Mapping[str, Any],
     partition_size: int,
     gpu_accelerated: bool,
     limit: int = -1,
     reach_limit: bool = False,
     loader_module
-) -> Tuple[dask.bag.Bag, int, dict]:
+) -> Tuple[dask.bag.Bag, Mapping[str, type]]:
 
     loader = partial(
         loader_module.bag_from_directory,
@@ -25,7 +26,6 @@ def get_images_bag(
         **(config["loading"]["loader_kwargs"] or dict()))
 
     images = []
-    maximum_pixel_value = 0
 
     while (limit > 0) or (limit == -1):
         for path in paths:
@@ -34,7 +34,7 @@ def get_images_bag(
                 break
 
             logging.info(f"Bagging {path}")
-            bag, loader_meta, maximum_pixel_value, length = loader(path=path, limit=limit)
+            bag, loader_meta, length = loader(path=path, limit=limit)
             images.append(bag)
 
             limit -= length
@@ -43,4 +43,4 @@ def get_images_bag(
             break
 
     images = dask.bag.concat(images)
-    return images, maximum_pixel_value, loader_meta
+    return images, loader_meta

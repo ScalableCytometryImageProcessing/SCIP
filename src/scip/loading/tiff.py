@@ -17,25 +17,24 @@
 
 from typing import List
 
-import pandas
 import re
+import logging
 from pathlib import Path
+
+import pandas
 import dask.bag
 import dask.dataframe
 import tifffile
-import logging
 import numpy
+
 logging.getLogger("tifffile").setLevel(logging.ERROR)
 
 
-def load_image(event, channels, clip):
+def _load_image(event, channels):
     try:
         paths = [event[str(c)] for c in channels]
         arr = tifffile.imread(paths)
         arr = arr.astype(numpy.float32)
-
-        if clip is not None:
-            arr = numpy.clip(arr, 0, clip)
 
         # tifffile collapses axis with size 1,
         # occurrs when only one path is passed
@@ -51,8 +50,8 @@ def load_image(event, channels, clip):
         raise e
 
 
-def load_image_partition(partition, channels, clip):
-    return [load_image(event, channels, clip) for event in partition]
+def _load_image_partition(partition, channels):
+    return [_load_image(event, channels) for event in partition]
 
 
 def bag_from_directory(
@@ -62,8 +61,7 @@ def bag_from_directory(
     partition_size: int,
     gpu_accelerated: bool,
     limit: int = -1,
-    regex: str,
-    clip: int
+    regex: str
 ):
 
     logger = logging.getLogger(__name__)
@@ -99,7 +97,7 @@ def bag_from_directory(
 
     bag = dask.bag.from_sequence(
         df.to_dict(orient="records"), partition_size=partition_size)
-    bag = bag.map_partitions(load_image_partition, channels=channels, clip=clip)
+    bag = bag.map_partitions(_load_image_partition, channels=channels)
 
     loader_meta = {c: str for c in df.columns}
-    return bag, loader_meta, clip, len(df)
+    return bag, loader_meta, len(df)
