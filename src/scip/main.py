@@ -89,17 +89,16 @@ def remove_pixels(event):
 
 @dask.delayed
 def channel_boundaries(quantiles, *, config, output):
-    if quantiles is not None:
-        data = []
-        index = []
-        for k, v in quantiles:
-            index.append(k)
-            out = {}
-            for channel, r in zip(config["loading"]["channel_names"], v):
-                out[f"{channel}_min"] = r[0]
-                out[f"{channel}_max"] = r[1]
-            data.append(out)
-        pandas.DataFrame(data=data, index=index).to_csv(str(output / "channel_boundaries.csv"))
+    data = []
+    index = []
+    for k, v in quantiles:
+        index.append(k)
+        out = {}
+        for channel, r in zip(config["loading"]["channel_names"], v):
+            out[f"{channel}_min"] = r[0]
+            out[f"{channel}_max"] = r[1]
+        data.append(out)
+    pandas.DataFrame(data=data, index=index).to_csv(str(output / "channel_boundaries.csv"))
 
 
 def main(  # noqa: C901
@@ -125,7 +124,8 @@ def main(  # noqa: C901
     report,
     gpu,
     limit,
-    reach_limit
+    reach_limit,
+    scheduler_adress
 ):
     with util.ClientClusterContext(
             n_workers=n_workers,
@@ -139,7 +139,8 @@ def main(  # noqa: C901
             job_extra=job_extra,
             threads_per_process=n_threads,
             project=project,
-            gpu=gpu
+            gpu=gpu,
+            scheduler_adress=scheduler_adress
     ) as context:
 
         output = Path(output)
@@ -418,6 +419,10 @@ def _print_version(ctx, param, value):
     "--limit", default=-1, type=int,
     help="Limit the number of events to load from each file or directory"
 )
+@click.option(
+    "--scheduler-adress", default=None, type=str,
+    help="Adress of scheduler to connect to."
+)
 @click.option("--timing", default=None, type=click.Path(dir_okay=False))
 @click.option("--report/--no-report", default=True, is_flag=True, type=bool)
 @click.option(
@@ -446,6 +451,11 @@ def cli(**kwargs):
     # noop if no paths are provided
     if len(kwargs["paths"]) == 0:
         return
+
+    if kwargs["mode"] == "external":
+        assert os.path.isabs(kwargs["output"]), "Output path must be absolute in external mode."
+        err = "Paths must be absolute in external mode."
+        assert all([os.path.isabs(p) for p in kwargs["paths"]]), err
 
     runtime = main(**kwargs)
 

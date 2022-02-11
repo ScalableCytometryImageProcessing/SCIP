@@ -28,7 +28,7 @@ import click
 from datetime import datetime, timedelta
 import dask
 
-MODES = ["local", "jobqueue", "mpi"]
+MODES = ["local", "jobqueue", "mpi", "external"]
 
 
 class ClientClusterContext:
@@ -45,16 +45,11 @@ class ClientClusterContext:
             cores=None,
             job_extra=[],
             walltime="01:00:00",
-            threads_per_process=None,
+            threads_per_process = None,
             project=None,
-            gpu=0
+            gpu=0,
+            scheduler_adress: str = None,
     ):
-        """
-        Sets up a cluster and client.
-
-        local (bool): If true, sets up a LocalCluster, otherwise a PBSCluster
-        n_workers (int): Defines the amount of workers the cluster will create
-        """
         self.mode = mode
         self.n_workers = n_workers
         self.port = port
@@ -67,6 +62,7 @@ class ClientClusterContext:
         self.threads_per_process = threads_per_process
         self.project = project
         self.gpu = gpu
+        self.scheduler_adress = scheduler_adress
 
     def __enter__(self):
         if self.mode == "local":
@@ -128,6 +124,9 @@ class ClientClusterContext:
                 worker_options=worker_options
             )
             self.client = Client()
+        elif self.mode == "external":
+            assert self.scheduler_adress is not None, "Adress must be set in external mode."
+            self.client = Client(address=self.scheduler_adress)
 
         return self
 
