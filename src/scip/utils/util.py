@@ -45,7 +45,7 @@ class ClientClusterContext:
             cores=None,
             job_extra=[],
             walltime="01:00:00",
-            threads_per_process = None,
+            threads_per_process=None,
             project=None,
             gpu=0,
             scheduler_adress: str = None,
