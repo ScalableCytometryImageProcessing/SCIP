@@ -11,8 +11,13 @@ masking:
   method: watershed
   bbox_channel_index: 0
   export: false
+  combined_indices:
   kwargs:
     noisy_channels: [0]
+filter:
+normalization:
+  lower: 0
+  upper: 1
 normalization:
 export:
   format: parquet

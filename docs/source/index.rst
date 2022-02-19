@@ -1,27 +1,65 @@
-.. SCIP documentation master file, created by
-   sphinx-quickstart on Mon Jan  3 11:50:35 2022.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-Scalable Cytometry Image Processing
-===================================
+SCIP: Scalable Cytometry Image Processing
+=========================================
 
 Installation
 ------------
 
 SCIP requires an MPI implementation to be present on the path. If no implementation is present,
-we recommend installing mpi4py in a conda environment.
+mpi4py can be installed in a conda environment.
 
-We recommend installing in a conda environment using `mamba <https://github.com/mamba-org/mamba>`_.
+We recommend using `mamba <https://github.com/mamba-org/mamba>`_ as a drop-in replacement for conda.
 
-1. Create a new python environment: ``mamba create -n scip python=3.{8,9}``
+1. Create a new python environment: ``mamba create -n scip python=3.{8,9}`` (choose a version)
 2. Activate environment: ``conda activate scip``
-3. Install mpi4py: ``mamba install -c conda-forge mpi4py``
-4. Install SCIP: ``pip install .`` or ``pip install -e .`` for development
-5. (Optional) Install development dependencies: ``pip install -r requirements.txt``
+3. (Optional) Install mpi4py: ``mamba install -c conda-forge mpi4py``
+4. Download SCIP from Github
+5. Install SCIP: ``pip install .`` or ``pip install -e .`` for development
+6. (Optional) Install development dependencies: ``pip install -r requirements.txt``
 
 Usage
 -----
+
+SCIP can be used as a command line interface (CLI) or its modules can be imported in a custom script. See the API documentation for the latter option.
+
+The CLI runs a workflow that loads images and performs segmentation, masking, filtering and feature extraction. The CLI can be configured via options passed on the command line (for runtime configuration) and via a YAML config file (for pipeline configuration). For an overview of the command line options, run ``scip --help``.
+
+The YAML config file has the following specification:
+
+.. code-block::
+
+      loading:
+      format: czi, multiframe_tiff, tiff, zarr
+      channels: []
+      channel_names:
+         -
+      loader_kwargs:
+         segment_method: cellpose
+         segment_kw:
+            cell_diameter: 30
+            dapi_channel_index: 0
+            main_channel_index: 2
+         project_method: "op"
+         project_kw:
+            op: "max"
+         scenes: ["A2-A2", "A1-A1"]
+         regex:
+      masking:
+         method: watershed, threshold
+         bbox_channel_index: 0
+         export: false
+         combined_indices: [0, 2, 3]
+         kwargs:
+            smooth: 1
+            noisy_channels: []
+      filter:
+      normalization:
+         lower: 0
+         upper: 1
+      feature_extraction:
+         types: ["shape", "intensity", "bbox", "texture"]
+      export:
+         format: parquet
+         filename: features
 
 Input
 ^^^^^
