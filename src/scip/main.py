@@ -443,7 +443,7 @@ def _print_version(ctx, param, value):
 )
 @click.argument("output", type=click.Path(file_okay=False))
 @click.argument("config", type=click.Path(dir_okay=False, exists=True))
-@click.argument("paths", nargs=-1, type=click.Path(exists=True))
+@click.argument("paths", nargs=-1, type=str)
 def cli(**kwargs):
     """Intro documentation
     """
