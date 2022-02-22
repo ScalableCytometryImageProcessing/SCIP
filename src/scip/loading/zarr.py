@@ -79,7 +79,7 @@ def bag_from_directory(
     match = re.search(regex, str(path))
     groups = match.groupdict()
 
-    z = zarr.open(path)
+    z = zarr.open(path, mode="r")
     path = Path(path)
     events = []
 
