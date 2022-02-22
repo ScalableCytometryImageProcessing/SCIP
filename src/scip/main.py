@@ -452,10 +452,14 @@ def cli(**kwargs):
     if len(kwargs["paths"]) == 0:
         return
 
+    def check(p: str) -> bool:
+        if p.startswith("hdfs"):
+            return True
+        return os.path.isabs(p)
     if kwargs["mode"] == "external":
-        assert os.path.isabs(kwargs["output"]), "Output path must be absolute in external mode."
+        assert check(kwargs["output"]), "Output path must be absolute in external mode."
         err = "Paths must be absolute in external mode."
-        assert all([os.path.isabs(p) for p in kwargs["paths"]]), err
+        assert all([check(p) for p in kwargs["paths"]]), err
 
     runtime = main(**kwargs)
 
