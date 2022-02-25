@@ -150,7 +150,7 @@ def bounding_box_partition(part):
 
 @check
 def get_bounding_box(event):
-    minr, minc, maxr, maxc = 0, 0, event["pixels"].shape[0], event["pixels"].shape[1]
+    minr, minc, maxr, maxc = event["pixels"].shape[1], event["pixels"].shape[2], 0, 0
     for mask in event["mask"]:
         if numpy.any(mask):
             b = regionprops(mask.astype(int))[0].bbox
