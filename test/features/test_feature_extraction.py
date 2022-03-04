@@ -1,5 +1,6 @@
 from scip.features import feature_extraction, shape, intensity
 from dask.dataframe import DataFrame
+import numpy
 
 
 def test_extract_features(fake_images_bag, image_nchannels):
@@ -17,7 +18,7 @@ def test_extract_features(fake_images_bag, image_nchannels):
     assert not computed.isna().any(axis=None)
 
 
-def test_feature_values(fake_images_bag, image_nchannels):
+def test_feature_values(fake_images_bag, image_nchannels, fake_images):
     features = feature_extraction.extract_features(
         images=fake_images_bag,
         channel_names=[f"c_{i}" for i in range(image_nchannels)],
@@ -26,7 +27,10 @@ def test_feature_values(fake_images_bag, image_nchannels):
 
     computed = features.compute()
 
-    computed.iloc[0]
+    expected = []
+    for i in range(image_nchannels):
+        expected.extend(intensity._row(fake_images[0][i]) + intensity._row2(fake_images[0][i]))
+    assert expected == computed.iloc[0].values.tolist()[:len(expected)]
 
 
 def test_shape_features(images_bag, image_nchannels):

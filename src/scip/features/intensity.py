@@ -37,17 +37,24 @@ props = [
 ]
 
 
-def _intensity_features_meta(channel_names: List[str]) -> Mapping[str, type]:
+def _intensity_features_meta(
+    channel_names: List[str],
+    combined: bool,
+    bgcorr: bool
+) -> Mapping[str, type]:
     out = {}
+
+    bs = [""]
+    if bgcorr: b.append("bgcorr_")
+    cs = [""]
+    if combined: c.append("combined_")
+
     for i in channel_names:
-        out.update({f"{p}_{i}": float for p in props})
-        out.update({f"bgcorr_{p}_{i}": float for p in props})
-        out.update({f"combined_{p}_{i}": float for p in props})
-        out.update({f"combined_bgcorr_{p}_{i}": float for p in props})
-        out.update({f"edge_{p}_{i}": float for p in props})
-        out.update({f"bgcorr_edge_{p}_{i}": float for p in props})
-        out.update({f"combined_edge_{p}_{i}": float for p in props})
-        out.update({f"combined_bgcorr_edge_{p}_{i}": float for p in props})
+        for a in ["", "edge_"]:
+            for b in bs:
+                for c in cs:
+                    for p in props:
+                        out[f"{c}{b}{a}{p}_{i}"] = float
     return out
 
 
@@ -72,8 +79,8 @@ def _row(pixels: numpy.ndarray) -> list:
 
 def _row2(pixels: numpy.ndarray) -> list:
     return [
-        scipy.stats.skew(pixels),
-        scipy.stats.kurtosis(pixels)
+        scipy.stats.skew(pixels, axis=None),
+        scipy.stats.kurtosis(pixels, axis=None)
     ]
 
 

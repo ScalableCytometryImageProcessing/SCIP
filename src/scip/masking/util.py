@@ -108,7 +108,11 @@ def apply_mask_partition(part, combined_indices=None):
 
 
 @check
-def apply(sample: Mapping[str, Any], combined_indices: List[int] = None):
+def apply(
+    sample: Mapping[str, Any],
+    combined_indices: List[int] = "all",
+    bgcorr: bool = False
+):
     """
     Apply binary mask on every channel
 
@@ -123,7 +127,7 @@ def apply(sample: Mapping[str, Any], combined_indices: List[int] = None):
     img = sample["pixels"]
     mask = sample["mask"]
 
-    i = numpy.s_[:] if combined_indices is None else combined_indices
+    i = numpy.s_[:] if combined_indices is "all" else combined_indices
     combined_mask = numpy.sum(mask[i], axis=0) > 0
     background = np.empty(shape=(len(img),), dtype=float)
     combined_background = np.empty(shape=(len(img),), dtype=float)

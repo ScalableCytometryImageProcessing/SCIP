@@ -348,6 +348,8 @@ def main(  # noqa: C901
             images=images,
             channel_names=channel_names,
             types=config["feature_extraction"]["types"],
+            combined=config["masking"]["combined_indices"] is not None,
+            bgcorr=config["masking"]["bgcorr"],
             loader_meta=loader_meta
         )
         bag_df = bag_df.repartition(npartitions=5)

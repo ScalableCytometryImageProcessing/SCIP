@@ -93,6 +93,8 @@ def extract_features(  # noqa: C901
     images: dask.bag.Bag,
     channel_names: list,
     types: list,
+    combined: bool,
+    bgcorr: bool,
     loader_meta: Mapping[str, type] = {}
 ) -> dask.dataframe.DataFrame:
     """Extracts requested features from pixel values in images.
@@ -106,7 +108,6 @@ def extract_features(  # noqa: C901
           to see what keys must be present in each mapping.
         channel_names (list): names of channels in the image.
         types (list): feature types to be extracted from the image.
-        maximum_pixel_value (int): theoretical maximal value in the image.
         loader_meta (Mapping[str, type], optional): data type mapping of meta keys extracted
           by the loader. Defaults to {}.
 
@@ -120,9 +121,9 @@ def extract_features(  # noqa: C901
     if "bbox" in types:
         metas["bbox"] = _bbox_features_meta(channel_names)
     if "shape" in types:
-        metas["shape"] = _shape_features_meta(channel_names)
+        metas["shape"] = _shape_features_meta(channel_names, combined)
     if "intensity" in types:
-        metas["intensity"] = _intensity_features_meta(channel_names)
+        metas["intensity"] = _intensity_features_meta(channel_names, combined, bgcorr)
     if "texture" in types:
         metas["texture"] = _texture_features_meta(channel_names)
 
