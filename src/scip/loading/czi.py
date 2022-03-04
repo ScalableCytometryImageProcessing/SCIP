@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
+import re
 from typing import Tuple, Optional, List, Mapping, Union, Any
 from importlib import import_module
 
@@ -39,7 +40,7 @@ def bag_from_directory(
     partition_size: int,
     gpu_accelerated: bool,
     limit: int = -1,
-    scenes: Union[str, List[str]],
+    scenes: Union[str, List[str]] = None,
     segment_method: str,
     segment_kw: Mapping[str, Any],
     project_method: Optional[str],
@@ -58,7 +59,8 @@ def bag_from_directory(
         partition_size (int): Not applicable.
         gpu_accelerated (bool): Indicates wether segmentation is GPU accelerated.
         limit: (int): Not applicable.
-        scenes (list): Names of the scenes that need to be loaded or 'all' to load all scenes.
+        scenes (list|str|None): Names of the scenes that need to be loaded, None to load all scenes,
+            or a regex pattern to filter scenes from all scenes in the input.
         segment_method (str): Name of the method used for segmentation.
         segment_kw (dict): Keywod arguments passed to segmentation method.
         project_method (Optional[str]): Name of the method used for projection.
@@ -74,16 +76,19 @@ def bag_from_directory(
             upfront how many objects will be found by the segmentation method.
     """
 
-    # it can not be known how many object will be found by the segmentation method
+    # it can not be known how many objects will be found by the segmentation method
     # so it is not possible to limit the number of loaded objects
     assert limit == -1, "Limiting is not supported for CZI. (limit is set to {limit})."
 
-    if scenes == "all":
-        scenes = AICSImage(path, reconstruct_mosaic=False).scenes
+    if (scenes is None) or (type(scenes) is str):
+        im_scenes = AICSImage(path, reconstruct_mosaic=False).scenes
+
+    if type(scenes) is str:
+        im_scenes = filter(lambda s: re.match(scenes, s), im_scenes)
 
     data = []
     scenes_meta = []
-    for scene in scenes:
+    for scene in im_scenes:
         data.append(_load_scene(path, scene, channels))
 
         # store the scene and tile name

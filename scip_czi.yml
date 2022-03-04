@@ -14,7 +14,7 @@ loading:
     project_method: "op"
     project_kw:
       op: "max"
-    scenes: ["A2-A2", "A1-A1"]
+    scenes: "^A.*-.*1$"
 masking:
   method:
   export: false

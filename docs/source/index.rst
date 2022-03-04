@@ -35,7 +35,7 @@ The YAML config file has the following specification:
          loader_kwargs:  # keyword arguments passed to loader function
             regex:  # regex pattern, can contain match groups for extracting metadata from filename
 
-            # CellPose arguments
+            # CellPose specific arguments
             segment_method: cellpose
             segment_kw:
                cell_diameter: 30  # expected cell diameter
@@ -45,8 +45,8 @@ The YAML config file has the following specification:
             project_kw:
                op: "max"
 
-            # CZI loader arguments
-            scenes: ["A2-A2", "A1-A1"]
+            # CZI loader specific arguments (nothing | list of scenes | regex pattern)
+            scenes: | ["A2-A2", "A1-A1"] | "^A.*$"
       masking:
          method: watershed, threshold  # masking module to use
          bbox_channel_index: 0  # index of channel that shows cytoplasm
