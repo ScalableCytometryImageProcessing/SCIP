@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Mapping, List
+from typing import Mapping, List, Any
 
 import numpy
 from skimage.measure import label, regionprops_table
@@ -119,8 +119,7 @@ def _row(mask: numpy.ndarray) -> numpy.ndarray:
 
 
 def shape_features(
-    mask: numpy.ndarray,
-    combined_mask: numpy.ndarray
+    sample: Mapping[str, Any]
 ) -> numpy.ndarray:
     """Extracts shape features from image.
 
@@ -134,15 +133,28 @@ def shape_features(
         Mapping[str, Any]: extracted shape features.
     """
 
-    out = numpy.full(shape=(len(prop_names * (len(mask) + 1)),), fill_value=None, dtype=float)
-    out[:len(prop_names)] = _row(combined_mask)
+    combined = "combined_mask" in sample
 
-    for i in range(len(mask)):
-        if numpy.any(mask[i]):
-            out[(i + 1) * len(prop_names):(i + 2) * len(prop_names)] = _row(mask[i])
+    n = len(sample["mask"])
+    n += (1 if combined else 0)
+    out = numpy.full(shape=(len(prop_names) * n,), fill_value=None, dtype=float)
+
+    if combined:
+        out[:len(prop_names)] = _row(sample["combined_mask"])
+
+    for i in range(len(sample["mask"])):
+        start, end = i + int(combined), i + 1 + int(combined)
+        if numpy.any(sample["mask"][i]):
+            out[
+                start * len(prop_names):
+                end * len(prop_names)
+            ] = _row(sample["mask"][i])
         else:
             # setting proper default values if possible when the mask is empty
-            out[(i + 1) * len(prop_names):(i + 2) * len(prop_names)] = [
+            out[
+                start * len(prop_names):
+                end * len(prop_names)
+            ] = [
                 0,
                 0,
                 0,

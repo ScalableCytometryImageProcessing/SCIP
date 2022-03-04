@@ -23,6 +23,8 @@ import dask.bag
 
 from dask.distributed import (Client, LocalCluster)
 from scip.utils import util
+from scip.loading import multiframe_tiff
+from scip.masking import threshold
 
 
 # HELPERS
@@ -53,24 +55,31 @@ def to_records(images, masks):
 
 # FIXTURES
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def fake_images(image_nchannels, n=10):
     return numpy.tile(
         numpy.arange(0, 100).reshape(10, 10)[numpy.newaxis], (n, image_nchannels, 1, 1))
 
 
-@pytest.fixture(scope="function")
-def images_bag(fake_images, image_nchannels):
+@pytest.fixture(scope="session")
+def fake_images_bag(fake_images, image_nchannels):
     records = to_records(fake_images, fake_mask(image_nchannels, full=True))
     bag = dask.bag.from_sequence(records, partition_size=5)
     return bag
 
 
-@pytest.fixture(scope="function")
-def images_masked_bag(fake_images, image_nchannels):
+@pytest.fixture(scope="session")
+def fake_masked_images_bag(fake_images, image_nchannels):
     records = to_records(fake_images, fake_mask(image_nchannels, full=False))
     bag = dask.bag.from_sequence(records, partition_size=5)
     return bag
+
+
+@pytest.fixture(scope="session")
+def images_bag(images_folder):
+    bag, _ = multiframe_tiff.bag_from_directory(
+        images_folder, channels=[0, 1, 2], partition_size=2)
+    return threshold.create_masks_on_bag(bag, main_channel=0, smooth=0.75)
 
 
 @pytest.fixture(scope="session")

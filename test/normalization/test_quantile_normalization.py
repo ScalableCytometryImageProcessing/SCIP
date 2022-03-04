@@ -19,8 +19,8 @@ from scip.normalization import quantile_normalization
 import numpy
 
 
-def test_distributed_minmax(images_bag, image_nchannels):
-    quantiles = quantile_normalization.get_distributed_minmax(images_bag, image_nchannels)
+def test_distributed_minmax(fake_images_bag, image_nchannels):
+    quantiles = quantile_normalization.get_distributed_minmax(fake_images_bag, image_nchannels)
     quantiles = quantiles.compute()
 
     assert len(quantiles) == 1

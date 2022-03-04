@@ -95,7 +95,7 @@ def _row(pixels, num_features):
 
 def texture_features(
     sample: Mapping[str, Any]
-):
+) -> numpy.ndarray:
     """Extracts texture features from image.
 
     Texture features are computed based on the gray co-occurence level matrix and sobel map.

@@ -77,19 +77,10 @@ def features_partition(
                 out[i, c:c + lengths["bbox"]] = bbox_features(p)
                 c += lengths["bbox"]
             if "shape" in types:
-                out[i, c:c + lengths["shape"]] = shape_features(
-                    mask=p["mask"],
-                    combined_mask=p["combined_mask"]
-                )
+                out[i, c:c + lengths["shape"]] = shape_features(p)
                 c += lengths["shape"]
             if "intensity" in types:
-                out[i, c:c + lengths["intensity"]] = intensity_features(
-                    pixels=p["pixels"],
-                    mask=p["mask"],
-                    combined_mask=p["combined_mask"],
-                    background=p["background"],
-                    combined_background=p["combined_background"]
-                )
+                out[i, c:c + lengths["intensity"]] = intensity_features(p)
                 c += lengths["intensity"]
             if "texture" in types:
                 out[i, c:c + lengths["texture"]] = texture_features(p)

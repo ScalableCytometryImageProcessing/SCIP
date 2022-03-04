@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Mapping, List
+from typing import Mapping, List, Any
 
 import numpy
 import scipy.stats
@@ -42,10 +42,10 @@ def _intensity_features_meta(channel_names: List[str]) -> Mapping[str, type]:
     for i in channel_names:
         out.update({f"{p}_{i}": float for p in props})
         out.update({f"bgcorr_{p}_{i}": float for p in props})
-        out.update({f"edge_{p}_{i}": float for p in props})
-        out.update({f"bgcorr_edge_{p}_{i}": float for p in props})
         out.update({f"combined_{p}_{i}": float for p in props})
         out.update({f"combined_bgcorr_{p}_{i}": float for p in props})
+        out.update({f"edge_{p}_{i}": float for p in props})
+        out.update({f"bgcorr_edge_{p}_{i}": float for p in props})
         out.update({f"combined_edge_{p}_{i}": float for p in props})
         out.update({f"combined_bgcorr_edge_{p}_{i}": float for p in props})
     return out
@@ -78,11 +78,7 @@ def _row2(pixels: numpy.ndarray) -> list:
 
 
 def intensity_features(
-    pixels: numpy.ndarray,
-    mask: numpy.ndarray,
-    combined_mask: numpy.ndarray,
-    background: numpy.ndarray,
-    combined_background: numpy.ndarray,
+    sample: Mapping[str, Any]
 ) -> numpy.ndarray:
     """Compute intensity features.
 
@@ -115,50 +111,70 @@ def intensity_features(
         Mapping[str, Any]: extracted features
     """
 
-    out = numpy.full(shape=(len(pixels), 8, len(props)), fill_value=None, dtype=float)
+    do_combined = "combined_mask" in sample
+    do_background = "background" in sample
 
-    for i in range(len(pixels)):
+    m = 2 if do_background else 1
+    n = 2 if do_combined else 1
+    out = numpy.full(
+        shape=(len(sample["pixels"]), 2, m, n, len(props)),
+        fill_value=None,
+        dtype=float
+    ) # axis dimensions: channels, full / edge, no bgcorr / bgcorr, mask / combined mask, props
+
+    for i in range(len(sample["pixels"])):
+        mask = sample["mask"][i]
 
         # compute features on channel specific mask
-        if numpy.any(mask[i]):
+        if numpy.any(mask):
+            plane = sample["pixels"][i]
 
-            mask_pixels = pixels[i][mask[i]]
-            mask_bgcorr_pixels = mask_pixels - background[i]
+            mask_pixels = plane[mask]
 
             conv = convolve(
-                mask[i].astype(int),
+                mask.astype(int),
                 weights=numpy.ones(shape=[4, 4], dtype=int),
                 mode="constant"
             )
-            edge = ((conv > 0) & (conv < 15)) * mask[i]
-            mask_edge_pixels = pixels[i][edge]
-            mask_bgcorr_edge_pixels = mask_edge_pixels - background[i]
+            edge = ((conv > 0) & (conv < 15)) * mask
+            mask_edge_pixels = plane[edge]
 
-            out[i, 0] = _row(mask_pixels) + _row2(mask_pixels)
-            out[i, 1] = _row(mask_bgcorr_pixels) + _row2(mask_bgcorr_pixels)
-            out[i, 2] = _row(mask_edge_pixels) + _row2(mask_edge_pixels)
-            out[i, 3] = _row(mask_bgcorr_edge_pixels) + _row2(mask_bgcorr_edge_pixels)
+            out[i, 0, 0, 0] = _row(mask_pixels) + _row2(mask_pixels)
+            out[i, 1, 0, 0] = _row(mask_edge_pixels) + _row2(mask_edge_pixels)
+
+            if do_background:
+                background = sample["background"][i]
+                mask_bgcorr_pixels = mask_pixels - background
+                mask_bgcorr_edge_pixels = mask_edge_pixels - background
+
+                out[i, 0, 1, 0] = _row(mask_bgcorr_pixels) + _row2(mask_bgcorr_pixels)
+                out[i, 1, 1, 0] = _row(mask_bgcorr_edge_pixels) + _row2(mask_bgcorr_edge_pixels)
         else:
             # write default values
-            out[i, :4] = 0
+            out[i] = 0
 
-        # always compute features on combined mask (it can never be empty)
-        mask_pixels = pixels[i][combined_mask]
-        mask_bgcorr_pixels = mask_pixels - combined_background[i]
+        if do_combined:
+            combined_mask = sample["combined_mask"]
+            mask_pixels = plane[combined_mask]
 
-        conv = convolve(
-            combined_mask.astype(int),
-            weights=numpy.ones(shape=[4, 4], dtype=int),
-            mode="constant"
-        )
-        combined_edge = ((conv > 0) & (conv < 15)) * combined_mask
+            conv = convolve(
+                combined_mask.astype(int),
+                weights=numpy.ones(shape=[4, 4], dtype=int),
+                mode="constant"
+            )
+            combined_edge = ((conv > 0) & (conv < 15)) * combined_mask
 
-        mask_edge_pixels = pixels[i][combined_edge]
-        mask_bgcorr_edge_pixels = mask_edge_pixels - combined_background[i]
+            mask_edge_pixels = plane[combined_edge]
 
-        out[i, 4] = _row(mask_pixels) + _row2(mask_pixels)
-        out[i, 5] = _row(mask_bgcorr_pixels) + _row2(mask_bgcorr_pixels)
-        out[i, 6] = _row(mask_edge_pixels) + _row2(mask_edge_pixels)
-        out[i, 7] = _row(mask_bgcorr_edge_pixels) + _row2(mask_bgcorr_edge_pixels)
+            out[i, 0, 0, 1] = _row(mask_pixels) + _row2(mask_pixels)
+            out[i, 1, 0, 1] = _row(mask_edge_pixels) + _row2(mask_edge_pixels)
+
+            if do_background:
+                combined_background = sample["combined_background"][i]
+                mask_bgcorr_pixels = mask_pixels - combined_background
+                mask_bgcorr_edge_pixels = mask_edge_pixels - combined_background
+
+                out[i, 0, 1, 1] = _row(mask_bgcorr_pixels) + _row2(mask_bgcorr_pixels)
+                out[i, 1, 1, 1] = _row(mask_bgcorr_edge_pixels) + _row2(mask_bgcorr_edge_pixels)
 
     return out.flatten()
