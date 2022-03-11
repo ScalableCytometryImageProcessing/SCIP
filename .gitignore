@@ -13,4 +13,5 @@ tmp/
 .commit
 docs/build
 *.xml
-*.coverage*
+*.coverage
+*.coverage.*
