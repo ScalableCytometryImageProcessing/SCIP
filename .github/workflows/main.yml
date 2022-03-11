@@ -22,7 +22,7 @@ jobs:
       - name: Run style enforcement
         run: flake8
       - name: Test with pytest (and run coverage)
-        run: pytest
+        run: pytest --cov=./src/ --cov-report xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2
         with:
