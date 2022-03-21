@@ -37,6 +37,7 @@ def segment_block(
     path: str,
     tile: int,
     scene: str,
+    merge_adjacent_objects: bool,
     **kwargs
 ) -> List[dict]:
 
@@ -66,6 +67,19 @@ def segment_block(
         channels=cp_channels,
         diameter=cell_diameter
     )
+
+    if merge_adjacent_objects:
+        from skimage.future.graph import RAG
+        rag = RAG(masks, connectivity=2)
+
+        rag.remove_node(0) # remove background node
+
+        handled = set({})
+        for src in rag.nodes:
+            if src not in handled:
+                for dst in rag.neighbors(src):
+                    masks[numpy.nonzero(masks == dst)] = src
+                    handled.add(dst)
 
     events = []
     props = regionprops(masks)
