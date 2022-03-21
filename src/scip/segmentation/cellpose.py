@@ -64,7 +64,8 @@ def segment_block(
     masks, _, _, _ = model.eval(
         x=cp_input,
         channels=cp_channels,
-        diameter=cell_diameter
+        diameter=cell_diameter,
+        batch_size=2
     )
 
     events = []
