@@ -23,18 +23,18 @@ setuptools.setup(
         'graphviz',
         'pyarrow',
         'umap-learn',
-        'dask_mpi',
-        'aicsimageio[czi]',
-        'mpi4py',
         'bokeh',
         'zarr',
-        'fastparquet',
-        'cellpose'
+        'fastparquet'
     ],
     entry_points={
         'console_scripts': [
             'scip=scip.main:cli'
         ]
+    },
+    extras_require={
+        "mpi": ['dask_mpi', 'mpi4py'],
+        "czi": ['cellpose', 'aicsimageio', 'aicspylibczi']
     },
     python_requires=">=3.8",
     package_data={

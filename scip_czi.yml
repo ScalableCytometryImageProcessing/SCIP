@@ -11,6 +11,7 @@ loading:
       cell_diameter: 30
       dapi_channel_index: 0
       main_channel_index: 2
+      merge_adjacent_objects: true
     project_method: "op"
     project_kw:
       op: "max"

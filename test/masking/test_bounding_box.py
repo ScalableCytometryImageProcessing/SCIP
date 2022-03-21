@@ -17,7 +17,6 @@
 
 from scip.loading import multiframe_tiff
 from scip.masking import threshold, util
-from functools import partial
 
 
 def test_bounding_box(images_folder, cluster):

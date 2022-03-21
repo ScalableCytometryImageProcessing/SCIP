@@ -4,17 +4,21 @@ SCIP: Scalable Cytometry Image Processing
 Installation
 ------------
 
-SCIP requires an MPI implementation to be present on the path. If no implementation is present,
-mpi4py can be installed in a conda environment.
+SCIP can be installed in three ways:
+- with default functionality,
+- with additional MPI support for running SCIP in MPI mode,
+- and with additional CZI support for loading CZI files.
 
-We recommend using `mamba <https://github.com/mamba-org/mamba>`_ as a drop-in replacement for conda.
+To install SCIP:
 
-1. Create a new python environment: ``mamba create -n scip python=3.{8,9}`` (choose a version)
-2. Activate environment: ``conda activate scip``
-3. (Optional) Install mpi4py: ``mamba install -c conda-forge mpi4py``
-4. Download SCIP from Github
-5. Install SCIP: ``pip install .`` or ``pip install -e .`` for development
-6. (Optional) Install development dependencies: ``pip install -r requirements.txt``
+1. Download the latest release from Github, or clone the repository.
+2. Enter the repository directory.
+3. Run ``pip install .`` if you only need default functionality. Run ``pip install .[czi]`` for CZI support, and ``pip install .[mpi]`` for MPI support.
+4.  (Optional) Install development dependencies: ``pip install -r requirements.txt``.
+
+MPI support requires an MPI implementation to be present on the path. Please refer
+to instructions for your operating system to install MPI. Another option is to install, mpi4py
+in a conda environment.
 
 Usage
 -----
