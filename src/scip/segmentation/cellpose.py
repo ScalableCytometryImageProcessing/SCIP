@@ -52,8 +52,6 @@ def segment_block(
             model = models.Cellpose(gpu=False, model_type='cyto2')
         w.cellpose = model
 
-    regions = []
-
     # detect cells
     cp_input = block[0, main_channel_index]
     sigma = estimate_sigma(cp_input)
@@ -65,7 +63,7 @@ def segment_block(
         diameter=cell_diameter,
         batch_size=2
     )
-    regions.append(regionprops(cells))
+    cell_regions = regionprops(cells)
 
     if dapi_channel_index is not None:
         # detect nuclei
@@ -85,21 +83,22 @@ def segment_block(
             _, counts = numpy.unique(nuclei[cells == i], return_counts=True)
             idx = idx[(counts[1:] / (cells == i).sum()) > 0.1]
             nuclei_mask[numpy.isin(nuclei, idx) & (cells == i)] = i
-        regions.append(regionprops(nuclei_mask))
 
     events = []
-    for props in zip(*regions):
+    for props in cell_regions:
 
-        bbox = props[0].bbox
-        mask = numpy.repeat(props[0].image[numpy.newaxis] > 0, block.shape[1], axis=0)
+        bbox = props.bbox
 
-        if len(props) > 1:
+        mask_ = props.image > 0
+        mask = numpy.repeat(mask_[numpy.newaxis], block.shape[1], axis=0)
+
+        if dapi_channel_index is not None:
             mask[dapi_channel_index] = nuclei_mask[
-                bbox[0]: bbox[2], bbox[1]:bbox[3]] == props[0].label
+                bbox[0]:bbox[2], bbox[1]:bbox[3]] == props.label
 
         events.append(dict(
             pixels=block[0, :, bbox[0]: bbox[2], bbox[1]:bbox[3]],
-            combined_mask=props[0].image > 0,
+            combined_mask=mask_,
             mask=mask,
             group=group,
             bbox=tuple(bbox),

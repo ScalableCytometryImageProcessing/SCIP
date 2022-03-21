@@ -8,14 +8,13 @@ loading:
   loader_kwargs:
     segment_method: cellpose
     segment_kw:
-      cell_diameter: 30
+      cell_diameter: 40
       dapi_channel_index: 0
       main_channel_index: 2
-      merge_adjacent_objects: true
     project_method: "op"
     project_kw:
       op: "max"
-    scenes: "^A.*-.*1$"
+    scenes: ["A1-A1"]
 masking:
   method:
   export: false
