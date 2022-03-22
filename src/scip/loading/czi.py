@@ -82,8 +82,8 @@ def bag_from_directory(
 
     if (scenes is None) or (type(scenes) is str):
         im_scenes = AICSImage(path, reconstruct_mosaic=False).scenes
-    elif type(scenes) is str:
-        im_scenes = filter(lambda s: re.match(scenes, s), im_scenes)
+        if type(scenes) is str:
+            im_scenes = filter(lambda s: re.match(scenes, s), im_scenes)
     elif type(scenes) is list:
         im_scenes = scenes
     else:
