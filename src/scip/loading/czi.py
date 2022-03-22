@@ -41,7 +41,7 @@ def _export_labeled_mask(
     tile: int,
     scene: str
 ):
-    (output / "masks").mkdir(parents=False)
+    (output / "masks").mkdir(parents=False, exist_ok=True)
     numpy.save(output / f"masks/{tile}_{scene}.npy", mask)
 
 
@@ -138,17 +138,18 @@ def bag_from_directory(
                 gpu_accelerated=gpu_accelerated,
                 **segment_kw
             ).persist()
-            futures.append(_export_labeled_mask(a, output, tile, scene))
+        
+        futures.append(_export_labeled_mask(a, output, tile, scene))
 
-            b = to_events(
-                block,
-                a,
-                group=f"{scene}_{tile}",
-                path=path,
-                tile=tile,
-                scene=scene,
-                **segment_kw
-            )
+        b = to_events(
+            block,
+            a,
+            group=f"{scene}_{tile}",
+            path=path,
+            tile=tile,
+            scene=scene,
+            **segment_kw
+        )
         events.append(b)
 
     return dask.bag.from_delayed(events), futures, dict(path=str, tile=int, scene=str, id=int), 0
