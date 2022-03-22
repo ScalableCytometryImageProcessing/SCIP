@@ -201,8 +201,9 @@ def main(  # noqa: C901
 
         loader_module = import_module('scip.loading.%s' % config["loading"]["format"])
         with dask.config.set(**{'array.slicing.split_large_chunks': False}):
-            images, loader_meta = get_images_bag(
+            images, futures, loader_meta = get_images_bag(
                 paths=paths,
+                output=output,
                 channels=channels,
                 config=config,
                 partition_size=partition_size,
@@ -212,7 +213,6 @@ def main(  # noqa: C901
                 reach_limit=reach_limit
             )
 
-        futures = []
         if report:
             import matplotlib  # noqa: E402
             matplotlib.use("Agg")

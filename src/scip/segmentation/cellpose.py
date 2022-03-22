@@ -22,7 +22,6 @@ from cellpose import models
 from skimage.measure import regionprops
 from dask.distributed import get_worker
 import torch
-from skimage.restoration import denoise_nl_means, estimate_sigma
 from skimage.morphology import white_tophat, disk
 
 
@@ -30,14 +29,11 @@ from skimage.morphology import white_tophat, disk
 def segment_block(
     block: numpy.ndarray,
     *,
-    group: str,
     gpu_accelerated: bool,
     cell_diameter: Optional[int],
+    segmentation_channel_indices: List[int],
     dapi_channel_index: Optional[int],
-    main_channel_index: int,
-    path: str,
-    tile: int,
-    scene: str,
+    cellpose_segmentation_index: int,
     **kwargs
 ) -> List[dict]:
 
@@ -53,17 +49,15 @@ def segment_block(
         w.cellpose = model
 
     # detect cells
-    cp_input = block[0, main_channel_index]
-    sigma = estimate_sigma(cp_input)
-    cp_input = denoise_nl_means(
-        cp_input, sigma=sigma, h=0.9 * sigma, patch_size=5, patch_distance=5)
+    cp_input = block[0, segmentation_channel_indices]
     cells, _, _, _ = model.eval(
         x=cp_input,
-        channels=[0, 0],
+        channels=[cellpose_segmentation_index, 0],
         diameter=cell_diameter,
         batch_size=2
     )
-    cell_regions = regionprops(cells)
+
+    labeled_mask = numpy.repeat(cells[numpy.newaxis], block.shape[1], axis=0)
 
     if dapi_channel_index is not None:
         # detect nuclei
@@ -77,37 +71,56 @@ def segment_block(
         )
 
         # assign over-segmented nuclei to parent cells
-        nuclei_mask = numpy.zeros_like(nuclei)
         for i in numpy.unique(cells)[1:]:
             idx = numpy.unique(nuclei[cells == i])[1:]
             _, counts = numpy.unique(nuclei[cells == i], return_counts=True)
             idx = idx[(counts[1:] / (cells == i).sum()) > 0.1]
-            nuclei_mask[numpy.isin(nuclei, idx) & (cells == i)] = i
+            labeled_mask[dapi_channel_index][numpy.isin(nuclei, idx) & (cells == i)] = i
+
+    return labeled_mask
+
+
+@dask.delayed
+def to_events(
+    block: numpy.ndarray,
+    labeled_mask: numpy.ndarray,
+    *,
+    segmentation_channel_indices: list[int],
+    dapi_channel_index: Optional[int],
+    group: str,
+    path: str,
+    tile: int,
+    scene: str,
+    **kwargs
+):
+
+    cells = labeled_mask[segmentation_channel_indices[0]]
+    cell_regions = regionprops(cells)
 
     events = []
     for props in cell_regions:
 
         bbox = props.bbox
 
-        mask_ = props.image > 0
-        mask = numpy.repeat(mask_[numpy.newaxis], block.shape[1], axis=0)
-
+        mask = labeled_mask[:, bbox[0]:bbox[2], bbox[1]:bbox[3]] == props.label
+        combined_mask = cells[bbox[0]:bbox[2], bbox[1]:bbox[3]] == props.label
+        regions = [1] * labeled_mask.shape[0]
         if dapi_channel_index is not None:
-            mask[dapi_channel_index] = nuclei_mask[
-                bbox[0]:bbox[2], bbox[1]:bbox[3]] == props.label
+            regions[dapi_channel_index] = 1 if numpy.any(mask[dapi_channel_index]) else 0
 
         events.append(dict(
             pixels=block[0, :, bbox[0]: bbox[2], bbox[1]:bbox[3]],
-            combined_mask=mask_,
+            combined_mask=combined_mask,
             mask=mask,
             group=group,
             bbox=tuple(bbox),
-            regions=[1] * block.shape[1],
+            regions=regions,
             background=numpy.zeros(shape=(block.shape[1],), dtype=float),
             combined_background=numpy.zeros(shape=(block.shape[1],), dtype=float),
             path=path,
             tile=tile,
-            scene=scene
+            scene=scene,
+            id=props.label
         ))
 
     return events

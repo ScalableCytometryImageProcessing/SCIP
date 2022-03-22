@@ -3,12 +3,14 @@ import logging
 
 import dask.bag
 
+from pathlib import Path
 from functools import partial
 
 
 def get_images_bag(
     *,
     paths: List[str],
+    output: Path,
     channels: List[int],
     config: Mapping[str, Any],
     partition_size: int,
@@ -23,6 +25,7 @@ def get_images_bag(
         channels=channels,
         partition_size=partition_size,
         gpu_accelerated=gpu_accelerated,
+        output=output,
         **(config["loading"]["loader_kwargs"] or dict()))
 
     images = []
@@ -34,7 +37,7 @@ def get_images_bag(
                 break
 
             logging.info(f"Bagging {path}")
-            bag, loader_meta, length = loader(path=path, limit=limit)
+            bag, futures, loader_meta, length = loader(path=path, limit=limit)
             images.append(bag)
 
             limit -= length
@@ -43,4 +46,4 @@ def get_images_bag(
             break
 
     images = dask.bag.concat(images)
-    return images, loader_meta
+    return images, futures, loader_meta
