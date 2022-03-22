@@ -71,11 +71,13 @@ def segment_block(
         )
 
         # assign over-segmented nuclei to parent cells
+        nuclei_mask = numpy.zeros_like(cells)
         for i in numpy.unique(cells)[1:]:
             idx = numpy.unique(nuclei[cells == i])[1:]
             _, counts = numpy.unique(nuclei[cells == i], return_counts=True)
             idx = idx[(counts[1:] / (cells == i).sum()) > 0.1]
-            labeled_mask[dapi_channel_index][numpy.isin(nuclei, idx) & (cells == i)] = i
+            nuclei_mask[numpy.isin(nuclei, idx) & (cells == i)] = i
+        labeled_mask[dapi_channel_index] = nuclei_mask
 
     return labeled_mask
 

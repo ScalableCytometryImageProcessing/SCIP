@@ -137,7 +137,7 @@ def bag_from_directory(
                 block,
                 gpu_accelerated=gpu_accelerated,
                 **segment_kw
-            )
+            ).persist()
             futures.append(_export_labeled_mask(a, output, tile, scene))
 
             b = to_events(
