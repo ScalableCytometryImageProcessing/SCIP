@@ -19,7 +19,7 @@ from scip.loading import multiframe_tiff
 from scip.masking import threshold, util
 
 
-def test_bounding_box(images_folder, cluster):
+def test_bounding_box(images_folder):
 
     bag, _ = multiframe_tiff.bag_from_directory(
         images_folder, channels=[0, 1, 2], partition_size=2)

@@ -29,7 +29,7 @@ def test_load_image(image_path: Path):
     assert im["pixels"].mean() > 0
 
 
-def test_bag_from_directory(images_folder, cluster):
+def test_bag_from_directory(images_folder):
     bag, meta = multiframe_tiff.bag_from_directory(
         images_folder, channels=None, partition_size=2)
     images = bag.compute()
