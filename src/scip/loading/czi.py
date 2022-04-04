@@ -139,7 +139,9 @@ def bag_from_directory(
                 **segment_kw
             ).persist()
 
-        futures.append(_export_labeled_mask(a, output, tile, scene))
+        if segment_kw["export"]:
+            a = a.persist()
+            futures.append(_export_labeled_mask(a, output, tile, scene))
 
         b = to_events(
             block,

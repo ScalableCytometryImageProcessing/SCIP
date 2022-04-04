@@ -12,6 +12,7 @@ loading:
       segmentation_channel_indices: [1,2]
       dapi_channel_index: 0
       cellpose_segmentation_index: 1
+      export: false
     project_method: "op"
     project_kw:
       op: "max"
