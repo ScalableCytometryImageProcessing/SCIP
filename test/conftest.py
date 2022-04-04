@@ -53,29 +53,22 @@ def to_records(images, masks):
 
 # FIXTURES
 
-@pytest.fixture
-def fake_images(image_nchannels, n=10):
-    return numpy.tile(
-        numpy.arange(0, 100).reshape(10, 10)[numpy.newaxis], (n, image_nchannels, 1, 1))
-
-
-@pytest.fixture(scope="function")
-def images_bag(fake_images, image_nchannels):
-    records = to_records(fake_images, fake_mask(image_nchannels, full=True))
-    bag = dask.bag.from_sequence(records, partition_size=5)
-    return bag
-
-
-@pytest.fixture(scope="function")
-def images_masked_bag(fake_images, image_nchannels):
-    records = to_records(fake_images, fake_mask(image_nchannels, full=False))
-    bag = dask.bag.from_sequence(records, partition_size=5)
-    return bag
-
-
 @pytest.fixture(scope="session")
-def image_nchannels():
+def fake_image_nchannels():
     return 3
+
+
+@pytest.fixture
+def fake_images(fake_image_nchannels, n=10):
+    return numpy.tile(
+        numpy.arange(0, 100).reshape(10, 10)[numpy.newaxis], (n, fake_image_nchannels, 1, 1))
+
+
+@pytest.fixture(scope="function")
+def fake_images_bag(request, fake_images, fake_image_nchannels):
+    records = to_records(fake_images, fake_mask(fake_image_nchannels, full=request.param))
+    bag = dask.bag.from_sequence(records, partition_size=5)
+    return bag
 
 
 @pytest.fixture(scope="session")

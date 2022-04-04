@@ -1,9 +1,11 @@
 from scip.masking import util
+import pytest
 
 
-def test_apply(images_masked_bag):
+@pytest.mark.parametrize("fake_images_bag", [True], indirect=True)
+def test_apply(fake_images_bag):
 
-    bag = images_masked_bag.map(util.apply)
+    bag = fake_images_bag.map(util.apply)
     bag = bag.compute()
 
     assert len(bag) > 0

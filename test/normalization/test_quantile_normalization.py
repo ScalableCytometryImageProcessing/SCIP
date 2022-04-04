@@ -17,21 +17,23 @@
 
 from scip.normalization import quantile_normalization
 import numpy
+import pytest
 
 
-def test_distributed_minmax(images_bag, image_nchannels):
-    quantiles = quantile_normalization.get_distributed_minmax(images_bag, image_nchannels)
+@pytest.mark.parametrize(
+    "fake_images_bag, expected_quantiles",
+    [(True, [0., 99.]), (False, [22., 77.])],
+    indirect=["fake_images_bag"]
+)
+def test_distributed_minmax(
+    fake_images_bag,
+    expected_quantiles,
+    fake_image_nchannels
+):
+    quantiles = quantile_normalization.get_distributed_minmax(fake_images_bag, fake_image_nchannels)
     quantiles = quantiles.compute()
 
     assert len(quantiles) == 1
     assert quantiles[0][0] == "one"
-    assert numpy.array_equal(quantiles[0][1], numpy.array([[0., 99.]] * image_nchannels))
-
-
-def test_masked_distributed_minmax(images_masked_bag, image_nchannels):
-    quantiles = quantile_normalization.get_distributed_minmax(images_masked_bag, image_nchannels)
-    quantiles = quantiles.compute()
-
-    assert len(quantiles) == 1
-    assert quantiles[0][0] == "one"
-    assert numpy.array_equal(quantiles[0][1], numpy.array([[22., 77.]] * image_nchannels))
+    assert numpy.array_equal(quantiles[0][1], numpy.array(
+        [expected_quantiles] * fake_image_nchannels))
