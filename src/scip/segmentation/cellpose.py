@@ -67,7 +67,7 @@ def segment_block(
             x=cp_input,
             channels=[0, 0],
             diameter=cell_diameter,
-            batch_size=2
+            batch_size=16
         )
 
         # assign over-segmented nuclei to parent cells

@@ -128,6 +128,7 @@ def bag_from_directory(
     to_events = import_module('scip.segmentation.%s' % segment_method).to_events
     events = []
     futures = []
+
     for (scene, tile), block in zip(scenes_meta, delayed_blocks):
 
         # this segment operation is annotated with the cellpose resource to let the scheduler
@@ -137,7 +138,7 @@ def bag_from_directory(
                 block,
                 gpu_accelerated=gpu_accelerated,
                 **segment_kw
-            ).persist()
+            )
 
         if segment_kw["export"]:
             a = a.persist()
@@ -154,4 +155,6 @@ def bag_from_directory(
         )
         events.append(b)
 
-    return dask.bag.from_delayed(events), futures, dict(path=str, tile=int, scene=str, id=int), 0
+    bag = dask.bag.from_delayed(events)
+
+    return bag, futures, dict(path=str, tile=int, scene=str, id=int), 0
