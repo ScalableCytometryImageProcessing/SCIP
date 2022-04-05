@@ -15,25 +15,18 @@
 # You should have received a copy of the GNU General Public License
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
-from scip.normalization import quantile_normalization
-import numpy
+from scip.loading import zarr
 import pytest
 
 
-@pytest.mark.parametrize(
-    "fake_images_bag, expected_quantiles",
-    [(True, [0., 99.]), (False, [22., 77.])],
-    indirect=["fake_images_bag"]
-)
-def test_distributed_minmax(
-    fake_images_bag,
-    expected_quantiles,
-    fake_image_nchannels
-):
-    quantiles = quantile_normalization.get_distributed_minmax(fake_images_bag, fake_image_nchannels)
-    quantiles = quantiles.compute()
+@pytest.mark.parametrize("channels, expected_length", [(None, 7), ([0,1], 2)])
+def test_bag_from_directory(zarr_path, channels, expected_length):
+    bag, meta, length = zarr.bag_from_directory(
+        path=zarr_path, channels=channels, partition_size=5,
+        gpu_accelerated=False, regex="(?P<name>.*)")
+    images = bag.compute()
 
-    assert len(quantiles) == 1
-    assert quantiles[0][0] == "one"
-    assert numpy.array_equal(quantiles[0][1], numpy.array(
-        [expected_quantiles] * fake_image_nchannels))
+    assert length == 10
+    assert len(images) == length
+    assert all(len(im["pixels"]) == expected_length for im in images)
+    assert len(meta.keys()) == 4

@@ -80,6 +80,10 @@ def bag_from_directory(
     groups = match.groupdict()
 
     z = zarr.open(path, mode="r")
+
+    if channels is None:
+        channels = numpy.s_[:]
+
     path = Path(path)
     events = []
 
