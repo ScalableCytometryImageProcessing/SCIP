@@ -19,7 +19,7 @@ from scip.loading import zarr
 import pytest
 
 
-@pytest.mark.parametrize("channels, expected_length", [(None, 7), ([0,1], 2)])
+@pytest.mark.parametrize("channels, expected_length", [(None, 7), ([0, 1], 2)])
 def test_bag_from_directory(zarr_path, channels, expected_length):
     bag, meta, length = zarr.bag_from_directory(
         path=zarr_path, channels=channels, partition_size=5,

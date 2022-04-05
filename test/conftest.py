@@ -21,7 +21,6 @@ import pytest
 import numpy
 import dask.bag
 
-from dask.distributed import (Client, LocalCluster)
 from scip.utils import util
 
 
