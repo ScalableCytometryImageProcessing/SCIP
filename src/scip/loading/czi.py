@@ -18,6 +18,7 @@
 import re
 from typing import Tuple, Optional, List, Mapping, Union, Any
 from importlib import import_module
+from pathlib import Path
 
 from aicsimageio import AICSImage
 import numpy
@@ -33,9 +34,21 @@ def _load_scene(path, scene, channels):
     return im.get_image_dask_data("MCZXY", T=0, C=channels)
 
 
+@dask.delayed
+def _export_labeled_mask(
+    mask: numpy.ndarray,
+    output: Path,
+    tile: int,
+    scene: str
+):
+    (output / "masks").mkdir(parents=False, exist_ok=True)
+    numpy.save(output / f"masks/{tile}_{scene}.npy", mask)
+
+
 def bag_from_directory(
     *,
     path: str,
+    output: Path,
     channels: List[int],
     partition_size: int,
     gpu_accelerated: bool,
@@ -112,21 +125,36 @@ def bag_from_directory(
     delayed_blocks = data.to_delayed().flatten()
 
     segment_block = import_module('scip.segmentation.%s' % segment_method).segment_block
+    to_events = import_module('scip.segmentation.%s' % segment_method).to_events
     events = []
+    futures = []
+
     for (scene, tile), block in zip(scenes_meta, delayed_blocks):
 
         # this segment operation is annotated with the cellpose resource to let the scheduler
         # know that it should only be executed on a worker that also has the cellpose resource.
         with dask.annotate(resources={"cellpose": 1}):
-            e = segment_block(
+            a = segment_block(
                 block,
-                group=f"{scene}_{tile}",
                 gpu_accelerated=gpu_accelerated,
-                path=path,
-                tile=tile,
-                scene=scene,
                 **segment_kw
             )
-        events.append(e)
 
-    return dask.bag.from_delayed(events), dict(path=str, tile=int, scene=str), 0
+        if segment_kw["export"]:
+            a = a.persist()
+            futures.append(_export_labeled_mask(a, output, tile, scene))
+
+        b = to_events(
+            block,
+            a,
+            group=f"{scene}_{tile}",
+            path=path,
+            tile=tile,
+            scene=scene,
+            **segment_kw
+        )
+        events.append(b)
+
+    bag = dask.bag.from_delayed(events)
+
+    return bag, futures, dict(path=str, tile=int, scene=str, id=int), 0
