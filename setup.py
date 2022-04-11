@@ -17,7 +17,6 @@ setuptools.setup(
         'dask',
         'dask-ml',
         'click',
-        'dask_jobqueue @ git+https://github.com/ScalableImagingPipeline/dask-jobqueue.git',
         'scikit-image',
         'pyyaml',
         'graphviz',
@@ -34,7 +33,9 @@ setuptools.setup(
     },
     extras_require={
         "mpi": ['dask_mpi', 'mpi4py'],
-        "czi": ['cellpose', 'aicsimageio', 'aicspylibczi']
+        "czi": ['cellpose', 'aicsimageio', 'aicspylibczi'],
+        "jobqueue": [
+            "dask_jobqueue @ git+https://github.com/ScalableImagingPipeline/dask-jobqueue.git"]
     },
     python_requires=">=3.8",
     package_data={
