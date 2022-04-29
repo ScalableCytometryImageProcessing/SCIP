@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Optional, List
+from typing import Optional, List, Any
 import dask
 import numpy
 from cellpose import models
@@ -90,11 +90,14 @@ def to_events(
     segmentation_channel_indices: list[int],
     dapi_channel_index: Optional[int],
     group: str,
-    path: str,
-    tile: int,
-    scene: str,
+    meta: List[Any],
+    meta_keys: List[str],
     **kwargs
 ):
+    """Converts the segmented objects into a list of dictionaries that can be converted
+    to a dask.bag.Bag. The dictionaries contain the pixel information for one detected cell, 
+    or event, and the meta data of that event.
+    """
 
     cells = labeled_mask[segmentation_channel_indices[0]]
     cell_regions = regionprops(cells)
@@ -107,10 +110,11 @@ def to_events(
         mask = labeled_mask[:, bbox[0]:bbox[2], bbox[1]:bbox[3]] == props.label
         combined_mask = cells[bbox[0]:bbox[2], bbox[1]:bbox[3]] == props.label
         regions = [1] * labeled_mask.shape[0]
+
         if dapi_channel_index is not None:
             regions[dapi_channel_index] = 1 if numpy.any(mask[dapi_channel_index]) else 0
 
-        events.append(dict(
+        event = dict(
             pixels=block[0, :, bbox[0]: bbox[2], bbox[1]:bbox[3]],
             combined_mask=combined_mask,
             mask=mask,
@@ -119,10 +123,10 @@ def to_events(
             regions=regions,
             background=numpy.zeros(shape=(block.shape[1],), dtype=float),
             combined_background=numpy.zeros(shape=(block.shape[1],), dtype=float),
-            path=path,
-            tile=tile,
-            scene=scene,
             id=props.label
-        ))
+        )
+        for k, v in zip(meta, meta_keys):
+            event[k] = v
+        events.append(event)
 
     return events

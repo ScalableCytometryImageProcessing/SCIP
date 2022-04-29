@@ -15,17 +15,22 @@
 # You should have received a copy of the GNU General Public License
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import List
+from typing import List, Mapping, Any, Tuple
 
 import re
 import logging
 from pathlib import Path
 
 import pandas
+import dask
 import dask.bag
 import dask.dataframe
-import tifffile
+import dask.array
 import numpy
+import tifffile
+from aicsimageio.readers.tiff_glob_reader import TiffGlobReader
+
+from scip.segmentation import util
 
 logging.getLogger("tifffile").setLevel(logging.ERROR)
 
@@ -50,6 +55,17 @@ def _load_image(event, channels):
         raise e
 
 
+def _load_block(event, channels, map_to_index):
+    paths = [event[str(c)] for c in channels]
+    
+    im = TiffGlobReader(
+        glob_in=paths,
+        indexer=map_to_index,
+    )
+
+    return im.get_image_dask_data("CXY")
+
+
 def _load_image_partition(partition, channels):
     return [_load_image(event, channels) for event in partition]
 
@@ -61,8 +77,11 @@ def bag_from_directory(
     partition_size: int,
     gpu_accelerated: bool,
     limit: int = -1,
-    regex: str
-):
+    regex: str,
+    output: Path,
+    segment_method: str,
+    segment_kw: Mapping[str, Any],
+) -> Tuple[dask.bag.Bag, Mapping[str, type], int]:
 
     logger = logging.getLogger(__name__)
 
@@ -88,16 +107,42 @@ def bag_from_directory(
     df = pandas.concat([df1, df2], axis=1)
 
     pre_filter = len(df)
-    df = df[~df1.isna().any(axis=1)]
+    df = df[~df1.isna().any(axis=1)] # drop rows with missing files
     dropped = pre_filter - len(df)
     logger.warning("Dropped %d rows because of missing channel files in %s" % (dropped, str(path)))
 
-    if limit != -1:
-        df = df.iloc[:limit]
+    if segment_method is not None:
+        def map_to_index(f):
+            idx = re.search(regex, str(f)).group("channel")
+            m = {c: i for i, c in enumerate(df.columns)}
+            return pandas.Series(dict(S=0, T=0, C=m[idx], Z=0)
+        )
 
-    bag = dask.bag.from_sequence(
-        df.to_dict(orient="records"), partition_size=partition_size)
-    bag = bag.map_partitions(_load_image_partition, channels=channels)
+        blocks = dask.array.stack([
+            _load_block(event, channels, map_to_index) for event in df.to_dict(orient="records")
+        ])
+        bag, futures = util.bag_from_block(
+            blocks=blocks,
+            meta=[],
+            meta_keys=[],
+            gpu_accelerated=gpu_accelerated,
+            output=output,
+            segment_kw=segment_kw,
+            segment_method=segment_method
+        )
+
+        n = 0
+        futures = []
+    else:
+        if limit != -1:
+            df = df.iloc[:limit]
+        
+        bag = dask.bag.from_sequence(
+            df.to_dict(orient="records"), partition_size=partition_size)
+        bag = bag.map_partitions(_load_image_partition, channels=channels)
+
+        n = len(df)
+        futures = []
 
     loader_meta = {c: str for c in df.columns}
-    return bag, loader_meta, len(df)
+    return bag, futures, loader_meta, n

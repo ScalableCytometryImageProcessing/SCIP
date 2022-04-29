@@ -27,22 +27,13 @@ import dask.dataframe
 import dask.array
 import dask
 
+from scip.segmentation import util
+
 
 def _load_scene(path, scene, channels):
     im = AICSImage(path, reconstruct_mosaic=False, chunk_dims=["Z", "C", "X", "Y"])
     im.set_scene(scene)
     return im.get_image_dask_data("MCZXY", T=0, C=channels)
-
-
-@dask.delayed
-def _export_labeled_mask(
-    mask: numpy.ndarray,
-    output: Path,
-    tile: int,
-    scene: str
-):
-    (output / "masks").mkdir(parents=False, exist_ok=True)
-    numpy.save(output / f"masks/{tile}_{scene}.npy", mask)
 
 
 def bag_from_directory(
@@ -108,7 +99,7 @@ def bag_from_directory(
         data.append(_load_scene(path, scene, channels))
 
         # store the scene and tile name
-        scenes_meta.extend([(scene, i) for i in range(data[-1].numblocks[0])])
+        scenes_meta.extend([(scene, i, path) for i in range(data[-1].numblocks[0])])
 
     data = dask.array.concatenate(data)
 
@@ -122,39 +113,15 @@ def bag_from_directory(
             meta=numpy.array((), dtype=data.dtype)
         )
 
-    delayed_blocks = data.to_delayed().flatten()
+    blocks = data.to_delayed().flatten()
+    blocks, futures = util.bag_from_blocks(
+        blocks=blocks, 
+        meta=scenes_meta,
+        meta_keys=["scene", "tile", "path"],
+        segment_kw=segment_kw,
+        segment_method=segment_method,
+        gpu_accelerated=gpu_accelerated,
+        output=output
+    )
 
-    segment_block = import_module('scip.segmentation.%s' % segment_method).segment_block
-    to_events = import_module('scip.segmentation.%s' % segment_method).to_events
-    events = []
-    futures = []
-
-    for (scene, tile), block in zip(scenes_meta, delayed_blocks):
-
-        # this segment operation is annotated with the cellpose resource to let the scheduler
-        # know that it should only be executed on a worker that also has the cellpose resource.
-        with dask.annotate(resources={"cellpose": 1}):
-            a = segment_block(
-                block,
-                gpu_accelerated=gpu_accelerated,
-                **segment_kw
-            )
-
-        if segment_kw["export"]:
-            a = a.persist()
-            futures.append(_export_labeled_mask(a, output, tile, scene))
-
-        b = to_events(
-            block,
-            a,
-            group=f"{scene}_{tile}",
-            path=path,
-            tile=tile,
-            scene=scene,
-            **segment_kw
-        )
-        events.append(b)
-
-    bag = dask.bag.from_delayed(events)
-
-    return bag, futures, dict(path=str, tile=int, scene=str, id=int), 0
+    return blocks, futures, dict(path=str, tile=int, scene=str, id=int), 0
