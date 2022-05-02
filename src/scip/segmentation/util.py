@@ -30,11 +30,16 @@ def bag_from_blocks(
     segment_kw: Mapping[str, Any],
     output: Path
 ) -> Tuple[dask.bag.Bag, List[concurrent.futures.Future]]:
+    
+    # blocks = blocks.to_delayed().flatten()
 
     segment_block = import_module('scip.segmentation.%s' % segment_method).segment_block
     to_events = import_module('scip.segmentation.%s' % segment_method).to_events
     events = []
     futures = []
+
+    if len(meta) == 0:
+        meta = [[0]]*len(blocks)
 
     for m, block in zip(meta, blocks):
 
@@ -54,7 +59,7 @@ def bag_from_blocks(
         b = to_events(
             block,
             a,
-            group="_".join(m),
+            group="_".join([str(i) for i in m]),
             meta=m,
             meta_keys=meta_keys,
             **segment_kw

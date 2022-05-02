@@ -60,10 +60,10 @@ def _load_block(event, channels, map_to_index):
     
     im = TiffGlobReader(
         glob_in=paths,
-        indexer=map_to_index,
-    )
+        indexer=map_to_index
+    ).get_image_dask_data("CXY")
 
-    return im.get_image_dask_data("CXY")
+    return im.rechunk(im.shape)
 
 
 def _load_image_partition(partition, channels):
@@ -102,7 +102,7 @@ def bag_from_directory(
     df = pandas.DataFrame.from_dict(matches)
     df1 = df.pivot(index="id", columns="channel", values="path")
     df = df.set_index("id")
-    df2 = df.loc[~df.index.duplicated(keep='first'), df.drop(columns=["path"]).columns]
+    df2 = df.loc[~df.index.duplicated(keep='first'), df.drop(columns=["path", "channel"]).columns]
 
     df = pandas.concat([df1, df2], axis=1)
 
@@ -115,13 +115,12 @@ def bag_from_directory(
         def map_to_index(f):
             idx = re.search(regex, str(f)).group("channel")
             m = {c: i for i, c in enumerate(df.columns)}
-            return pandas.Series(dict(S=0, T=0, C=m[idx], Z=0)
-        )
+            return pandas.Series(dict(S=0, T=0, C=m[idx], Z=0))
 
         blocks = dask.array.stack([
             _load_block(event, channels, map_to_index) for event in df.to_dict(orient="records")
         ])
-        bag, futures = util.bag_from_block(
+        bag, futures = util.bag_from_blocks(
             blocks=blocks,
             meta=[],
             meta_keys=[],
@@ -132,7 +131,6 @@ def bag_from_directory(
         )
 
         n = 0
-        futures = []
     else:
         if limit != -1:
             df = df.iloc[:limit]
@@ -144,5 +142,5 @@ def bag_from_directory(
         n = len(df)
         futures = []
 
-    loader_meta = {c: str for c in df.columns}
+    loader_meta = {c: str for c in df2.columns}
     return bag, futures, loader_meta, n

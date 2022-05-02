@@ -113,9 +113,8 @@ def bag_from_directory(
             meta=numpy.array((), dtype=data.dtype)
         )
 
-    blocks = data.to_delayed().flatten()
     blocks, futures = util.bag_from_blocks(
-        blocks=blocks, 
+        blocks=data, 
         meta=scenes_meta,
         meta_keys=["scene", "tile", "path"],
         segment_kw=segment_kw,

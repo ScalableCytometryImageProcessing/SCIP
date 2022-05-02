@@ -49,19 +49,19 @@ def segment_block(
         w.cellpose = model
 
     # detect cells
-    cp_input = block[0, segmentation_channel_indices]
+    cp_input = block[segmentation_channel_indices]
     cells, _, _, _ = model.eval(
         x=cp_input,
         channels=[cellpose_segmentation_index, 0],
         diameter=cell_diameter,
-        batch_size=2
+        batch_size=16
     )
 
     labeled_mask = numpy.repeat(cells[numpy.newaxis], block.shape[1], axis=0)
 
     if dapi_channel_index is not None:
         # detect nuclei
-        cp_input = block[0, dapi_channel_index]
+        cp_input = block[dapi_channel_index]
         cp_input = white_tophat(cp_input, footprint=disk(25))
         nuclei, _, _, _ = model.eval(
             x=cp_input,
@@ -115,14 +115,14 @@ def to_events(
             regions[dapi_channel_index] = 1 if numpy.any(mask[dapi_channel_index]) else 0
 
         event = dict(
-            pixels=block[0, :, bbox[0]: bbox[2], bbox[1]:bbox[3]],
+            pixels=block[:, bbox[0]: bbox[2], bbox[1]:bbox[3]],
             combined_mask=combined_mask,
             mask=mask,
             group=group,
             bbox=tuple(bbox),
             regions=regions,
-            background=numpy.zeros(shape=(block.shape[1],), dtype=float),
-            combined_background=numpy.zeros(shape=(block.shape[1],), dtype=float),
+            background=numpy.zeros(shape=(block.shape[0],), dtype=float),
+            combined_background=numpy.zeros(shape=(block.shape[0],), dtype=float),
             id=props.label
         )
         for k, v in zip(meta, meta_keys):
