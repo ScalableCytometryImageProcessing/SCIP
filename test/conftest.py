@@ -20,6 +20,7 @@ from pathlib import Path
 import pytest
 import numpy
 import dask.bag
+from dask.distributed import LocalCluster, Client
 
 from scip.utils import util
 
@@ -52,6 +53,12 @@ def to_records(images, masks):
 
 # FIXTURES
 
+
+@pytest.fixture(autouse=True)
+def setup_client():
+    return Client(LocalCluster(n_workers=1))
+
+
 @pytest.fixture
 def fake_image_nchannels():
     return 3
@@ -81,6 +88,11 @@ def fake_images_zarr(fake_images):
 @pytest.fixture
 def images_folder(data):
     return data / "images"
+
+
+@pytest.fixture
+def tiffs_folder(data):
+    return data / "tiffs"
 
 
 @pytest.fixture

@@ -29,8 +29,8 @@ from skimage.morphology import white_tophat, disk
 def segment_block(
     block: numpy.ndarray,
     *,
-    gpu_accelerated: bool,
-    cell_diameter: Optional[int],
+    gpu_accelerated: Optional[bool] = False,
+    cell_diameter: Optional[int] = None,
     segmentation_channel_indices: List[int],
     dapi_channel_index: Optional[int],
     cellpose_segmentation_index: int,

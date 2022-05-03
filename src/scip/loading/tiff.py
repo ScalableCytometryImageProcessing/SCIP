@@ -19,6 +19,7 @@ from typing import List, Mapping, Any, Tuple
 
 import re
 import logging
+import concurrent.futures
 from pathlib import Path
 
 import pandas
@@ -81,7 +82,7 @@ def bag_from_directory(
     output: Path,
     segment_method: str,
     segment_kw: Mapping[str, Any],
-) -> Tuple[dask.bag.Bag, Mapping[str, type], int]:
+) -> Tuple[dask.bag.Bag, List[concurrent.futures.Future], Mapping[str, type], int]:
 
     logger = logging.getLogger(__name__)
 
