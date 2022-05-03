@@ -58,7 +58,7 @@ def _load_image(event, channels):
 
 def _load_block(event, channels, map_to_index):
     paths = [event[str(c)] for c in channels]
-    
+
     im = TiffGlobReader(
         glob_in=paths,
         indexer=map_to_index
@@ -90,7 +90,7 @@ def bag_from_directory(
 
     matches = []
     i = 0
-    for p in path.glob("*.tif"):
+    for p in path.glob("*.tif*"):
         m = re.search(regex, str(p))
         if m is not None:
             groups = m.groupdict()
@@ -108,7 +108,7 @@ def bag_from_directory(
     df = pandas.concat([df1, df2], axis=1)
 
     pre_filter = len(df)
-    df = df[~df1.isna().any(axis=1)] # drop rows with missing files
+    df = df[~df1.isna().any(axis=1)]  # drop rows with missing files
     dropped = pre_filter - len(df)
     logger.warning("Dropped %d rows because of missing channel files in %s" % (dropped, str(path)))
 
@@ -135,7 +135,7 @@ def bag_from_directory(
     else:
         if limit != -1:
             df = df.iloc[:limit]
-        
+
         bag = dask.bag.from_sequence(
             df.to_dict(orient="records"), partition_size=partition_size)
         bag = bag.map_partitions(_load_image_partition, channels=channels)

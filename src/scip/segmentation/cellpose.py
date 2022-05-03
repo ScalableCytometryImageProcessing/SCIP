@@ -95,7 +95,7 @@ def to_events(
     **kwargs
 ):
     """Converts the segmented objects into a list of dictionaries that can be converted
-    to a dask.bag.Bag. The dictionaries contain the pixel information for one detected cell, 
+    to a dask.bag.Bag. The dictionaries contain the pixel information for one detected cell,
     or event, and the meta data of that event.
     """
 
