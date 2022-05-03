@@ -1,19 +1,18 @@
 loading:
   format: tiff
-  channels: [1, 2, 4]
+  channels: [1, 2]
   channel_names:
     - DAPI
     - Actin
-    - Tubulin
   loader_kwargs:
-    regex: ^.+\/(?P<id>.+)_w(?P<channel>[0-9]).+$
+    regex: ^.+\/test(?P<id>.+)_(?P<channel>[0-9]).+$
     segment_method: cellpose
     segment_kw:
       cell_diameter:
-      segmentation_channel_indices: [1,2]
-      dapi_channel_index: 0
+      segmentation_channel_indices: [0,1]
+      dapi_channel_index:
       cellpose_segmentation_index: 1
-      export: true
+      export: false
 masking:
   method:
   export: false

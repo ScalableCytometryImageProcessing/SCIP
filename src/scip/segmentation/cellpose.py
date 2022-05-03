@@ -57,7 +57,7 @@ def segment_block(
         batch_size=16
     )
 
-    labeled_mask = numpy.repeat(cells[numpy.newaxis], block.shape[1], axis=0)
+    labeled_mask = numpy.repeat(cells[numpy.newaxis], block.shape[0], axis=0)
 
     if dapi_channel_index is not None:
         # detect nuclei
