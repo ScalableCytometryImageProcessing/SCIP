@@ -15,8 +15,6 @@ def get_images_bag(
     config: Mapping[str, Any],
     partition_size: int,
     gpu_accelerated: bool,
-    limit: int = -1,
-    reach_limit: bool = False,
     loader_module
 ) -> Tuple[dask.bag.Bag, Mapping[str, type]]:
 
@@ -26,24 +24,17 @@ def get_images_bag(
         partition_size=partition_size,
         gpu_accelerated=gpu_accelerated,
         output=output,
-        **(config["loading"]["loader_kwargs"] or dict()))
+        **(config["loading"]["loader_kwargs"] or dict())
+    )
 
     images = []
 
-    while (limit > 0) or (limit == -1):
-        for path in paths:
+    loader_meta = loader_module.get_loader_meta(**(config["loading"]["loader_kwargs"] or dict()))
 
-            if limit == 0:
-                break
-
-            logging.info(f"Bagging {path}")
-            bag, futures, loader_meta, length = loader(path=path, limit=limit)
-            images.append(bag)
-
-            limit -= length
-
-        if not reach_limit:
-            break
+    for path in paths:
+        logging.info(f"Bagging {path}")
+        bag = loader(path=path)
+        images.append(bag)
 
     images = dask.bag.concat(images)
-    return images, futures, loader_meta
+    return images, loader_meta

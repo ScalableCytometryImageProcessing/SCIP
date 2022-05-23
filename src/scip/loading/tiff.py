@@ -15,11 +15,10 @@
 # You should have received a copy of the GNU General Public License
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import List, Mapping, Any, Tuple
+from typing import List, Mapping, Any
 
 import re
 import logging
-import concurrent.futures
 from pathlib import Path
 
 import pandas
@@ -71,18 +70,21 @@ def _load_image_partition(partition, channels):
     return [_load_image(event, channels) for event in partition]
 
 
+def get_loader_meta(**kwargs) -> Mapping[str, type]:
+    return dict(path=str)
+
+
 def bag_from_directory(
     *,
     path: str,
     channels: List[int],
     partition_size: int,
     gpu_accelerated: bool,
-    limit: int = -1,
     regex: str,
     output: Path,
     segment_method: str,
     segment_kw: Mapping[str, Any],
-) -> Tuple[dask.bag.Bag, List[concurrent.futures.Future], Mapping[str, type], int]:
+) -> dask.bag.Bag:
 
     logger = logging.getLogger(__name__)
 
@@ -121,27 +123,19 @@ def bag_from_directory(
         blocks = dask.array.stack([
             _load_block(event, channels, map_to_index) for event in df.to_dict(orient="records")
         ])
-        bag, futures = util.bag_from_blocks(
+        bag = util.bag_from_blocks(
             blocks=blocks,
             meta=[],
             meta_keys=[],
+            paths=df.iloc[:, 0].values,
             gpu_accelerated=gpu_accelerated,
             output=output,
             segment_kw=segment_kw,
             segment_method=segment_method
         )
-
-        n = 0
     else:
-        if limit != -1:
-            df = df.iloc[:limit]
-
         bag = dask.bag.from_sequence(
             df.to_dict(orient="records"), partition_size=partition_size)
         bag = bag.map_partitions(_load_image_partition, channels=channels)
 
-        n = len(df)
-        futures = []
-
-    loader_meta = {c: str for c in df2.columns}
-    return bag, futures, loader_meta, n
+    return bag

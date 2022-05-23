@@ -16,7 +16,7 @@
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
 import re
-from typing import Tuple, Optional, List, Mapping, Union, Any
+from typing import Optional, List, Mapping, Union, Any
 from importlib import import_module
 from pathlib import Path
 
@@ -36,6 +36,10 @@ def _load_scene(path, scene, channels):
     return im.get_image_dask_data("MCZXY", T=0, C=channels)
 
 
+def get_loader_meta(**kwargs) -> Mapping[str, type]:
+    return dict(path=str, tile=int, scene=str, id=int)
+
+
 def bag_from_directory(
     *,
     path: str,
@@ -43,13 +47,12 @@ def bag_from_directory(
     channels: List[int],
     partition_size: int,
     gpu_accelerated: bool,
-    limit: int = -1,
     scenes: Union[str, List[str]] = None,
     segment_method: str,
     segment_kw: Mapping[str, Any],
     project_method: Optional[str],
     project_kw: Mapping[str, Any] = {}
-) -> Tuple[dask.bag.Bag, Mapping[str, type], int]:
+) -> dask.bag.Bag:
     """Creates a Dask Bag from one CZI file.
 
     This method loads in the scenes as Dask Arrays,
@@ -80,10 +83,6 @@ def bag_from_directory(
             upfront how many objects will be found by the segmentation method.
     """
 
-    # it can not be known how many objects will be found by the segmentation method
-    # so it is not possible to limit the number of loaded objects
-    assert limit == -1, "Limiting is not supported for CZI. (limit is set to {limit})."
-
     if (scenes is None) or (type(scenes) is str):
         im_scenes = AICSImage(path, reconstruct_mosaic=False).scenes
         if type(scenes) is str:
@@ -99,7 +98,7 @@ def bag_from_directory(
         data.append(_load_scene(path, scene, channels))
 
         # store the scene and tile name
-        scenes_meta.extend([(scene, i, path) for i in range(data[-1].numblocks[0])])
+        scenes_meta.extend([(scene, i) for i in range(data[-1].numblocks[0])])
 
     data = dask.array.concatenate(data)
 
@@ -113,14 +112,15 @@ def bag_from_directory(
             meta=numpy.array((), dtype=data.dtype)
         )
 
-    blocks, futures = util.bag_from_blocks(
+    blocks = util.bag_from_blocks(
         blocks=data,
         meta=scenes_meta,
-        meta_keys=["scene", "tile", "path"],
+        meta_keys=["scene", "tile"],
+        paths=[path] * len(scenes_meta),
         segment_kw=segment_kw,
         segment_method=segment_method,
         gpu_accelerated=gpu_accelerated,
         output=output
     )
 
-    return blocks, futures, dict(path=str, tile=int, scene=str, id=int), 0
+    return blocks

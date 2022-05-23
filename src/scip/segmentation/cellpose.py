@@ -124,7 +124,7 @@ def to_events(
             combined_background=numpy.zeros(shape=(block.shape[0],), dtype=float),
             id=props.label
         )
-        for k, v in zip(meta, meta_keys):
+        for k, v in zip(meta_keys, meta):
             event[k] = v
         events.append(event)
 

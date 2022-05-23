@@ -21,12 +21,9 @@ import pytest
 
 @pytest.mark.parametrize("channels, expected_length", [(None, 7), ([0, 1], 2)])
 def test_bag_from_directory(zarr_path, channels, expected_length):
-    bag, meta, length = zarr.bag_from_directory(
+    bag = zarr.bag_from_directory(
         path=zarr_path, channels=channels, partition_size=5,
         gpu_accelerated=False, regex="(?P<name>.*)")
     images = bag.compute()
 
-    assert length == 10
-    assert len(images) == length
     assert all(len(im["pixels"]) == expected_length for im in images)
-    assert len(meta.keys()) == 4

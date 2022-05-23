@@ -123,8 +123,6 @@ def main(  # noqa: C901
     timing,
     report,
     gpu,
-    limit,
-    reach_limit,
     scheduler_adress
 ):
     with util.ClientClusterContext(
@@ -201,17 +199,17 @@ def main(  # noqa: C901
 
         loader_module = import_module('scip.loading.%s' % config["loading"]["format"])
         with dask.config.set(**{'array.slicing.split_large_chunks': False}):
-            images, futures, loader_meta = get_images_bag(
+            images, loader_meta = get_images_bag(
                 paths=paths,
                 output=output,
                 channels=channels,
                 config=config,
                 partition_size=partition_size,
                 gpu_accelerated=gpu > 0,
-                limit=limit,
-                loader_module=loader_module,
-                reach_limit=reach_limit
+                loader_module=loader_module
             )
+
+        futures = []
 
         if report:
             import matplotlib  # noqa: E402
@@ -416,22 +414,11 @@ def _print_version(ctx, param, value):
     "--partition-size", "-s", default=50, type=click.IntRange(min=1),
     help="Set partition size")
 @click.option(
-    "--limit", default=-1, type=int,
-    help="Limit the number of events to load from each file or directory"
-)
-@click.option(
     "--scheduler-adress", default=None, type=str,
     help="Adress of scheduler to connect to."
 )
 @click.option("--timing", default=None, type=click.Path(dir_okay=False))
 @click.option("--report/--no-report", default=True, is_flag=True, type=bool)
-@click.option(
-    "--reach-limit",
-    default=False,
-    is_flag=True,
-    type=bool,
-    help="If set the dataset will be repeated until the limit is reached."
-)
 @click.option(
     "--gpu", default=0, type=click.IntRange(min=0), help="Specify the amount of available GPUs")
 @click.option(

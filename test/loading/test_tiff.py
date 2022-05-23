@@ -2,7 +2,7 @@ from scip.loading import tiff
 
 
 def test_bag_from_directory(tiffs_folder):
-    bag, futures, meta, _ = tiff.bag_from_directory(
+    bag = tiff.bag_from_directory(
         path=tiffs_folder,
         channels=[1, 2],
         partition_size=1,
@@ -11,9 +11,8 @@ def test_bag_from_directory(tiffs_folder):
         output=None,
         segment_method="cellpose",
         segment_kw=dict(
-            segmentation_channel_indices=[0, 1],
             dapi_channel_index=None,
-            cellpose_segmentation_index=1,
+            segmentation_channel_index=1,
             export=False
         )
     )

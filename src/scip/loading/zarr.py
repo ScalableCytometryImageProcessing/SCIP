@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Mapping, List, Any
+from typing import Mapping, List
 
 import dask
 import dask.bag
@@ -24,15 +24,13 @@ import zarr
 import numpy
 from pathlib import Path
 import re
-from typing import Tuple
 import copy
 
 
 def reload_image_partition(
     partition: List,
     channels: List[int],
-    regex: str,
-    limit: int = -1
+    regex: str
 ):
     z = zarr.open(partition[0]["path"])
     indices = [p["zarr_idx"] for p in partition]
@@ -58,15 +56,26 @@ def load_image_partition(partition, z, channels):
     return partition
 
 
+def get_loader_meta(
+    *,
+    regex: str,
+    **kwargs
+) -> Mapping[str, type]:
+    loader_meta = dict(path=str, zarr_idx=int, object_number=int)
+    named_groups = re.findall(r"\(\?P\<([^>]+)\>[^)]+\)", regex)
+    for k in named_groups:
+        loader_meta[k] = str
+    return loader_meta
+
+
 def bag_from_directory(
     *,
     path: str,
     channels: List[int],
     partition_size: int,
     gpu_accelerated: bool,
-    limit: int = -1,
-    regex: str,
-) -> Tuple[dask.bag.Bag, dask.dataframe.DataFrame, Mapping[str, Any], int]:
+    regex: str
+) -> dask.bag.Bag:
     """
 
     Args:
@@ -87,10 +96,7 @@ def bag_from_directory(
     path = Path(path)
     events = []
 
-    if limit < 0:
-        limit = len(z)
-
-    for i, obj in enumerate(z.attrs["object_number"][:limit]):
+    for i, obj in enumerate(z.attrs["object_number"]):
         events.append({**groups, **{
             "path": str(path),
             "zarr_idx": i,
@@ -100,7 +106,4 @@ def bag_from_directory(
     bag = dask.bag.from_sequence(events, partition_size=partition_size)
     bag = bag.map_partitions(load_image_partition, z, channels)
 
-    loader_meta = dict(path=str, zarr_idx=int, object_number=int)
-    for k in groups.keys():
-        loader_meta[k] = str
-    return bag, loader_meta, len(events)
+    return bag
