@@ -31,9 +31,8 @@ def segment_block(
     *,
     gpu_accelerated: Optional[bool] = False,
     cell_diameter: Optional[int] = None,
-    segmentation_channel_indices: List[int],
-    dapi_channel_index: Optional[int],
-    cellpose_segmentation_index: int,
+    dapi_channel_index: Optional[int] = None,
+    segmentation_channel_index: int,
     **kwargs
 ) -> List[dict]:
 
@@ -49,10 +48,10 @@ def segment_block(
         w.cellpose = model
 
     # detect cells
-    cp_input = block[segmentation_channel_indices]
+    cp_input = block[segmentation_channel_index]
     cells, _, _, _ = model.eval(
         x=cp_input,
-        channels=[cellpose_segmentation_index, 0],
+        channels=[0, 0],
         diameter=cell_diameter,
         batch_size=16
     )
@@ -87,8 +86,8 @@ def to_events(
     block: numpy.ndarray,
     labeled_mask: numpy.ndarray,
     *,
-    segmentation_channel_indices: List[int],
     dapi_channel_index: Optional[int] = None,
+    segmentation_channel_index: int,
     group: str,
     meta: List[Any],
     meta_keys: List[str],
@@ -99,7 +98,7 @@ def to_events(
     or event, and the meta data of that event.
     """
 
-    cells = labeled_mask[segmentation_channel_indices[0]]
+    cells = labeled_mask[segmentation_channel_index]
     cell_regions = regionprops(cells)
 
     events = []

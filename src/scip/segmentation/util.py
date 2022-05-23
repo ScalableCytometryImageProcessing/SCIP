@@ -17,7 +17,7 @@ def _export_labeled_mask(
     meta: List[Any]
 ) -> None:
     (output / "masks").mkdir(parents=False, exist_ok=True)
-    numpy.save(output / "masks/%s.npy" % "_".join([str(m) for m in meta]), mask)
+    numpy.save(output / "masks" / ("%s.npy" % "_".join([str(m) for m in meta])), mask)
 
 
 def bag_from_blocks(
@@ -39,7 +39,7 @@ def bag_from_blocks(
     futures = []
 
     if len(meta) == 0:
-        meta = [[0]] * len(blocks)
+        meta = [[i] for i in range(len(blocks))]
 
     for m, block in zip(meta, blocks):
 
