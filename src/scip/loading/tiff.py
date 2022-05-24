@@ -20,6 +20,7 @@ from typing import List, Mapping, Any
 import re
 import logging
 from pathlib import Path
+from functools import partial
 
 import pandas
 import dask
@@ -35,7 +36,7 @@ from scip.segmentation import util
 logging.getLogger("tifffile").setLevel(logging.ERROR)
 
 
-def _load_image(event, channels):
+def _load_image_tiff(event, channels):
     try:
         paths = [event[str(c)] for c in channels]
         arr = tifffile.imread(paths)
@@ -55,37 +56,36 @@ def _load_image(event, channels):
         raise e
 
 
-def _load_block(event, channels, map_to_index):
+def _load_image_partition(partition, channels, load):
+    return [load(event, channels) for event in partition]
+
+
+def _load_blocks(event, channels, map_to_index):
+
     paths = [event[str(c)] for c in channels]
 
     im = TiffGlobReader(
         glob_in=paths,
         indexer=map_to_index
-    ).get_image_dask_data("CXY")
+    ).get_image_data("CXY")
 
-    return im.rechunk(im.shape)
-
-
-def _load_image_partition(partition, channels):
-    return [_load_image(event, channels) for event in partition]
+    newevent = event.copy()
+    newevent["pixels"] = im
+    return newevent
 
 
 def get_loader_meta(**kwargs) -> Mapping[str, type]:
     return dict(path=str)
+        
+
+def _map_to_index(f, regex, channels):
+    idx = int(re.search(regex, str(f)).group("channel"))
+    m = {c: i for i, c in enumerate(channels)}
+    return pandas.Series(dict(S=0, T=0, C=m[idx], Z=0))
 
 
-def bag_from_directory(
-    *,
-    path: str,
-    channels: List[int],
-    partition_size: int,
-    gpu_accelerated: bool,
-    regex: str,
-    output: Path,
-    segment_method: str,
-    segment_kw: Mapping[str, Any],
-) -> dask.bag.Bag:
-
+@dask.delayed
+def _meta_from_directory(regex, path):
     logger = logging.getLogger(__name__)
 
     path = Path(path)
@@ -114,28 +114,43 @@ def bag_from_directory(
     dropped = pre_filter - len(df)
     logger.warning("Dropped %d rows because of missing channel files in %s" % (dropped, str(path)))
 
-    if segment_method is not None:
-        def map_to_index(f):
-            idx = re.search(regex, str(f)).group("channel")
-            m = {c: i for i, c in enumerate(df.columns)}
-            return pandas.Series(dict(S=0, T=0, C=m[idx], Z=0))
+    df["path"] = df.iloc[:, 0]
 
-        blocks = dask.array.stack([
-            _load_block(event, channels, map_to_index) for event in df.to_dict(orient="records")
-        ])
+    return df.to_dict(orient="records")
+
+
+def bag_from_directory(
+    *,
+    path: str,
+    channels: List[int],
+    partition_size: int,
+    gpu_accelerated: bool,
+    regex: str,
+    output: Path,
+    segment_method: str,
+    segment_kw: Mapping[str, Any],
+) -> dask.bag.Bag:
+
+    bag = dask.bag.from_delayed(_meta_from_directory(regex, path))
+
+    if segment_method is not None:
+
+        _m2i = partial(_map_to_index, channels=channels, regex=regex)
+        func = partial(_load_blocks, map_to_index=_m2i)
+
+        bag = bag.map_partitions(_load_image_partition, channels=channels, load=func)
+
         bag = util.bag_from_blocks(
-            blocks=blocks,
-            meta=[],
-            meta_keys=[],
-            paths=df.iloc[:, 0].values,
+            blocks=bag,
             gpu_accelerated=gpu_accelerated,
             output=output,
             segment_kw=segment_kw,
-            segment_method=segment_method
+            segment_method=segment_method,
+            group_keys=[]
         )
     else:
-        bag = dask.bag.from_sequence(
-            df.to_dict(orient="records"), partition_size=partition_size)
-        bag = bag.map_partitions(_load_image_partition, channels=channels)
+        # bag = dask.bag.from_sequence(records, partition_size=partition_size)
+        bag = dask.bag.from_delayed(_meta_from_directory(regex, path))
+        bag = bag.map_partitions(_load_image_partition, channels=channels, load=_load_image_tiff)
 
     return bag

@@ -57,7 +57,7 @@ def bbox_features(p: Mapping) -> Mapping[str, Any]:
     return list(p["bbox"]) + p["regions"]
 
 
-@jit(forceobj=True)
+# @jit(forceobj=True)
 def features_partition(
     part: Iterable[dict],
     *,
@@ -148,6 +148,7 @@ def extract_features(  # noqa: C901
         types=types,
         lengths=lengths
     )
+
     images_df = images.to_dataframe(meta=full_meta, optimize_graph=False)
 
     return images_df

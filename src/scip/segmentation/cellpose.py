@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Optional, List, Any
+from typing import Optional, List, Any, Mapping
 import dask
 import numpy
 from cellpose import models
@@ -23,11 +23,12 @@ from skimage.measure import regionprops
 from dask.distributed import get_worker
 import torch
 from skimage.morphology import white_tophat, disk
+from scip.utils.util import copy_without
 
 
 @dask.delayed
 def segment_block(
-    block: numpy.ndarray,
+    events: List[Mapping[str, Any]],
     *,
     gpu_accelerated: Optional[bool] = False,
     cell_diameter: Optional[int] = None,
@@ -36,61 +37,61 @@ def segment_block(
     **kwargs
 ) -> List[dict]:
 
-    w = get_worker()
-    if hasattr(w, "cellpose"):
-        model = w.cellpose
-    else:
-        if gpu_accelerated:
-            device = torch.device(w.name - 2)
-            model = models.Cellpose(gpu=True, device=device, model_type='cyto2')
+    for event in events:
+        w = get_worker()
+        if hasattr(w, "cellpose"):
+            model = w.cellpose
         else:
-            model = models.Cellpose(gpu=False, model_type='cyto2')
-        w.cellpose = model
+            if gpu_accelerated:
+                device = torch.device(w.name - 2)
+                model = models.Cellpose(gpu=True, device=device, model_type='cyto2')
+            else:
+                model = models.Cellpose(gpu=False, model_type='cyto2')
+            w.cellpose = model
 
-    # detect cells
-    cp_input = block[segmentation_channel_index]
-    cells, _, _, _ = model.eval(
-        x=cp_input,
-        channels=[0, 0],
-        diameter=cell_diameter,
-        batch_size=16
-    )
+        block = event["pixels"]
 
-    labeled_mask = numpy.repeat(cells[numpy.newaxis], block.shape[0], axis=0)
-
-    if dapi_channel_index is not None:
-        # detect nuclei
-        cp_input = block[dapi_channel_index]
-        cp_input = white_tophat(cp_input, footprint=disk(25))
-        nuclei, _, _, _ = model.eval(
+        cp_input = block[segmentation_channel_index]
+        cells, _, _, _ = model.eval(
             x=cp_input,
             channels=[0, 0],
             diameter=cell_diameter,
             batch_size=16
         )
 
-        # assign over-segmented nuclei to parent cells
-        nuclei_mask = numpy.zeros_like(cells)
-        for i in numpy.unique(cells)[1:]:
-            idx = numpy.unique(nuclei[cells == i])[1:]
-            _, counts = numpy.unique(nuclei[cells == i], return_counts=True)
-            idx = idx[(counts[1:] / (cells == i).sum()) > 0.1]
-            nuclei_mask[numpy.isin(nuclei, idx) & (cells == i)] = i
-        labeled_mask[dapi_channel_index] = nuclei_mask
+        labeled_mask = numpy.repeat(cells[numpy.newaxis], block.shape[0], axis=0)
 
-    return labeled_mask
+        if dapi_channel_index is not None:
+            cp_input = block[dapi_channel_index]
+            cp_input = white_tophat(cp_input, footprint=disk(25))
+            nuclei, _, _, _ = model.eval(
+                x=cp_input,
+                channels=[0, 0],
+                diameter=cell_diameter,
+                batch_size=16
+            )
+
+            # assign over-segmented nuclei to parent cells
+            nuclei_mask = numpy.zeros_like(cells)
+            for i in numpy.unique(cells)[1:]:
+                idx = numpy.unique(nuclei[cells == i])[1:]
+                _, counts = numpy.unique(nuclei[cells == i], return_counts=True)
+                idx = idx[(counts[1:] / (cells == i).sum()) > 0.1]
+                nuclei_mask[numpy.isin(nuclei, idx) & (cells == i)] = i
+            labeled_mask[dapi_channel_index] = nuclei_mask
+
+        event["mask"] = labeled_mask
+
+    return events
 
 
 @dask.delayed
 def to_events(
-    block: numpy.ndarray,
-    labeled_mask: numpy.ndarray,
+    events: List[Mapping[str, Any]],
     *,
+    group_keys: Optional[List[str]] = None,
     dapi_channel_index: Optional[int] = None,
     segmentation_channel_index: int,
-    group: str,
-    meta: List[Any],
-    meta_keys: List[str],
     **kwargs
 ):
     """Converts the segmented objects into a list of dictionaries that can be converted
@@ -98,34 +99,42 @@ def to_events(
     or event, and the meta data of that event.
     """
 
-    cells = labeled_mask[segmentation_channel_index]
-    cell_regions = regionprops(cells)
+    newevents = []
+    for event in events:
 
-    events = []
-    for props in cell_regions:
+        labeled_mask = event["mask"]
+        cells = labeled_mask[segmentation_channel_index]
+        cell_regions = regionprops(cells)
 
-        bbox = props.bbox
+        if group_keys is not None:
+            group = "_".join([event[k] for k in group_keys])
+        else:
+            group = None
 
-        mask = labeled_mask[:, bbox[0]:bbox[2], bbox[1]:bbox[3]] == props.label
-        combined_mask = cells[bbox[0]:bbox[2], bbox[1]:bbox[3]] == props.label
-        regions = [1] * labeled_mask.shape[0]
+        for props in cell_regions:
 
-        if dapi_channel_index is not None:
-            regions[dapi_channel_index] = 1 if numpy.any(mask[dapi_channel_index]) else 0
+            bbox = props.bbox
 
-        event = dict(
-            pixels=block[:, bbox[0]: bbox[2], bbox[1]:bbox[3]],
-            combined_mask=combined_mask,
-            mask=mask,
-            group=group,
-            bbox=tuple(bbox),
-            regions=regions,
-            background=numpy.zeros(shape=(block.shape[0],), dtype=float),
-            combined_background=numpy.zeros(shape=(block.shape[0],), dtype=float),
-            id=props.label
-        )
-        for k, v in zip(meta_keys, meta):
-            event[k] = v
-        events.append(event)
+            mask = labeled_mask[:, bbox[0]:bbox[2], bbox[1]:bbox[3]] == props.label
+            combined_mask = cells[bbox[0]:bbox[2], bbox[1]:bbox[3]] == props.label
+            regions = [1] * labeled_mask.shape[0]
 
-    return events
+            if dapi_channel_index is not None:
+                regions[dapi_channel_index] = 1 if numpy.any(mask[dapi_channel_index]) else 0
+
+            newevent = copy_without(event=event, without=["mask", "pixels"])
+            newevent["pixels"] = event["pixels"][:, bbox[0]: bbox[2], bbox[1]:bbox[3]]
+            newevent["combined_mask"] = combined_mask
+            newevent["mask"] = mask
+            newevent["group"] = group
+            newevent["bbox"] = tuple(bbox)
+            newevent["regions"] = regions
+            newevent["background"] = numpy.zeros(
+                shape=(event["pixels"].shape[0],), dtype=float)
+            newevent["combined_background"] = numpy.zeros(
+                shape=(event["pixels"].shape[0],), dtype=float)
+            newevent["id"] = props.label
+    
+            newevents.append(newevent)
+
+    return newevents

@@ -1,4 +1,4 @@
-from typing import List, Mapping, Any
+from typing import List, Mapping, Any, Optional
 
 from importlib import import_module
 from pathlib import Path
@@ -11,59 +11,53 @@ import dask.array
 
 @dask.delayed
 def _export_labeled_mask(
-    mask: numpy.ndarray,
+    events: List[Mapping[str, Any]],
     output: Path,
-    meta: List[Any]
-) -> numpy.ndarray:
+    group_keys: List[str]
+) -> List[Mapping[str, Any]]:
     (output / "masks").mkdir(parents=False, exist_ok=True)
-    numpy.save(output / "masks" / ("%s.npy" % "_".join([str(m) for m in meta])), mask)
-    return mask
+
+    for event in events:
+        f = "%s.npy" % "_".join([str(event[k]) for k in group_keys])
+        numpy.save(output / "masks" / f, event["mask"])
+    
+    return events
 
 
 def bag_from_blocks(
     *,
-    blocks: List[dask.array.Array],
-    paths: List[str],
-    meta_keys: List[str],
-    meta: List[List[Any]],
+    blocks: dask.bag.Bag,
     gpu_accelerated: bool,
     segment_method: str,
     segment_kw: Mapping[str, Any],
-    output: Path
+    output: Path,
+    group_keys: Optional[List[str]] = []
 ) -> dask.bag.Bag:
 
     segment_block = import_module('scip.segmentation.%s' % segment_method).segment_block
     to_events = import_module('scip.segmentation.%s' % segment_method).to_events
+
+    # this segment operation is annotated with the cellpose resource to let the scheduler
+    # know that it should only be executed on a worker that also has the cellpose resource.
+    with dask.annotate(resources={"cellpose": 1}):
+        block_events = []
+        for block in blocks.to_delayed():
+            block_events.append(segment_block(block, gpu_accelerated=gpu_accelerated, **segment_kw))
+ 
+    if segment_kw["export"]:
+        assert len(group_keys) > 0, "At least one group key is required to export the segmentations"
+
+        for i in range(len(block_events)):
+            block_events[i] = _export_labeled_mask(
+                block_events[i], output=output, group_keys=group_keys)
+
     events = []
-
-    if len(meta) == 0:
-        meta = [[i] for i in range(len(blocks))]
-        meta_keys = ["block"]
-
-    for path, m, block in zip(paths, meta, blocks):
-
-        # this segment operation is annotated with the cellpose resource to let the scheduler
-        # know that it should only be executed on a worker that also has the cellpose resource.
-        with dask.annotate(resources={"cellpose": 1}):
-            a = segment_block(
-                block,
-                gpu_accelerated=gpu_accelerated,
-                **segment_kw
-            )
-
-        if segment_kw["export"]:
-            a = _export_labeled_mask(a, output, m)
-
+    for block in block_events:
         b = to_events(
             block,
-            a,
-            group="_".join([str(i) for i in m]),
-            meta=m + [path],
-            meta_keys=meta_keys + ["path"],
+            group_keys = group_keys,
             **segment_kw
         )
         events.append(b)
 
-    bag = dask.bag.from_delayed(events)
-
-    return bag
+    return dask.bag.from_delayed(events)
