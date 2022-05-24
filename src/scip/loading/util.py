@@ -2,7 +2,6 @@ from typing import List, Tuple, Mapping, Any
 import logging
 
 import dask.bag
-from dask import delayed
 
 from pathlib import Path
 from functools import partial

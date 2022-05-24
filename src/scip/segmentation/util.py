@@ -20,7 +20,7 @@ def _export_labeled_mask(
     for event in events:
         f = "%s.npy" % "_".join([str(event[k]) for k in group_keys])
         numpy.save(output / "masks" / f, event["mask"])
-    
+
     return events
 
 
@@ -43,7 +43,7 @@ def bag_from_blocks(
         block_events = []
         for block in blocks.to_delayed():
             block_events.append(segment_block(block, gpu_accelerated=gpu_accelerated, **segment_kw))
- 
+
     if segment_kw["export"]:
         assert len(group_keys) > 0, "At least one group key is required to export the segmentations"
 
@@ -55,7 +55,7 @@ def bag_from_blocks(
     for block in block_events:
         b = to_events(
             block,
-            group_keys = group_keys,
+            group_keys=group_keys,
             **segment_kw
         )
         events.append(b)

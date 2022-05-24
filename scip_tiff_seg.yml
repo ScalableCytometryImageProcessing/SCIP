@@ -11,7 +11,7 @@ loading:
       cell_diameter:
       dapi_channel_index: 0
       segmentation_channel_index: 1
-      export: true
+      export: false
 masking:
   method:
   export: false

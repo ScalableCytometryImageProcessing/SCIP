@@ -134,7 +134,7 @@ def to_events(
             newevent["combined_background"] = numpy.zeros(
                 shape=(event["pixels"].shape[0],), dtype=float)
             newevent["id"] = props.label
-    
+
             newevents.append(newevent)
 
     return newevents

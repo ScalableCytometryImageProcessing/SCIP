@@ -24,7 +24,6 @@ import numpy
 import dask
 import dask.bag
 import dask.dataframe
-from numba import jit
 
 from .shape import shape_features, _shape_features_meta
 from .intensity import intensity_features, _intensity_features_meta
@@ -57,7 +56,6 @@ def bbox_features(p: Mapping) -> Mapping[str, Any]:
     return list(p["bbox"]) + p["regions"]
 
 
-# @jit(forceobj=True)
 def features_partition(
     part: Iterable[dict],
     *,

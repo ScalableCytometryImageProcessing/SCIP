@@ -76,7 +76,7 @@ def _load_blocks(event, channels, map_to_index):
 
 def get_loader_meta(**kwargs) -> Mapping[str, type]:
     return dict(path=str)
-        
+
 
 def _map_to_index(f, regex, channels):
     idx = int(re.search(regex, str(f)).group("channel"))
@@ -131,7 +131,10 @@ def bag_from_directory(
     segment_kw: Mapping[str, Any],
 ) -> dask.bag.Bag:
 
-    bag = dask.bag.from_delayed(_meta_from_directory(regex, path))
+    meta = _meta_from_directory(regex, path)
+
+    bag = dask.bag.from_delayed(meta)
+    bag = bag.repartition(npartitions=100)
 
     if segment_method is not None:
 
@@ -150,7 +153,7 @@ def bag_from_directory(
         )
     else:
         # bag = dask.bag.from_sequence(records, partition_size=partition_size)
-        bag = dask.bag.from_delayed(_meta_from_directory(regex, path))
+        bag = dask.bag.from_delayed(meta)
         bag = bag.map_partitions(_load_image_partition, channels=channels, load=_load_image_tiff)
 
     return bag
