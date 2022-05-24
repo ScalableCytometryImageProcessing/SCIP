@@ -34,7 +34,7 @@ def get_images_bag(
 
     for path in paths:
         logging.info(f"Bagging {path}")
-        bag = delayed(loader(path=path))
+        bag = delayed(loader, pure=True)(path=path)
         images.append(bag)
 
     images = dask.bag.concat(images)
