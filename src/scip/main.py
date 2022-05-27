@@ -353,14 +353,8 @@ def main(  # noqa: C901
         bag_df = bag_df.repartition(npartitions=5)
 
         filename = config["export"]["filename"]
-        futures.append(
-            bag_df.to_parquet(
-                str(output),
-                name_function=lambda x: f"{filename}.{x}.parquet",
-                write_metadata_file=False,
-                engine="pyarrow"
-            )
-        )
+        export_module = import_module('scip.export.%s' % config["export"]["format"])
+        futures.append(export_module.export(df=bag_df, filename=filename, output=output))
 
         dask.compute(*futures, traverse=False, optimize_graph=False)
 

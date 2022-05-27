@@ -18,5 +18,5 @@ masking:
 filter:
 normalization:
 export:
-  format: parquet
+  format: anndata
   filename: features

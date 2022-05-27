@@ -61,6 +61,7 @@ def load_image_partition(partition, z, channels):
 def bag_from_directory(
     *,
     path: str,
+    output: Path,
     channels: List[int],
     partition_size: int,
     gpu_accelerated: bool,
@@ -103,4 +104,4 @@ def bag_from_directory(
     loader_meta = dict(path=str, zarr_idx=int, object_number=int)
     for k in groups.keys():
         loader_meta[k] = str
-    return bag, loader_meta, len(events)
+    return bag, [], loader_meta, len(events)

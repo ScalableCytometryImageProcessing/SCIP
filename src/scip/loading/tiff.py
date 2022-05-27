@@ -57,6 +57,7 @@ def _load_image_partition(partition, channels):
 def bag_from_directory(
     *,
     path: str,
+    output: Path,
     channels: List[int],
     partition_size: int,
     gpu_accelerated: bool,
