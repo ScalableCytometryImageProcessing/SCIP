@@ -30,7 +30,7 @@ def bag_from_blocks(
     gpu_accelerated: bool,
     segment_method: str,
     segment_kw: Mapping[str, Any],
-    output: Path,
+    output: Optional[Path] = None,
     group_keys: Optional[List[str]] = []
 ) -> dask.bag.Bag:
 
@@ -46,6 +46,7 @@ def bag_from_blocks(
 
     if segment_kw["export"]:
         assert len(group_keys) > 0, "At least one group key is required to export the segmentations"
+        assert output is not None, "Output path is required to export the segmentations"
 
         for i in range(len(block_events)):
             block_events[i] = _export_labeled_mask(
