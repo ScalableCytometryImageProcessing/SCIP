@@ -21,23 +21,52 @@ from importlib import import_module
 from pathlib import Path
 
 from aicsimageio import AICSImage
-import numpy
 import dask.bag
 import dask.dataframe
 import dask.array
 import dask
 
 from scip.segmentation import util
+from scip.loading import util as l_util
 
 
-def _load_scene(path, scene, channels):
-    im = AICSImage(path, reconstruct_mosaic=False, chunk_dims=["Z", "C", "X", "Y"])
-    im.set_scene(scene)
-    return im.get_image_dask_data("MCZXY", T=0, C=channels)
+def _load_block(event, channels):
+    im = AICSImage(event["path"], reconstruct_mosaic=False, chunk_dims=["Z", "C", "X", "Y"])
+    im.set_scene(event["scene"])
+
+    newevent = event.copy()
+    newevent["pixels"] = im.get_image_data("MCZXY", T=0, C=channels)
+    return newevent
+
+
+def _project_block_partition(part, proj, **proj_kw):
+    return [proj(p, **proj_kw) for p in part]
 
 
 def get_loader_meta(**kwargs) -> Mapping[str, type]:
     return dict(path=str, tile=int, scene=str, id=int)
+
+
+@dask.delayed
+def _meta_from_directory(path, scenes):
+
+    im = AICSImage(path, reconstruct_mosaic=False)
+
+    if (scenes is None) or (type(scenes) is str):
+        im_scenes = im.scenes
+        if type(scenes) is str:
+            im_scenes = filter(lambda s: re.match(scenes, s), im_scenes)
+    elif type(scenes) is list:
+        im_scenes = scenes
+    else:
+        raise ValueError("Scenes configuration cannot be recognized.")
+
+    scenes_meta = []
+    for scene in im_scenes:
+        # store the scene and tile name
+        scenes_meta.extend([dict(scene=scene, tile=i, path=path) for i in range(im.shape[0])])
+
+    return scenes_meta
 
 
 def bag_from_directory(
@@ -83,44 +112,25 @@ def bag_from_directory(
             upfront how many objects will be found by the segmentation method.
     """
 
-    if (scenes is None) or (type(scenes) is str):
-        im_scenes = AICSImage(path, reconstruct_mosaic=False).scenes
-        if type(scenes) is str:
-            im_scenes = filter(lambda s: re.match(scenes, s), im_scenes)
-    elif type(scenes) is list:
-        im_scenes = scenes
-    else:
-        raise ValueError("Scenes configuration cannot be recognized.")
+    meta = _meta_from_directory(path, scenes)
+    bag = dask.bag.from_delayed(meta)
 
-    data = []
-    scenes_meta = []
-    for scene in im_scenes:
-        data.append(_load_scene(path, scene, channels))
+    bag = bag.repartition(npartitions=100)
 
-        # store the scene and tile name
-        scenes_meta.extend([(scene, i) for i in range(data[-1].numblocks[0])])
-
-    data = dask.array.concatenate(data)
+    bag = bag.map_partitions(
+        l_util._load_image_partition, channels=channels, load=_load_block)
 
     if project_method is not None:
         project_block = import_module('scip.projection.%s' % project_method).project_block
-        data = data.map_blocks(
-            project_block,
-            **project_kw,
-            drop_axis=2,  # Z dimension is on position 2
-            dtype=data.dtype,
-            meta=numpy.array((), dtype=data.dtype)
-        )
+        bag = bag.map_partitions(_project_block_partition, proj=project_block, **project_kw)
 
-    blocks = util.bag_from_blocks(
-        blocks=data,
-        meta=scenes_meta,
-        meta_keys=["scene", "tile"],
-        paths=[path] * len(scenes_meta),
+    bag = util.bag_from_blocks(
+        blocks=bag,
         segment_kw=segment_kw,
         segment_method=segment_method,
         gpu_accelerated=gpu_accelerated,
-        output=output
+        output=output,
+        group_keys=["scene", "tile"]
     )
 
-    return blocks
+    return bag

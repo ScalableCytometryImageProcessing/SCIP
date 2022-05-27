@@ -7,6 +7,10 @@ from pathlib import Path
 from functools import partial
 
 
+def _load_image_partition(partition, channels, load):
+    return [load(event, channels) for event in partition]
+
+
 def get_images_bag(
     *,
     paths: List[str],

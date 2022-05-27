@@ -32,6 +32,7 @@ import tifffile
 from aicsimageio.readers.tiff_glob_reader import TiffGlobReader
 
 from scip.segmentation import util
+from scip.loading import util as l_util
 
 logging.getLogger("tifffile").setLevel(logging.ERROR)
 
@@ -56,11 +57,7 @@ def _load_image_tiff(event, channels):
         raise e
 
 
-def _load_image_partition(partition, channels, load):
-    return [load(event, channels) for event in partition]
-
-
-def _load_blocks(event, channels, map_to_index):
+def _load_block(event, channels, map_to_index):
 
     paths = [event[str(c)] for c in channels]
 
@@ -139,9 +136,9 @@ def bag_from_directory(
     if segment_method is not None:
 
         _m2i = partial(_map_to_index, channels=channels, regex=regex)
-        func = partial(_load_blocks, map_to_index=_m2i)
+        func = partial(_load_block, map_to_index=_m2i)
 
-        bag = bag.map_partitions(_load_image_partition, channels=channels, load=func)
+        bag = bag.map_partitions(l_util._load_image_partition, channels=channels, load=func)
 
         bag = util.bag_from_blocks(
             blocks=bag,
@@ -154,6 +151,7 @@ def bag_from_directory(
     else:
         # bag = dask.bag.from_sequence(records, partition_size=partition_size)
         bag = dask.bag.from_delayed(meta)
-        bag = bag.map_partitions(_load_image_partition, channels=channels, load=_load_image_tiff)
+        bag = bag.map_partitions(
+            l_util._load_image_partition, channels=channels, load=_load_image_tiff)
 
     return bag

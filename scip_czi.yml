@@ -9,9 +9,8 @@ loading:
     segment_method: cellpose
     segment_kw:
       cell_diameter: 40
-      segmentation_channel_indices: [1,2]
       dapi_channel_index: 0
-      cellpose_segmentation_index: 1
+      segmentation_channel_index: 2
       export: true
     project_method: "op"
     project_kw:

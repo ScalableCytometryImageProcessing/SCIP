@@ -16,8 +16,10 @@
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
 import numpy
-from typing import Callable
+from typing import Any, Callable, Mapping
 from functools import partial
+
+from scip.utils.util import copy_without
 
 
 _OPS: dict[str, Callable[[numpy.ndarray], numpy.ndarray]] = {
@@ -27,7 +29,10 @@ _OPS: dict[str, Callable[[numpy.ndarray], numpy.ndarray]] = {
 
 
 def project_block(
-    block: numpy.ndarray,
+    event: Mapping[str, Any],
     op: str
 ) -> numpy.ndarray:
-    return _OPS[op](block)
+    newevent = copy_without(event, without=["pixels"])
+    newevent["pixels"] = _OPS[op](event["pixels"])
+
+    return newevent
