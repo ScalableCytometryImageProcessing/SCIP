@@ -72,7 +72,7 @@ def _meta_from_directory(path, scenes):
 def bag_from_directory(
     *,
     path: str,
-    output: Path,
+    output: Optional[Path] = None,
     channels: List[int],
     partition_size: int,
     gpu_accelerated: bool,

@@ -156,7 +156,7 @@ def bag_from_directory(
     partition_size: int,
     gpu_accelerated: bool,
     regex: str,
-    output: Optional[Path],
+    output: Optional[Path] = None,
     segment_method: str,
     segment_kw: Mapping[str, Any],
 ) -> dask.bag.Bag:

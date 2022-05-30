@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Mapping, List
+from typing import Mapping, List, Optional
 
 import dask
 import dask.bag
@@ -71,7 +71,7 @@ def get_loader_meta(
 def bag_from_directory(
     *,
     path: str,
-    output: Path,
+    output: Optional[Path] = None,
     channels: List[int],
     partition_size: int,
     gpu_accelerated: bool,

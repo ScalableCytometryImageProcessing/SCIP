@@ -138,7 +138,6 @@ class ClientClusterContext:
             logging.getLogger(__name__).error(
                 "Exception in context: %s, %s", exc_type, str(exc_value))
 
-
     def wait(self):
         if self.mode in ["local", "mpi"]:
             n_workers = self.n_workers
