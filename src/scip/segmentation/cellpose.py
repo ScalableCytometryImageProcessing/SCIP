@@ -36,18 +36,19 @@ def segment_block(
     segmentation_channel_index: int,
     **kwargs
 ) -> List[dict]:
+    
+    w = get_worker()
+    if hasattr(w, "cellpose"):
+        model = w.cellpose
+    else:
+        if gpu_accelerated:
+            device = torch.device(w.name - 2)
+            model = models.Cellpose(gpu=True, device=device, model_type='cyto2')
+        else:
+            model = models.Cellpose(gpu=False, model_type='cyto2')
+        w.cellpose = model
 
     for event in events:
-        w = get_worker()
-        if hasattr(w, "cellpose"):
-            model = w.cellpose
-        else:
-            if gpu_accelerated:
-                device = torch.device(w.name - 2)
-                model = models.Cellpose(gpu=True, device=device, model_type='cyto2')
-            else:
-                model = models.Cellpose(gpu=False, model_type='cyto2')
-            w.cellpose = model
 
         block = event["pixels"]
 
