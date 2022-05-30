@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import List, Mapping, Any
+from typing import Callable, List, Mapping, Any, Optional
 
 import re
 import logging
@@ -37,7 +37,22 @@ from scip.loading import util as l_util
 logging.getLogger("tifffile").setLevel(logging.ERROR)
 
 
-def _load_image_tiff(event, channels):
+def _load_image_tiff(
+    event: Mapping[str, Any],
+    channels: List[int]
+):
+    """Adds pixels attribute containing pixel values of this event. Values are loaded from
+    one file per channel.
+
+    Keyword args:
+        event (Mapping[str, Any]): Contains information for an event. Must contain keys
+            corresponding to each channel.
+        channels (List[int]): List of channels to load.
+
+    Returns:
+        event (Mapping[str, Any]): event with pixel values.
+    """
+
     try:
         paths = [event[str(c)] for c in channels]
         arr = tifffile.imread(paths)
@@ -57,7 +72,24 @@ def _load_image_tiff(event, channels):
         raise e
 
 
-def _load_block(event, channels, map_to_index):
+def _load_block(
+    event: Mapping[str, Any],
+    channels: List[int],
+    map_to_index: Callable
+):
+    """Adds pixels attribute containing pixel values of this event. Values are loaded from one
+    file per channel.
+
+    Keyword args:
+        event (Mapping[str, Any]): Contains information for an event. Must contain keys
+            corresponding to each channel.
+        channels (List[int]): List of channels to load.
+        map_to_index (Callable): callable that takes file name as input and outputs pandas Series
+            indicating channel index.
+
+    Returns:
+        event (Mapping[str, Any]): event with pixel values.
+    """
 
     paths = [event[str(c)] for c in channels]
 
@@ -72,6 +104,7 @@ def _load_block(event, channels, map_to_index):
 
 
 def get_loader_meta(**kwargs) -> Mapping[str, type]:
+    """Returns key to type mapping of metadata."""
     return dict(path=str)
 
 
@@ -123,10 +156,26 @@ def bag_from_directory(
     partition_size: int,
     gpu_accelerated: bool,
     regex: str,
-    output: Path,
+    output: Optional[Path],
     segment_method: str,
     segment_kw: Mapping[str, Any],
 ) -> dask.bag.Bag:
+    """Creates a Dask Bag of events containing single cell pixel values and metadata.
+
+    Keyword args:
+        path (str): Points to TIFF-files to be loaded in the Bag.
+        channels (List[int]): Channels to be loaded.
+        partition_size (int): Not used currently.
+        gpu_accelerated (bool): Indicates if segmentation uses GPU acceleration.
+        regex (str): Regex string containing named patterns that will be added
+            to the event metadata.
+        output (Path): Points to output directory to export masks, if requested.
+        segment_method (str): Name of segmentation method (one of cellpose and watershed_dapi)
+        segment_kw (Mapping[str, Any]): Keyword arguments passed to segmentation function
+
+    Returns:
+        bag (dask.bag.Bag): containing Mapping of events containing mask, pixels and metadata.
+    """
 
     meta = _meta_from_directory(regex, path)
 
