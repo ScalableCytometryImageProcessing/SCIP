@@ -71,6 +71,7 @@ def get_loader_meta(
 def bag_from_directory(
     *,
     path: str,
+    output: Path,
     channels: List[int],
     partition_size: int,
     gpu_accelerated: bool,
