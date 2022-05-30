@@ -124,6 +124,7 @@ class ClientClusterContext:
                 worker_options=worker_options
             )
             self.client = Client()
+            self.client.wait_for_workers(n_workers=self.n_workers)
         elif self.mode == "external":
             assert self.scheduler_adress is not None, "Adress must be set in external mode."
             self.client = Client(address=self.scheduler_adress)
@@ -136,6 +137,7 @@ class ClientClusterContext:
         if exc_type is not None:
             logging.getLogger(__name__).error(
                 "Exception in context: %s, %s", exc_type, str(exc_value))
+
 
     def wait(self):
         if self.mode in ["local", "mpi"]:
