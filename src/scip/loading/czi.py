@@ -31,11 +31,11 @@ from scip.loading import util as l_util
 
 
 def _load_block(event, channels):
-    im = AICSImage(event["path"], reconstruct_mosaic=False, chunk_dims=["Z", "C", "X", "Y"])
+    im = AICSImage(event["path"], reconstruct_mosaic=False)
     im.set_scene(event["scene"])
 
     newevent = event.copy()
-    newevent["pixels"] = im.get_image_data("MCZXY", T=0, C=channels)
+    newevent["pixels"] = im.get_image_data("CZXY", T=0, C=channels)
     return newevent
 
 

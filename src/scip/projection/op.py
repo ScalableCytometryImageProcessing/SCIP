@@ -23,8 +23,8 @@ from scip.utils.util import copy_without
 
 
 _OPS: dict[str, Callable[[numpy.ndarray], numpy.ndarray]] = {
-    "max": partial(numpy.max, axis=2),
-    "mean": partial(numpy.mean, axis=2)
+    "max": partial(numpy.max, axis=1),
+    "mean": partial(numpy.mean, axis=1)
 }
 
 

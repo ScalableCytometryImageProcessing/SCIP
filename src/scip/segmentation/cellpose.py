@@ -107,7 +107,7 @@ def to_events(
         cell_regions = regionprops(cells)
 
         if group_keys is not None:
-            group = "_".join([event[k] for k in group_keys])
+            group = "_".join([str(event[k]) for k in group_keys])
         else:
             group = None
 
