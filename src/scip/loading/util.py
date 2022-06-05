@@ -36,6 +36,8 @@ def get_images_bag(
     loader_meta = loader_module.get_loader_meta(**(config["loading"]["loader_kwargs"] or dict()))
 
     for path in paths:
+        assert Path(path).exists(), f"{path} does not exist."
+
         logging.info(f"Bagging {path}")
         bag = loader(path=path)
         images.append(bag)

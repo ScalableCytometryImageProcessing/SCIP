@@ -180,7 +180,7 @@ def bag_from_directory(
     meta = _meta_from_directory(regex, path)
 
     bag = dask.bag.from_delayed(meta)
-    bag = bag.repartition(npartitions=10)
+    bag = bag.repartition(npartitions=50)
 
     if segment_method is not None:
 

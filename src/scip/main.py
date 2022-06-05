@@ -348,7 +348,7 @@ def main(  # noqa: C901
             types=config["feature_extraction"]["types"],
             loader_meta=loader_meta
         )
-        bag_df = bag_df.repartition(npartitions=5)
+        bag_df = bag_df.repartition(npartitions=10)
 
         filename = config["export"]["filename"]
         export_module = import_module('scip.export.%s' % config["export"]["format"])
