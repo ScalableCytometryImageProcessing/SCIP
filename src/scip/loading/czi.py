@@ -35,7 +35,12 @@ def _load_block(event, channels):
     im.set_scene(event["scene"])
 
     newevent = event.copy()
-    newevent["pixels"] = im.get_image_data("CZXY", T=0, C=channels)
+
+    if channels is not None:
+        newevent["pixels"] = im.get_image_data("CZXY", T=0, C=channels)
+    else:
+        newevent["pixels"] = im.get_image_data("CZXY", T=0)
+
     return newevent
 
 
@@ -74,13 +79,13 @@ def bag_from_directory(
     path: str,
     output: Optional[Path] = None,
     channels: List[int],
-    partition_size: int,
+    partition_size: Optional[int] = None,
     gpu_accelerated: bool,
-    scenes: Union[str, List[str]] = None,
+    scenes: Optional[Union[str, List[str]]] = None,
     segment_method: str,
     segment_kw: Mapping[str, Any],
-    project_method: Optional[str],
-    project_kw: Mapping[str, Any] = {}
+    project_method: Optional[str] = "op",
+    project_kw: Optional[Mapping[str, Any]] = {"op": "max"}
 ) -> dask.bag.Bag:
     """Creates a Dask Bag from one CZI file.
 

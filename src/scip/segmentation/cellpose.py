@@ -36,7 +36,7 @@ def segment_block(
     segmentation_channel_index: int,
     **kwargs
 ) -> List[dict]:
-    
+
     w = get_worker()
     if hasattr(w, "cellpose"):
         model = w.cellpose
