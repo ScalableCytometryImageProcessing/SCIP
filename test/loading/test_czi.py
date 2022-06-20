@@ -32,3 +32,21 @@ def test_bag_from_directory(czi_path, channels, expected_length):
     images = bag.compute()
 
     assert all(len(im["pixels"]) == expected_length for im in images)
+
+
+def test_export_mask(czi_path, tmp_path):
+    bag = czi.bag_from_directory(
+        path=czi_path,
+        channels=[0, 6],
+        gpu_accelerated=False,
+        segment_method="cellpose",
+        output=tmp_path,
+        segment_kw=dict(
+            cell_diameter=0, segmentation_channel_index=1, dapi_channel_index=0,
+            export=True)
+    )
+
+    bag.compute()
+
+    assert (tmp_path / "masks").exists()
+    assert len([f for f in (tmp_path / "masks").iterdir()]) == 1

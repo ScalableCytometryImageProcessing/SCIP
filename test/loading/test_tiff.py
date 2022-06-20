@@ -11,6 +11,7 @@ def test_bag_from_directory(tiffs_folder):
         output=None,
         segment_method="cellpose",
         segment_kw=dict(
+            cell_diameter=30,
             dapi_channel_index=None,
             segmentation_channel_index=1,
             export=False
