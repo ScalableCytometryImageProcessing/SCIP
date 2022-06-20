@@ -85,6 +85,17 @@ def fake_images_zarr(fake_images):
     return z
 
 
+# PATHS #
+@pytest.fixture
+def czi_path(data):
+    return data / "test.czi"
+
+
+@pytest.fixture
+def zarr_path(data):
+    return data / "test.zarr"
+
+
 @pytest.fixture
 def images_folder(data):
     return data / "images"
@@ -98,11 +109,6 @@ def tiffs_folder(data):
 @pytest.fixture
 def image_path(data):
     return data / "images/pbmc+PI_00000000.tiff"
-
-
-@pytest.fixture
-def zarr_path(data):
-    return data / "test.zarr"
 
 
 @pytest.fixture
