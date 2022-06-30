@@ -22,7 +22,7 @@ from functools import partial
 from scip.utils.util import copy_without
 
 
-_OPS: dict[str, Callable[[numpy.ndarray], numpy.ndarray]] = {
+_OPS: Mapping[str, Callable[[numpy.ndarray], numpy.ndarray]] = {
     "max": partial(numpy.max, axis=1),
     "mean": partial(numpy.mean, axis=1)
 }
