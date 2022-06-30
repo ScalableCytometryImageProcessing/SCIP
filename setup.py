@@ -4,7 +4,8 @@ import versioneer
 setuptools.setup(
     classifiers=[
         "Programming Language :: Python :: 3",
-        "Operating System :: Linux",
+        "Topic :: Scientific/Engineering :: Bio-Informatics",
+        "Topic :: Scientific/Engineering :: Image Processing"
     ],
     name="scip",
     version=versioneer.get_version(),
