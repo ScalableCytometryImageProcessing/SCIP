@@ -4,7 +4,7 @@ import versioneer
 setuptools.setup(
     classifiers=[
         "Programming Language :: Python :: 3",
-        "Operating System :: LInux",
+        "Operating System :: Linux",
     ],
     name="scip",
     version=versioneer.get_version(),
