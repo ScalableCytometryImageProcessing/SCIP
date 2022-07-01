@@ -121,7 +121,6 @@ def main(  # noqa: C901
     port,
     debug,
     timing,
-    report,
     gpu,
     scheduler_adress
 ):
@@ -211,29 +210,6 @@ def main(  # noqa: C901
 
         futures = []
 
-        if report:
-            import matplotlib  # noqa: E402
-            matplotlib.use("Agg")
-            from scip.reports import example_images, intensity_distribution  # noqa: E402
-            logger.debug("reporting example images")
-            futures.append(example_images.report(
-                images,
-                template_dir=template_dir,
-                template="example_images.html",
-                name="raw",
-                output=output
-            ))
-            logger.debug("reporting on image distributions")
-            futures.append(intensity_distribution.report(
-                images,
-                template_dir=template_dir,
-                template="intensity_distribution.html",
-                bin_amount=20,
-                channel_names=channel_names,
-                output=output,
-                name="raw"
-            ))
-
         method = config["masking"]["method"]
         if method is not None:
             masking_module = import_module('scip.masking.%s' % config["masking"]["method"])
@@ -283,16 +259,6 @@ def main(  # noqa: C901
                 combined_indices=config["masking"]["combined_indices"]
             )
 
-            if report:
-                logger.debug("reporting example images")
-                futures.append(example_images.report(
-                    images.filter(lambda p: "pixels" in p),
-                    template_dir=template_dir,
-                    template="example_images.html",
-                    name="masked",
-                    output=output
-                ))
-
         if config["filter"] is not None:
             filter_module = import_module('scip.filter.%s' % config["filter"]["name"])
 
@@ -319,27 +285,6 @@ def main(  # noqa: C901
                 len(channels)
             )
             futures.append(channel_boundaries(quantiles, config=config, output=output))
-            if report:
-                filtered_images = images.filter(lambda p: "pixels" in p)
-                logger.debug("reporting example masked images")
-                futures.append(example_images.report(
-                    filtered_images,
-                    template_dir=template_dir,
-                    template="example_images.html",
-                    name="normalized",
-                    output=output
-                ))
-
-                logger.debug("reporting distribution of masked images")
-                futures.append(intensity_distribution.report(
-                    filtered_images,
-                    template_dir=template_dir,
-                    template="intensity_distribution.html",
-                    bin_amount=20,
-                    channel_names=channel_names,
-                    output=output,
-                    name="normalized"
-                ))
 
         logger.debug("computing features")
         bag_df = compute_features(
@@ -412,7 +357,6 @@ def _print_version(ctx, param, value):
     help="Adress of scheduler to connect to."
 )
 @click.option("--timing", default=None, type=click.Path(dir_okay=False))
-@click.option("--report/--no-report", default=True, is_flag=True, type=bool)
 @click.option(
     "--gpu", default=0, type=click.IntRange(min=0), help="Specify the amount of available GPUs")
 @click.option(
