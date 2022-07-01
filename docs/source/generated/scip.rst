@@ -1,33 +1,34 @@
 scip package
 ============
 
+.. automodule:: scip
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Subpackages
 -----------
 
 .. toctree::
    :maxdepth: 4
 
-   scip.analysis
+   scip.export
    scip.features
+   scip.filter
    scip.loading
    scip.masking
    scip.normalization
-   scip.reports
+   scip.projection
+   scip.segmentation
    scip.utils
 
 Submodules
 ----------
 
-.. toctree::
-   :maxdepth: 4
+scip.main module
+----------------
 
-   scip.main
-   scip.test
-
-Module contents
----------------
-
-.. automodule:: scip
+.. automodule:: scip.main
    :members:
    :undoc-members:
    :show-inheritance:
