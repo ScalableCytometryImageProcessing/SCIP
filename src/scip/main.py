@@ -158,7 +158,6 @@ def main(  # noqa: C901
         logger.info(f"Mode: {mode}")
         logger.info(f"GPUs: {gpu}")
         logger.info(f"Partition size: {partition_size}")
-        logger.info(f"Exporting reports? {report}")
         logger.info(f"Output is saved in {str(output)}")
 
         config = util.load_yaml_config(config)
@@ -177,8 +176,6 @@ def main(  # noqa: C901
         host = context.client.run_on_scheduler(socket.gethostname)
         port = context.client.scheduler_info()['services']['dashboard']
         logger.info(f"Dashboard -> ssh -N -L {port}:{host}:{port}")
-
-        template_dir = os.path.dirname(__file__) + "/reports/templates"
 
         # if timing is set, wait for the cluster to be fully ready
         # to isolate cluster startup time from pipeline execution
@@ -220,18 +217,6 @@ def main(  # noqa: C901
                 main_channel=config["masking"]["bbox_channel_index"],
                 **(config["masking"]["kwargs"] or dict())
             )
-
-            if report:
-                from scip.reports import masks  # noqa: E402
-                logger.debug("mask report")
-                futures.append(masks.report(
-                    images,
-                    template_dir=template_dir,
-                    template="masks.html",
-                    name="masked",
-                    output=output,
-                    channel_names=channel_names
-                ))
 
             logger.debug("preparing bag for feature extraction")
 
