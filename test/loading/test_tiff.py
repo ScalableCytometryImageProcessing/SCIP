@@ -1,6 +1,12 @@
 from scip.loading import tiff
+import pytest
+import os
 
 
+@pytest.mark.skipif(
+    "GITHUB_ACTIONS" in os.environ,
+    reason="Bug in CellPose package related to CPNet on CPU"
+)
 def test_bag_from_directory(tiffs_folder):
     bag = tiff.bag_from_directory(
         path=tiffs_folder,
