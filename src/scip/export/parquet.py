@@ -9,6 +9,17 @@ def export(
     output: Path,
     filename: str
 ) -> Future:
+    """Exports dataframe to one AnnData .parquet-file per partition.
+
+    Keyword args:
+        df: Dataframe to be exported.
+        output: Path to directory where objects should be stored.
+        filename: Filename to give to partition
+          objects (will be named with format string {filename}.{partition}.h5ad).
+
+    Returns:
+        Future that represents the export task.
+    """
 
     return df.to_parquet(
         str(output),

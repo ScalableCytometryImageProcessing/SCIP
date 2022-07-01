@@ -14,11 +14,23 @@ def export(
     output: Path,
     filename: str
 ) -> Future:
+    """Exports dataframe to one AnnData .h5ad-file per partition.
+
+    Keyword args:
+        df: Dataframe to be exported.
+        output: Path to directory where objects should be stored.
+        filename: Filename to give to partition
+          objects (will be named with format string {filename}.{partition}.h5ad).
+
+    Returns:
+        Future that represents the export task.
+    """
 
     def _write_anndata(
         df: pandas.DataFrame,
         partition_info: Mapping[str, int]
     ):
+        """Creates and writes AnnData object for one partition"""
         x = partition_info["number"]
         df = df.reset_index(drop=True)
         anndata.AnnData(
@@ -34,6 +46,7 @@ def export(
         align_dataframes=False
     )
 
+    # Add noop to graph
     final_name = "store-" + data_write._name
     dsk = {(final_name, 0): (lambda x: None, data_write.__dask_keys__())}
 

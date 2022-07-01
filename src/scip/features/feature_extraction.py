@@ -18,7 +18,7 @@
 """Functions for extracting features from images.
 """
 
-from typing import Iterable, Mapping, Any
+from typing import Iterable, Mapping, Any, Optional
 
 import numpy
 import dask
@@ -47,10 +47,10 @@ def bbox_features(p: Mapping) -> Mapping[str, Any]:
     The bbox consist of four values: bbox_minr, bbox_minc, bbox_maxr, bbox_maxc.
 
     Args:
-        p (Mapping): Contains a sequence of 4 numbers under key bbox.
+        p: Contains a sequence of 4 numbers under key bbox.
 
     Returns:
-        Mapping[str, Any]: extracted features.
+        Extracted features.
     """
 
     return list(p["bbox"]) + p["regions"]
@@ -100,26 +100,25 @@ def extract_features(  # noqa: C901
     images: dask.bag.Bag,
     channel_names: list,
     types: list,
-    loader_meta: Mapping[str, type] = {}
+    loader_meta: Optional[Mapping[str, type]] = {}
 ) -> dask.dataframe.DataFrame:
     """Extracts requested features from pixel values in images.
 
     Keyword Args:
-        images (dask.bag.Bag): bag of mappings containing image data. Check each feature
+        images: bag of mappings containing image data. Check each feature
           extraction method (:func:`bbox_features`,
           :func:`scip.features.intensity.intensity_features`,
           :func:`scip.features.shape.shape_features` and
           :func:`scip.features.texture.texture_features`)
           to see what keys must be present in each mapping.
-        channel_names (list): names of channels in the image.
-        types (list): feature types to be extracted from the image.
-        maximum_pixel_value (int): theoretical maximal value in the image.
-        loader_meta (Mapping[str, type], optional): data type mapping of meta keys extracted
+        channel_names: names of channels in the image.
+        types: feature types to be extracted from the image.
+        maximum_pixel_value: theoretical maximal value in the image.
+        loader_meta: data type mapping of meta keys extracted
           by the loader. Defaults to {}.
 
     Returns:
-        dask.dataframe.DataFrame:
-          dataframe containing all extracted features (columns) for all
+        dataframe containing all extracted features (columns) for all
           images (rows) in the input bag.
     """
 
