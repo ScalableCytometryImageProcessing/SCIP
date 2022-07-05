@@ -25,7 +25,8 @@ setuptools.setup(
         'umap-learn',
         'bokeh',
         'zarr',
-        'fastparquet'
+        'fastparquet',
+        'anndata'
     ],
     entry_points={
         'console_scripts': [
