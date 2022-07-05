@@ -1,0 +1,22 @@
+loading:
+  format: zarr
+  channels: [0, 1]
+  channel_names:
+    - BF1
+    - PI
+  loader_kwargs:
+    regex: ^.+\/(?P<group>.+).zarr$
+masking:
+  method: watershed
+  bbox_channel_index: 0
+  combined_indices: [0, 1]
+  export: false
+  kwargs:
+    noisy_channels: [0]
+filter:
+normalization:
+feature_extraction:
+  types: ["shape", "intensity", "bbox", "texture"]
+export:
+  format: anndata
+  filename: features

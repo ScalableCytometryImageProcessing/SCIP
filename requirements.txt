@@ -4,6 +4,7 @@ flake8
 wheel
 pytest
 pytest-cov
+pytest-mpi
 types-PyYAML
 types-setuptools
 sphinx
