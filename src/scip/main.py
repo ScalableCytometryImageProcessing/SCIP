@@ -311,7 +311,10 @@ def _print_version(ctx, param, value):
     ctx.exit()
 
 
-@click.command(name="Scalable imaging pipeline")
+@click.command(
+    name="Scalable imaging pipeline",
+    context_settings=dict(show_default=True)
+)
 @click.option("--port", "-d", type=int, default=None, help="dask dashboard port")
 @click.option("--debug", envvar="DEBUG", is_flag=True, help="sets logging level to debug")
 @click.option(
@@ -332,6 +335,9 @@ def _print_version(ctx, param, value):
 @click.option(
     "--memory", "-m", type=click.IntRange(min=1), default=4,
     help="Amount of memory available per node in the cluster")
+@click.option(
+    "--limit", "-i", type=click.IntRange(min=-1), default=-1,
+    help="Amount of images to sample randomly from the dataset. -1 means no sampling.")
 @click.option(
     "--walltime", "-w", type=str, default="01:00:00",
     help="Expected required walltime for the job to finish")
