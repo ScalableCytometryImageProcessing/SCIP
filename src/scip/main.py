@@ -109,6 +109,7 @@ def main(  # noqa: C901
     output: Path,
     config: str,
     mode: str,
+    limit: Optional[int] = -1,
     partition_size: Optional[int] = 1,
     n_workers: Optional[int] = 1,
     n_nodes: Optional[int] = 1,
@@ -209,6 +210,10 @@ def main(  # noqa: C901
                 gpu_accelerated=gpu > 0,
                 loader_module=loader_module
             )
+
+        if limit > 0:
+            from dask.bag.random import sample
+            images = sample(images, k=limit)
 
         futures = []
 

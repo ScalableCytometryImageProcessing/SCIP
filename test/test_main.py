@@ -5,13 +5,14 @@ import anndata
 
 
 @pytest.mark.parametrize(
-    'mode',
+    'mode,limit',
     [
-        pytest.param('local', marks=pytest.mark.mpi_skip),
-        pytest.param('mpi', marks=[
+        pytest.param('local',1, marks=pytest.mark.mpi_skip),
+        pytest.param('local',-1, marks=pytest.mark.mpi_skip),
+        pytest.param('mpi',1, marks=[
             pytest.mark.mpi, pytest.mark.skip(reason="Issues with MPI")])
     ])
-def test_main(mode, zarr_path, tmp_path, data):
+def test_main(mode, limit, zarr_path, tmp_path, data):
     runtime = main.main(
         mode=mode,
         n_workers=4,
@@ -19,7 +20,8 @@ def test_main(mode, zarr_path, tmp_path, data):
         headless=True,
         output=Path(tmp_path),
         paths=[str(zarr_path)],
-        config=data / "scip_zarr.yml"
+        config=data / "scip_zarr.yml",
+        limit=limit
     )
 
     assert runtime is not None
