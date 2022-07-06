@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
+from typing import Any, Optional, List
+
 import time
 import os
 import socket
@@ -103,26 +105,26 @@ def channel_boundaries(quantiles, *, config, output):
 
 def main(  # noqa: C901
     *,
-    paths,
-    output,
-    config,
-    partition_size,
-    n_workers,
-    n_nodes,
-    n_cores,
-    n_threads,
-    memory,
-    walltime,
-    project,
-    job_extra,
-    mode,
-    local_directory,
-    headless,
-    port,
-    debug,
-    timing,
-    gpu,
-    scheduler_adress
+    paths: List[str],
+    output: Path,
+    config: str,
+    mode: str,
+    partition_size: Optional[int] = 1,
+    n_workers: Optional[int] = 1,
+    n_nodes: Optional[int] = 1,
+    n_cores: Optional[int] = None,
+    n_threads: Optional[int] = 1,
+    memory: Optional[int] = 1,
+    walltime: Optional[str] = None,
+    project: Optional[str] = "",
+    job_extra: Optional[str] = "",
+    local_directory: Optional[str] = "tmp",
+    headless: Optional[bool] = False,
+    port: Optional[int] = 8787,
+    debug: Optional[bool] = False,
+    timing: Optional[Any] = None,
+    gpu: Optional[int] = 0,
+    scheduler_adress: Optional[str] = None
 ):
     with util.ClientClusterContext(
             n_workers=n_workers,
@@ -139,6 +141,9 @@ def main(  # noqa: C901
             gpu=gpu,
             scheduler_adress=scheduler_adress
     ) as context:
+
+        if not hasattr(context, "client"):
+            return
 
         output = Path(output)
         util.make_output_dir(output, headless=headless)
@@ -170,7 +175,7 @@ def main(  # noqa: C901
                 "masking",
                 "feature_extraction",
                 "export"
-            ]])
+            ]]), "Config is incomplete."
         logger.info(f"Running with following config: {config}")
 
         host = context.client.run_on_scheduler(socket.gethostname)

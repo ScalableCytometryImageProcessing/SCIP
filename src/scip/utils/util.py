@@ -104,7 +104,7 @@ class ClientClusterContext:
             self.cluster.scale(jobs=self.n_nodes)
             self.client = Client(self.cluster)
         elif self.mode == "mpi":
-            import dask_mpi.core
+            from dask_mpi import initialize
             from mpi4py import MPI
 
             worker_options = {}
@@ -114,17 +114,20 @@ class ClientClusterContext:
             if (self.gpu > 0) and rank in range(2, 2 + self.gpu):
                 worker_options["resources"] = {'cellpose': 1}
 
-            dask_mpi.core.initialize(
+            is_client = initialize(
                 dashboard=True,
                 dashboard_address=None if self.port is None else f':{self.port}',
                 nthreads=self.threads_per_process,
                 local_directory=self.local_directory,
                 memory_limit=int(self.memory * 1e9),
                 worker_class='distributed.Nanny',
-                worker_options=worker_options
+                worker_options=worker_options,
+                exit=False
             )
-            self.client = Client()
-            self.client.wait_for_workers(n_workers=self.n_workers)
+
+            if is_client:
+                self.client = Client()
+                self.client.wait_for_workers(n_workers=self.n_workers)
         elif self.mode == "external":
             assert self.scheduler_adress is not None, "Adress must be set in external mode."
             self.client = Client(address=self.scheduler_adress)
@@ -132,7 +135,11 @@ class ClientClusterContext:
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        self.client.close()
+        if self.mode == "mpi" and hasattr(self, "client"):
+            from dask_mpi import send_close_signal
+            send_close_signal()
+        elif hasattr(self, "client"):
+            self.client.close()
 
         if exc_type is not None:
             logging.getLogger(__name__).error(

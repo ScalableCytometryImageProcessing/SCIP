@@ -6,6 +6,7 @@ from pathlib import Path
 from concurrent.futures import Future
 import pandas
 import anndata
+import numpy
 
 
 def export(
@@ -33,8 +34,10 @@ def export(
         """Creates and writes AnnData object for one partition"""
         x = partition_info["number"]
         df = df.reset_index(drop=True)
+        df.index = df.index.astype(str)
         anndata.AnnData(
             X=df.filter(regex="feat"),
+            dtype=numpy.float32,
             obs=df.filter(regex="meta")
         ).write(output / f"{filename}.{x}.h5ad")
 

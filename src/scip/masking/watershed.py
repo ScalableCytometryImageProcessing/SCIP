@@ -61,7 +61,7 @@ def get_mask(el, noisy_channels):
     return out
 
 
-def create_masks_on_bag(bag, noisy_channels):
+def create_masks_on_bag(bag, noisy_channels, **kwargs):
 
     def watershed_masking(partition):
         return [get_mask(p, noisy_channels) for p in partition]
