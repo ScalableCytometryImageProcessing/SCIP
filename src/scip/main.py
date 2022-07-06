@@ -110,6 +110,7 @@ def main(  # noqa: C901
     config: str,
     mode: str,
     limit: Optional[int] = -1,
+    with_replacement: Optional[bool] = False,
     partition_size: Optional[int] = 1,
     n_workers: Optional[int] = 1,
     n_nodes: Optional[int] = 1,
@@ -212,8 +213,11 @@ def main(  # noqa: C901
             )
 
         if limit > 0:
-            from dask.bag.random import sample
-            images = sample(images, k=limit)
+            from dask.bag.random import sample, choices
+            if with_replacement:
+                images = choices(images, k=limit)
+            else:
+                images = sample(images, k=limit)
 
         futures = []
 
@@ -338,6 +342,9 @@ def _print_version(ctx, param, value):
 @click.option(
     "--limit", "-i", type=click.IntRange(min=-1), default=-1,
     help="Amount of images to sample randomly from the dataset. -1 means no sampling.")
+@click.option(
+    "--with-replacement", type=bool, is_flag=True, default=False,
+    help="Enable sampling with replacement. Has no effect is limit is set to default.")
 @click.option(
     "--walltime", "-w", type=str, default="01:00:00",
     help="Expected required walltime for the job to finish")
