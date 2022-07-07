@@ -29,6 +29,7 @@ from importlib import import_module
 import click
 import dask.bag
 import dask.dataframe
+from distributed.diagnostics import MemorySampler
 import pandas
 
 from scip.loading.util import get_images_bag
@@ -201,107 +202,112 @@ def main(  # noqa: C901
         logger.debug("loading images in to bags")
 
         loader_module = import_module('scip.loading.%s' % config["loading"]["format"])
-        with dask.config.set(**{'array.slicing.split_large_chunks': False}):
-            images, loader_meta = get_images_bag(
-                paths=paths,
-                output=output,
-                channels=channels,
-                config=config,
-                partition_size=partition_size,
-                gpu_accelerated=gpu > 0,
-                loader_module=loader_module
-            )
-
-        if limit > 0:
-            from dask.bag.random import sample, choices
-            if with_replacement:
-                images = choices(images, k=limit)
-            else:
-                images = sample(images, k=limit)
-
-        futures = []
-
-        method = config["masking"]["method"]
-        if method is not None:
-            masking_module = import_module('scip.masking.%s' % config["masking"]["method"])
-            logger.debug("creating masks on bag")
-
-            images = masking_module.create_masks_on_bag(
-                images,
-                main_channel=config["masking"]["bbox_channel_index"],
-                **(config["masking"]["kwargs"] or dict())
-            )
-
-            logger.debug("preparing bag for feature extraction")
-
-            images = images.map_partitions(
-                masking_util.remove_regions_touching_border_partition,
-                bbox_channel_index=config["masking"]["bbox_channel_index"]
-            )
-
-            images = images.map_partitions(masking_util.bounding_box_partition)
-
-            if config["masking"]["export"]:
-                no_pixels = images.map(remove_pixels)
-                no_pixels.to_avro(
-                    filename=str(output / "masks.*.avro"),
-                    schema={
-                        "name": "events",
-                        "type": "record",
-                        "fields": get_schema(no_pixels.take(1))
-                    }
+        ms = MemorySampler()
+        with ms.sample("main"):
+            with dask.config.set(**{'array.slicing.split_large_chunks': False}):
+                images, loader_meta = get_images_bag(
+                    paths=paths,
+                    output=output,
+                    channels=channels,
+                    config=config,
+                    partition_size=partition_size,
+                    gpu_accelerated=gpu > 0,
+                    loader_module=loader_module
                 )
 
-            # mask is applied and background values are computed
-            images = images.map_partitions(
-                masking_util.apply_mask_partition,
-                combined_indices=config["masking"]["combined_indices"]
+            if limit > 0:
+                from dask.bag.random import sample, choices
+                if with_replacement:
+                    images = choices(images, k=limit)
+                else:
+                    images = sample(images, k=limit)
+
+            futures = []
+
+            method = config["masking"]["method"]
+            if method is not None:
+                masking_module = import_module('scip.masking.%s' % config["masking"]["method"])
+                logger.debug("creating masks on bag")
+
+                images = masking_module.create_masks_on_bag(
+                    images,
+                    main_channel=config["masking"]["bbox_channel_index"],
+                    **(config["masking"]["kwargs"] or dict())
+                )
+
+                logger.debug("preparing bag for feature extraction")
+
+                images = images.map_partitions(
+                    masking_util.remove_regions_touching_border_partition,
+                    bbox_channel_index=config["masking"]["bbox_channel_index"]
+                )
+
+                images = images.map_partitions(masking_util.bounding_box_partition)
+
+                if config["masking"]["export"]:
+                    no_pixels = images.map(remove_pixels)
+                    no_pixels.to_avro(
+                        filename=str(output / "masks.*.avro"),
+                        schema={
+                            "name": "events",
+                            "type": "record",
+                            "fields": get_schema(no_pixels.take(1))
+                        }
+                    )
+
+                # mask is applied and background values are computed
+                images = images.map_partitions(
+                    masking_util.apply_mask_partition,
+                    combined_indices=config["masking"]["combined_indices"]
+                )
+
+            if config["filter"] is not None:
+                filter_module = import_module('scip.filter.%s' % config["filter"]["name"])
+
+                images = images.map_partitions(filter_module.feature_partition)
+                images = images.map(copy_without, without=["pixels"]).persist()
+                filter_items = filter_module.item(images)
+
+                images = images.map(filter_module.predicate, **filter_items)
+
+                images = images.map_partitions(
+                    loader_module.reload_image_partition,
+                    channels=channels,
+                    **(config["loading"]["loader_kwargs"] or dict())
+                )
+
+            quantiles = None
+            if config["normalization"] is not None:
+                logger.debug("performing normalization")
+                from scip.normalization import quantile_normalization  # noqa: E402
+                images, quantiles = quantile_normalization.quantile_normalization(
+                    images,
+                    config["normalization"]["lower"],
+                    config["normalization"]["upper"],
+                    len(channels)
+                )
+                futures.append(channel_boundaries(quantiles, config=config, output=output))
+
+            logger.debug("computing features")
+            bag_df = compute_features(
+                images=images,
+                channel_names=channel_names,
+                types=config["feature_extraction"]["types"],
+                loader_meta=loader_meta
             )
+            bag_df = bag_df.repartition(npartitions=10)
 
-        if config["filter"] is not None:
-            filter_module = import_module('scip.filter.%s' % config["filter"]["name"])
+            filename = config["export"]["filename"]
+            export_module = import_module('scip.export.%s' % config["export"]["format"])
+            futures.append(export_module.export(df=bag_df, filename=filename, output=output))
 
-            images = images.map_partitions(filter_module.feature_partition)
-            images = images.map(copy_without, without=["pixels"]).persist()
-            filter_items = filter_module.item(images)
+            dask.compute(*futures, traverse=False, optimize_graph=False)
 
-            images = images.map(filter_module.predicate, **filter_items)
+            if debug:
+                context.client.profile(filename=str(output / "profile.html"))
 
-            images = images.map_partitions(
-                loader_module.reload_image_partition,
-                channels=channels,
-                **(config["loading"]["loader_kwargs"] or dict())
-            )
-
-        quantiles = None
-        if config["normalization"] is not None:
-            logger.debug("performing normalization")
-            from scip.normalization import quantile_normalization  # noqa: E402
-            images, quantiles = quantile_normalization.quantile_normalization(
-                images,
-                config["normalization"]["lower"],
-                config["normalization"]["upper"],
-                len(channels)
-            )
-            futures.append(channel_boundaries(quantiles, config=config, output=output))
-
-        logger.debug("computing features")
-        bag_df = compute_features(
-            images=images,
-            channel_names=channel_names,
-            types=config["feature_extraction"]["types"],
-            loader_meta=loader_meta
-        )
-        bag_df = bag_df.repartition(npartitions=10)
-
-        filename = config["export"]["filename"]
-        export_module = import_module('scip.export.%s' % config["export"]["format"])
-        futures.append(export_module.export(df=bag_df, filename=filename, output=output))
-
-        dask.compute(*futures, traverse=False, optimize_graph=False)
-
-        if debug:
-            context.client.profile(filename=str(output / "profile.html"))
+    ms_df = ms.to_pandas()
+    ms_df.to_pickle(output / "memory_sampler.pickle")
 
     runtime = time.time() - start
     logger.info(f"Full runtime {runtime:.2f}")
