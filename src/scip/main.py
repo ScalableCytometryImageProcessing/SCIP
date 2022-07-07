@@ -396,12 +396,13 @@ def cli(**kwargs):
 
     runtime = main(**kwargs)
 
-    timing = kwargs["timing"]
-    if timing is not None:
-        import json
-        with open(timing, "w") as fp:
-            json.dump({**kwargs, **dict(runtime=runtime)}, fp)
-        logging.getLogger("scip").info(f"Timing output written to {timing}")
+    if runtime is not None:
+        timing = kwargs["timing"]
+        if timing is not None:
+            import json
+            with open(timing, "w") as fp:
+                json.dump({**kwargs, **dict(runtime=runtime)}, fp)
+            logging.getLogger("scip").info(f"Timing output written to {timing}")
 
 
 if __name__ == "__main__":
