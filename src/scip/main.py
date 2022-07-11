@@ -203,7 +203,7 @@ def main(  # noqa: C901
 
         loader_module = import_module('scip.loading.%s' % config["loading"]["format"])
         ms = MemorySampler()
-        with ms.sample("main"):
+        with ms.sample("main", measure="managed"):
             with dask.config.set(**{'array.slicing.split_large_chunks': False}):
                 images, loader_meta = get_images_bag(
                     paths=paths,
