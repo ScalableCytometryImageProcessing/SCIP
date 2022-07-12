@@ -7,16 +7,23 @@ loading:
   loader_kwargs:
     regex: ^.+\/(?P<group>.+).zarr$
 masking:
-  method: watershed
-  bbox_channel_index: 0
   combined_indices: [0, 1]
-  export: false
-  kwargs:
-    noisy_channels: [0]
+  methods:
+    - name: "watershed"
+      bbox_channel_index: 0
+      export: false
+      kwargs:
+        noisy_channels: [0]
+    - name: "threshold"
+      bbox_channel_index: 0
+      export: false
+      kwargs:
+        smooth: 1
 filter:
 normalization:
 feature_extraction:
-  types: ["shape", "intensity", "bbox", "texture"]
+  watershed: ["shape", "intensity", "bbox", "texture"]
+  threshold: ["shape", "intensity", "bbox", "texture"]
 export:
-  format: anndata
+  format: parquet
   filename: features

@@ -1,7 +1,8 @@
 import pytest
 from scip import main
 from pathlib import Path
-import anndata
+import pyarrow.parquet
+import pandas
 
 
 @pytest.mark.parametrize(
@@ -29,6 +30,10 @@ def test_main(mode, limit, expected_n, with_replacement, zarr_path, tmp_path, da
     )
 
     assert runtime is not None
-    assert len([f for f in tmp_path.glob("*.h5ad")]) == 10
+    assert len([f for f in tmp_path.glob("*.parquet")]) == 10
     assert (tmp_path / "scip.log").exists()
-    assert sum(len(anndata.read(f)) for f in tmp_path.glob("*.h5ad")) == expected_n
+
+    df = pandas.concat(
+        [pyarrow.parquet.read_table(f).to_pandas() for f in tmp_path.glob("*.parquet")], axis=0)
+    assert len(df) == expected_n
+    assert sum("threshold" in a for a in df.columns) == sum("watershed" in a for a in df.columns)
