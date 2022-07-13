@@ -294,7 +294,6 @@ def main(  # noqa: C901
                     futures.append(channel_boundaries(quantiles, config=config, output=output))
 
                 logger.debug("computing features")
-                loader_meta["id"] = str
                 bag_df = compute_features(
                     images=tmp_images,
                     channel_names=channel_names,
@@ -303,15 +302,14 @@ def main(  # noqa: C901
                     prefix=method["name"]
                 )
 
-                newnp = max(1, bag_df.npartitions // 2)
-                bag_df = bag_df.set_index("meta_id", npartitions=newnp)
                 dataframes.append(bag_df)
 
                 # set loader meta to empty dict so that meta keys are only added once
                 # (for the first masking)
                 loader_meta = {}
 
-        bag_df = dask.dataframe.multi.concat(dataframes, axis=1)
+        # partitions never change between masks so we can ignore unknown divisions
+        bag_df = dask.dataframe.multi.concat(dataframes, axis=1, ignore_unknown_divisions=True)
         bag_df = bag_df.repartition(npartitions=10)
 
         filename = config["export"]["filename"]
