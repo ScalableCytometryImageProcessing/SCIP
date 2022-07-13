@@ -3,6 +3,7 @@ from scip import main
 from pathlib import Path
 import pyarrow.parquet
 import pandas
+import numpy
 
 
 @pytest.mark.parametrize(
@@ -36,4 +37,10 @@ def test_main(mode, limit, expected_n, with_replacement, zarr_path, tmp_path, da
     df = pandas.concat(
         [pyarrow.parquet.read_table(f).to_pandas() for f in tmp_path.glob("*.parquet")], axis=0)
     assert len(df) == expected_n
-    assert sum("threshold" in a for a in df.columns) == sum("watershed" in a for a in df.columns)
+
+    cols = df.columns
+    assert sum("circle-1" in a for a in cols) > 0
+    assert sum("circle-2" in a for a in cols) > 0
+    assert sum("circle-1" in a for a in cols) == sum("circle-2" in a for a in cols)
+
+    assert numpy.all(df.filter(regex="circle-1").values == df.filter(regex="circle-2").values)

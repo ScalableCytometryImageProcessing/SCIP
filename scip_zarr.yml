@@ -9,14 +9,25 @@ loading:
   loader_kwargs:
     regex: (?P<type>[^_\/]+)_T(?P<group>[0-9]+)_R(?P<replicate>[0-9]+)_?(?P<suffix>[0-9]+)?.zarr$
 masking:
-  method: watershed
-  bbox_channel_index: 0
   combined_indices: [0, 1]
-  export: false
-  kwargs:
-    noisy_channels: [0]
+  methods:
+    - method: "watershed"
+      name: "watershed"
+      bbox_channel_index: 0
+      export: false
+      kwargs:
+        noisy_channels: [0]
+    - method: "threshold"
+      name: "threshold"
+      bbox_channel_index: 0
+      export: false
+      kwargs:
+        smooth: 1
+feature_extraction:
+  threshold-1: ["shape", "intensity", "bbox", "texture"]
+  threshold-2: ["shape", "intensity", "bbox", "texture"]
 filter:
 normalization:
 export:
-  format: anndata
+  format: parquet
   filename: features

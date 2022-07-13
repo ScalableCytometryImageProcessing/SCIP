@@ -231,7 +231,7 @@ def main(  # noqa: C901
         methods = config["masking"]["methods"]
         if methods is not None:
             for method in methods:
-                masking_module = import_module('scip.masking.%s' % method["name"])
+                masking_module = import_module('scip.masking.%s' % method["method"])
                 logger.debug("creating masks on bag")
 
                 tmp_images = masking_module.create_masks_on_bag(
@@ -294,6 +294,7 @@ def main(  # noqa: C901
                     futures.append(channel_boundaries(quantiles, config=config, output=output))
 
                 logger.debug("computing features")
+                loader_meta["id"] = str
                 bag_df = compute_features(
                     images=tmp_images,
                     channel_names=channel_names,
@@ -301,13 +302,17 @@ def main(  # noqa: C901
                     loader_meta=loader_meta,
                     prefix=method["name"]
                 )
+
+                newnp = max(1, bag_df.npartitions // 2)
+                bag_df = bag_df.set_index("meta_id", npartitions=newnp)
                 dataframes.append(bag_df)
+
+                # set loader meta to empty dict so that meta keys are only added once
+                # (for the first masking)
                 loader_meta = {}
 
         bag_df = dask.dataframe.multi.concat(dataframes, axis=1)
         bag_df = bag_df.repartition(npartitions=10)
-
-        bag_df.dask.visualize(filename="graph.svg")
 
         filename = config["export"]["filename"]
         export_module = import_module('scip.export.%s' % config["export"]["format"])

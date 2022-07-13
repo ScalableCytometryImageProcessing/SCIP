@@ -9,21 +9,21 @@ loading:
 masking:
   combined_indices: [0, 1]
   methods:
-    - name: "watershed"
+    - method: "circle"
+      name: "circle-1"
       bbox_channel_index: 0
       export: false
       kwargs:
-        noisy_channels: [0]
-    - name: "threshold"
+    - method: "circle"
+      name: "circle-2"
       bbox_channel_index: 0
       export: false
       kwargs:
-        smooth: 1
 filter:
 normalization:
 feature_extraction:
-  watershed: ["shape", "intensity", "bbox", "texture"]
-  threshold: ["shape", "intensity", "bbox", "texture"]
+  circle-1: ["shape", "intensity"]
+  circle-2: ["shape", "intensity"]
 export:
   format: parquet
   filename: features

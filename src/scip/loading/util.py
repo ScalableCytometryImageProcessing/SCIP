@@ -1,5 +1,6 @@
-from typing import List, Tuple, Mapping, Any
+import hashlib
 import logging
+from typing import List, Tuple, Mapping, Any
 
 import dask.bag
 
@@ -9,6 +10,12 @@ from functools import partial
 
 def _load_image_partition(partition, channels, load):
     return [load(event, channels) for event in partition]
+
+
+def set_unique_id(el):
+    newel = el.copy()
+    newel["id"] = hashlib.md5(el["pixels"].data.tobytes()).hexdigest()
+    return newel
 
 
 def get_images_bag(
@@ -40,6 +47,7 @@ def get_images_bag(
 
         logging.info(f"Bagging {path}")
         bag = loader(path=path)
+        bag = bag.map(set_unique_id)
         images.append(bag)
 
     images = dask.bag.concat(images)
