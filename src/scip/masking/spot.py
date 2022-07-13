@@ -39,11 +39,16 @@ def get_mask(el, main_channel, spotsize):
 
             x = el["pixels"][dim]
             x = white_tophat(x, footprint=disk(spotsize))
-            x = threshold_minimum(x, nbins=400) < x
-            x = binary_dilation(x, footprint=disk(2))
-            x = label(x)
 
-            mask[dim], cc = x > 0, x.max()
+            for nbins in [256, 512, 1024]:
+                try:
+                    x = threshold_minimum(x, nbins=nbins) < x
+                    x = binary_dilation(x, footprint=disk(2))
+                    x = label(x)
+                    mask[dim], cc = x > 0, x.max()
+                    break
+                except RuntimeError:
+                    pass
         elif dim == main_channel:
             out = copy_without(el, without=["pixels"])
             out["regions"] = regions
