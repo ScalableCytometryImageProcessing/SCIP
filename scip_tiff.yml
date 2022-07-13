@@ -15,7 +15,7 @@ masking:
   export: false
   combined_indices: [0, 2, 3]
   kwargs:
-    smooth: 1
+    smooth: [0, 0.75, 0.75, 0.75, 0.75]
 filter:
 normalization:
   lower: 0

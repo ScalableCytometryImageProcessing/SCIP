@@ -19,11 +19,18 @@ masking:
       bbox_channel_index: 0
       export: false
       kwargs:
+    - method: "spot"
+      name: "spot"
+      bbox_channel_index: 0
+      export: false
+      kwargs:
+        spotsize: 5
 filter:
 normalization:
 feature_extraction:
   circle-1: ["shape", "intensity"]
   circle-2: ["shape", "intensity"]
+  spot: ["shape", "intensity"]
 export:
   format: parquet
   filename: features

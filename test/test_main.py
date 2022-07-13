@@ -41,6 +41,8 @@ def test_main(mode, limit, expected_n, with_replacement, zarr_path, tmp_path, da
     cols = df.columns
     assert sum("circle-1" in a for a in cols) > 0
     assert sum("circle-2" in a for a in cols) > 0
+    assert sum("spot" in a for a in cols) > 0
     assert sum("circle-1" in a for a in cols) == sum("circle-2" in a for a in cols)
+    assert sum("circle-1" in a for a in cols) == sum("spot" in a for a in cols)
 
     assert numpy.all(df.filter(regex="circle-1").values == df.filter(regex="circle-2").values)

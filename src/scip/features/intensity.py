@@ -19,7 +19,7 @@ from typing import Mapping, List
 
 import numpy
 import scipy.stats
-from scipy.ndimage import convolve
+from skimage.morphology import disk, binary_erosion
 from numba import njit
 
 props = [
@@ -77,6 +77,10 @@ def _row2(pixels: numpy.ndarray) -> list:
     ]
 
 
+def _get_edge_mask(mask: numpy.ndarray) -> numpy.ndarray:
+    return numpy.bitwise_xor(binary_erosion(mask, footprint=disk(6)), mask)
+
+
 def intensity_features(
     pixels: numpy.ndarray,
     mask: numpy.ndarray,
@@ -125,12 +129,7 @@ def intensity_features(
             mask_pixels = pixels[i][mask[i]]
             mask_bgcorr_pixels = mask_pixels - background[i]
 
-            conv = convolve(
-                mask[i].astype(int),
-                weights=numpy.ones(shape=[4, 4], dtype=int),
-                mode="constant"
-            )
-            edge = ((conv > 0) & (conv < 15)) * mask[i]
+            edge = _get_edge_mask(mask[i])
             mask_edge_pixels = pixels[i][edge]
             mask_bgcorr_edge_pixels = mask_edge_pixels - background[i]
 
@@ -146,13 +145,7 @@ def intensity_features(
         mask_pixels = pixels[i][combined_mask]
         mask_bgcorr_pixels = mask_pixels - combined_background[i]
 
-        conv = convolve(
-            combined_mask.astype(int),
-            weights=numpy.ones(shape=[4, 4], dtype=int),
-            mode="constant"
-        )
-        combined_edge = ((conv > 0) & (conv < 15)) * combined_mask
-
+        combined_edge = _get_edge_mask(combined_mask)
         mask_edge_pixels = pixels[i][combined_edge]
         mask_bgcorr_edge_pixels = mask_edge_pixels - combined_background[i]
 
