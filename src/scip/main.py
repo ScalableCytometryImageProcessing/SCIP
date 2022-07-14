@@ -306,11 +306,13 @@ def main(  # noqa: C901
 
                 # set loader meta to empty dict so that meta keys are only added once
                 # (for the first masking)
-                loader_meta = {}
+                loader_meta = {k: v for k, v in loader_meta.items() if "regions" in k}
 
         # partitions never change between masks so we can ignore unknown divisions
         bag_df = dask.dataframe.multi.concat(dataframes, axis=1, ignore_unknown_divisions=True)
         bag_df = bag_df.repartition(npartitions=10)
+
+        bag_df.dask.visualize(filename="graph.svg")
 
         filename = config["export"]["filename"]
         export_module = import_module('scip.export.%s' % config["export"]["format"])
