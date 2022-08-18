@@ -3,7 +3,7 @@ from dask.dataframe import DataFrame
 import pytest
 
 
-@pytest.mark.parametrize("fake_images_bag", [True], indirect=True)
+@pytest.mark.parametrize("fake_images_bag", [True, False], indirect=True)
 def test_extract_features(fake_images_bag, fake_image_nchannels):
     features = feature_extraction.extract_features(
         images=fake_images_bag,
