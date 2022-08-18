@@ -11,13 +11,13 @@ loading:
       cell_diameter: 40
       dapi_channel_index: 0
       segmentation_channel_index: 2
-      export: true
+      export: false
     project_method: "op"
     project_kw:
       op: "max"
-    scenes: ["A1-A1"]
+    scenes: ["P1-A1"]
 masking:
-  method:
+  methods:
   export: false
 filter:
 normalization:
