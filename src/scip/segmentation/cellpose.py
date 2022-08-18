@@ -26,9 +26,10 @@ from skimage.morphology import white_tophat, disk
 from scip.utils.util import copy_without
 
 
-@dask.delayed
+# @dask.delayed
 def segment_block(
-    events: List[Mapping[str, Any]],
+    # events: List[Mapping[str, Any]],
+    event: List[Mapping[str, Any]],
     *,
     gpu_accelerated: Optional[bool] = False,
     cell_diameter: Optional[int] = None,
@@ -48,45 +49,47 @@ def segment_block(
             model = models.Cellpose(gpu=False, model_type='cyto2')
         w.cellpose = model
 
-    for event in events:
+    # for event in events:
 
-        block = event["pixels"]
+    block = event["pixels"]
 
-        cp_input = block[segmentation_channel_index]
-        cells, _, _, _ = model.eval(
+    cp_input = block[segmentation_channel_index]
+    cells, _, _, _ = model.eval(
+        x=cp_input,
+        channels=[0, 0],
+        diameter=cell_diameter,
+        batch_size=16
+    )
+
+    labeled_mask = numpy.repeat(cells[numpy.newaxis], block.shape[0], axis=0)
+
+    if dapi_channel_index is not None:
+        cp_input = block[dapi_channel_index]
+        cp_input = white_tophat(cp_input, footprint=disk(25))
+        nuclei, _, _, _ = model.eval(
             x=cp_input,
             channels=[0, 0],
             diameter=cell_diameter,
             batch_size=16
         )
 
-        labeled_mask = numpy.repeat(cells[numpy.newaxis], block.shape[0], axis=0)
+        # assign over-segmented nuclei to parent cells
+        nuclei_mask = numpy.zeros_like(cells)
+        for i in numpy.unique(cells)[1:]:
+            idx = numpy.unique(nuclei[cells == i])[1:]
+            _, counts = numpy.unique(nuclei[cells == i], return_counts=True)
+            idx = idx[(counts[1:] / (cells == i).sum()) > 0.1]
+            nuclei_mask[numpy.isin(nuclei, idx) & (cells == i)] = i
+        labeled_mask[dapi_channel_index] = nuclei_mask
 
-        if dapi_channel_index is not None:
-            cp_input = block[dapi_channel_index]
-            cp_input = white_tophat(cp_input, footprint=disk(25))
-            nuclei, _, _, _ = model.eval(
-                x=cp_input,
-                channels=[0, 0],
-                diameter=cell_diameter,
-                batch_size=16
-            )
+    event["mask"] = labeled_mask
 
-            # assign over-segmented nuclei to parent cells
-            nuclei_mask = numpy.zeros_like(cells)
-            for i in numpy.unique(cells)[1:]:
-                idx = numpy.unique(nuclei[cells == i])[1:]
-                _, counts = numpy.unique(nuclei[cells == i], return_counts=True)
-                idx = idx[(counts[1:] / (cells == i).sum()) > 0.1]
-                nuclei_mask[numpy.isin(nuclei, idx) & (cells == i)] = i
-            labeled_mask[dapi_channel_index] = nuclei_mask
+    return event
 
-        event["mask"] = labeled_mask
-
-    return events
+    # return events
 
 
-@dask.delayed
+# @dask.delayed
 def to_events(
     events: List[Mapping[str, Any]],
     *,

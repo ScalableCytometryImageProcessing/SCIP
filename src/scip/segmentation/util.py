@@ -40,25 +40,30 @@ def bag_from_blocks(
     # this segment operation is annotated with the cellpose resource to let the scheduler
     # know that it should only be executed on a worker that also has the cellpose resource.
     with dask.annotate(resources={"cellpose": 1}):
-        block_events = []
-        for block in blocks.to_delayed():
-            block_events.append(segment_block(block, gpu_accelerated=gpu_accelerated, **segment_kw))
+        block_events = blocks.map(
+            segment_block, gpu_accelerated=gpu_accelerated, **segment_kw)
 
-    if segment_kw["export"]:
-        assert len(group_keys) > 0, "At least one group key is required to export the segmentations"
-        assert output is not None, "Output path is required to export the segmentations"
+        # block_events = []
+        # for block in blocks.to_delayed():
+        #     block_events.append(segment_block(block, gpu_accelerated=gpu_accelerated, **segment_kw))
 
-        for i in range(len(block_events)):
-            block_events[i] = _export_labeled_mask(
-                block_events[i], output=output, group_keys=group_keys)
+    # if segment_kw["export"]:
+    #     assert len(group_keys) > 0, "At least one group key is required to export the segmentations"
+    #     assert output is not None, "Output path is required to export the segmentations"
 
-    events = []
-    for block in block_events:
-        b = to_events(
-            block,
-            group_keys=group_keys,
-            **segment_kw
-        )
-        events.append(b)
+    #     for i in range(len(block_events)):
+    #         block_events[i] = _export_labeled_mask(
+    #             block_events[i], output=output, group_keys=group_keys)
 
-    return dask.bag.from_delayed(events)
+    return block_events.map_partitions(to_events, group_keys=group_keys, **segment_kw)
+
+    # events = []
+    # for block in block_events:
+    #     b = to_events(
+    #         block,
+    #         group_keys=group_keys,
+    #         **segment_kw
+    #     )
+    #     events.append(b)
+
+    # return dask.bag.from_delayed(events)

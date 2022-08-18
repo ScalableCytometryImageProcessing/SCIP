@@ -112,7 +112,13 @@ class ClientClusterContext:
             rank = comm.Get_rank()
 
             if (self.gpu > 0) and rank in range(2, 2 + self.gpu):
-                worker_options["resources"] = {'cellpose': 1}
+                worker_options["resources"] = {
+                    'cellpose': 1,
+                }
+            else:
+                worker_options["resources"] = {
+                    'images': 1
+                }
 
             is_client = initialize(
                 dashboard=True,
