@@ -129,14 +129,17 @@ def intensity_features(
             mask_pixels = pixels[i][mask[i]]
             mask_bgcorr_pixels = mask_pixels - background[i]
 
-            edge = _get_edge_mask(mask[i])
-            mask_edge_pixels = pixels[i][edge]
-            mask_bgcorr_edge_pixels = mask_edge_pixels - background[i]
-
             out[i, 0] = _row(mask_pixels) + _row2(mask_pixels)
             out[i, 1] = _row(mask_bgcorr_pixels) + _row2(mask_bgcorr_pixels)
-            out[i, 2] = _row(mask_edge_pixels) + _row2(mask_edge_pixels)
-            out[i, 3] = _row(mask_bgcorr_edge_pixels) + _row2(mask_bgcorr_edge_pixels)
+
+            edge = _get_edge_mask(mask[i])
+            if edge.any():
+                mask_edge_pixels = pixels[i][edge]
+                mask_bgcorr_edge_pixels = mask_edge_pixels - background[i]
+                out[i, 2] = _row(mask_edge_pixels) + _row2(mask_edge_pixels)
+                out[i, 3] = _row(mask_bgcorr_edge_pixels) + _row2(mask_bgcorr_edge_pixels)
+            else:
+                out[i, 2:] = 0
         else:
             # write default values
             out[i, :4] = 0
@@ -145,13 +148,17 @@ def intensity_features(
         mask_pixels = pixels[i][combined_mask]
         mask_bgcorr_pixels = mask_pixels - combined_background[i]
 
-        combined_edge = _get_edge_mask(combined_mask)
-        mask_edge_pixels = pixels[i][combined_edge]
-        mask_bgcorr_edge_pixels = mask_edge_pixels - combined_background[i]
-
         out[i, 4] = _row(mask_pixels) + _row2(mask_pixels)
         out[i, 5] = _row(mask_bgcorr_pixels) + _row2(mask_bgcorr_pixels)
-        out[i, 6] = _row(mask_edge_pixels) + _row2(mask_edge_pixels)
-        out[i, 7] = _row(mask_bgcorr_edge_pixels) + _row2(mask_bgcorr_edge_pixels)
+
+        combined_edge = _get_edge_mask(combined_mask)
+        if combined_edge.any():
+            mask_edge_pixels = pixels[i][combined_edge]
+            mask_bgcorr_edge_pixels = mask_edge_pixels - combined_background[i]
+
+            out[i, 6] = _row(mask_edge_pixels) + _row2(mask_edge_pixels)
+            out[i, 7] = _row(mask_bgcorr_edge_pixels) + _row2(mask_bgcorr_edge_pixels)
+        else:
+            out[i, 6:] = 0
 
     return out.flatten()
