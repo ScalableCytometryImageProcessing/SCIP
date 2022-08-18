@@ -69,32 +69,6 @@ def compute_features(images, channel_names, types, loader_meta, prefix):
     return features
 
 
-def get_schema(event):
-    py_to_avro = {
-        "str": "string",
-        "int": "int",
-        "list": {
-            "type": "array",
-            "name": "mask",
-            "items": "int"
-        }
-    }
-    tmp = event[0]
-    tmp["mask"] = tmp["mask"].tolist()
-    tmp["bbox"] = list(tmp["bbox"])
-    return [
-        {"name": k, "type": py_to_avro[type(v).__name__]}
-        for k, v in tmp.items()
-    ]
-
-
-def remove_pixels(event):
-    newevent = copy_without(event, ["pixels", "mask"])
-    newevent["shape"] = list(event["mask"].shape)
-    newevent["mask"] = event["mask"].ravel()
-    return newevent
-
-
 @dask.delayed
 def channel_boundaries(quantiles, *, config, output):
     data = []
@@ -226,7 +200,7 @@ def main(  # noqa: C901
                 images = sample(images, k=limit)
 
         futures = []
-        dataframes = []
+        images_dict = {}
 
         methods = config["masking"]["methods"]
         if methods is not None:
@@ -249,64 +223,66 @@ def main(  # noqa: C901
 
                 tmp_images = tmp_images.map_partitions(masking_util.bounding_box_partition)
 
-                if method["export"]:
-                    no_pixels = tmp_images.map(remove_pixels)
-                    no_pixels.to_avro(
-                        filename=str(output / "masks.*.avro"),
-                        schema={
-                            "name": "events",
-                            "type": "record",
-                            "fields": get_schema(no_pixels.take(1))
-                        }
-                    )
-
                 # mask is applied and background values are computed
                 tmp_images = tmp_images.map_partitions(
                     masking_util.apply_mask_partition,
                     combined_indices=config["masking"]["combined_indices"]
                 )
 
-                if config["filter"] is not None:
-                    filter_module = import_module('scip.filter.%s' % config["filter"]["name"])
+                images_dict[method["name"]] = tmp_images
+        else:
+            images_dict["no"] = images
 
-                    tmp_images = tmp_images.map_partitions(filter_module.feature_partition)
-                    tmp_images = tmp_images.map(copy_without, without=["pixels"]).persist()
-                    filter_items = filter_module.item(tmp_images)
+        dataframes = []
+        for prefix, images in images_dict.items():
+            if config["filter"] is not None:
+                filter_module = import_module('scip.filter.%s' % config["filter"]["name"])
 
-                    tmp_images = tmp_images.map(filter_module.predicate, **filter_items)
+                images = images.map_partitions(filter_module.feature_partition)
+                images = images.map(copy_without, without=["pixels"]).persist()
+                filter_items = filter_module.item(images)
 
-                    tmp_images = tmp_images.map_partitions(
-                        loader_module.reload_image_partition,
-                        channels=channels,
-                        **(config["loading"]["loader_kwargs"] or dict())
-                    )
+                images = images.map(filter_module.predicate, **filter_items)
 
-                quantiles = None
-                if config["normalization"] is not None:
-                    logger.debug("performing normalization")
-                    from scip.normalization import quantile_normalization  # noqa: E402
-                    tmp_images, quantiles = quantile_normalization.quantile_normalization(
-                        tmp_images,
-                        config["normalization"]["lower"],
-                        config["normalization"]["upper"],
-                        len(channels)
-                    )
-                    futures.append(channel_boundaries(quantiles, config=config, output=output))
-
-                logger.debug("computing features")
-                bag_df = compute_features(
-                    images=tmp_images,
-                    channel_names=channel_names,
-                    types=config["feature_extraction"][method["name"]],
-                    loader_meta=loader_meta,
-                    prefix=method["name"]
+                images = images.map_partitions(
+                    loader_module.reload_image_partition,
+                    channels=channels,
+                    **(config["loading"]["loader_kwargs"] or dict())
                 )
 
-                dataframes.append(bag_df)
+            quantiles = None
+            if config["normalization"] is not None:
+                logger.debug("performing normalization")
+                from scip.normalization import quantile_normalization  # noqa: E402
+                images, quantiles = quantile_normalization.quantile_normalization(
+                    images,
+                    config["normalization"]["lower"],
+                    config["normalization"]["upper"],
+                    len(channels)
+                )
+                futures.append(channel_boundaries(quantiles, config=config, output=output))
 
-                # set loader meta to empty dict so that meta keys are only added once
-                # (for the first masking)
-                loader_meta = {k: v for k, v in loader_meta.items() if "regions" in k}
+            logger.debug("computing features")
+
+            pref = None if prefix == "no" else prefix
+            types = config["feature_extraction"]
+            if prefix != "no":
+                types = types[prefix]
+
+            bag_df = compute_features(
+                images=images,
+                channel_names=channel_names,
+                loader_meta=loader_meta,
+                prefix=pref,
+                types=types
+            )
+
+            dataframes.append(bag_df)
+
+            # change loader_meta dict so that meta keys are only added once
+            # in case multiple features sets are computed.
+            # Leave in the regions keys as they might change between masks
+            loader_meta = {k: v for k, v in loader_meta.items() if "regions" in k}
 
         # partitions never change between masks so we can ignore unknown divisions
         bag_df = dask.dataframe.multi.concat(dataframes, axis=1, ignore_unknown_divisions=True)
