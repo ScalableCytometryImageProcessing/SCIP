@@ -312,8 +312,6 @@ def main(  # noqa: C901
         bag_df = dask.dataframe.multi.concat(dataframes, axis=1, ignore_unknown_divisions=True)
         bag_df = bag_df.repartition(npartitions=10)
 
-        bag_df.dask.visualize(filename="graph.svg")
-
         filename = config["export"]["filename"]
         export_module = import_module('scip.export.%s' % config["export"]["format"])
         futures.append(export_module.export(df=bag_df, filename=filename, output=output))
