@@ -12,7 +12,7 @@ def test_cli(zarr_path, tmp_path, data):
         "--headless",
         "--n-workers", "4",
         "--n-threads", "1",
-        "--partition-size", "5",
+        "--n-partitions", "5",
         "--timing", str(tmp_path / "timing.json"),
         str(tmp_path),
         str(data / "scip_zarr.yml"),

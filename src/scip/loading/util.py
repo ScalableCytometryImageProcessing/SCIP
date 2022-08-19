@@ -28,12 +28,12 @@ def get_images_bag(
         partition_size=partition_size,
         gpu_accelerated=gpu_accelerated,
         output=output,
-        **(config["loading"]["loader_kwargs"] or dict())
+        **(config["load"]["kwargs"] or dict())
     )
 
     images = []
 
-    loader_meta = loader_module.get_loader_meta(**(config["loading"]["loader_kwargs"] or dict()))
+    loader_meta = loader_module.get_loader_meta(**(config["load"]["kwargs"] or dict()))
 
     for path in paths:
         assert Path(path).exists(), f"{path} does not exist."

@@ -31,7 +31,7 @@ _OPS: Mapping[str, Callable[[numpy.ndarray], numpy.ndarray]] = {
 def project_block(
     event: Mapping[str, Any],
     op: str
-) -> numpy.ndarray:
+) -> Mapping[str, Any]:
     newevent = copy_without(event, without=["pixels"])
     newevent["pixels"] = _OPS[op](event["pixels"])
 

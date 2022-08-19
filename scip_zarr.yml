@@ -6,7 +6,7 @@ loading:
     - PI
     - DF
     - BF2
-  loader_kwargs:
+  kwargs:
     regex: (?P<type>[^_\/]+)_T(?P<group>[0-9]+)_R(?P<replicate>[0-9]+)_?(?P<suffix>[0-9]+)?.zarr$
 masking:
   combined_indices: [0, 1]

@@ -21,7 +21,7 @@ from skimage.morphology import (
 from skimage.filters import threshold_li, sobel, gaussian
 from scipy.stats import normaltest
 from scip.utils.util import check, copy_without
-from scip.masking.util import mask_predicate
+from scip.masking import mask_predicate
 
 
 @check

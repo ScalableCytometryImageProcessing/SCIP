@@ -18,7 +18,7 @@
 import numpy
 from scipy.stats import normaltest
 from scip.utils.util import check, copy_without
-from scip.masking.util import mask_predicate
+from scip.masking import mask_predicate
 from skimage.morphology import white_tophat, disk, label, binary_dilation
 from skimage.filters import threshold_minimum
 

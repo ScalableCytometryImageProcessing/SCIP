@@ -1,12 +1,14 @@
-loading:
+load:
   format: zarr
   channels: [0, 1]
   channel_names:
     - BF1
     - PI
-  loader_kwargs:
+  kwargs:
     regex: ^.+\/(?P<group>.+).zarr$
-masking:
+segment:
+project:
+mask:
   combined_indices: [0, 1]
   methods:
     - method: "circle"

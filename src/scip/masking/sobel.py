@@ -18,7 +18,7 @@
 from skimage.filters import sobel
 from skimage import morphology
 import numpy
-from scip.masking import util
+from scip.masking import mask_post_process
 
 
 def get_mask(el):
@@ -38,7 +38,7 @@ def get_mask(el):
             mask[dim] = False
         else:
             segmentation = segmentation == segmentation.max()
-            mask[dim] = util.mask_post_process(segmentation)
+            mask[dim] = mask_post_process(segmentation)
 
     out = el.copy()
     out["mask"] = mask

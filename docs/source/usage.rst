@@ -15,7 +15,7 @@ The YAML config file has the following specification:
          channels: [0]  # list of channel indexes, e.g. index of frame in multiframe tiff
          channel_names:  # list of channel names
             - "channel_0"
-         loader_kwargs:  # keyword arguments passed to loader function
+         kwargs:  # keyword arguments passed to loader function
             regex:  # regex pattern, can contain match groups for extracting metadata from filename
 
             # CellPose specific arguments

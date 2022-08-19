@@ -26,7 +26,7 @@ def test_main(mode, limit, expected_n, with_replacement, zarr_path, tmp_path, da
         paths=[str(zarr_path)],
         config=data / "scip_zarr.yml",
         limit=limit,
-        partition_size=5,
+        n_partitions=2,
         with_replacement=with_replacement
     )
 

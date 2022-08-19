@@ -1,5 +1,5 @@
 import numpy
-from scip.masking.util import mask_predicate
+from scip.masking import mask_predicate
 
 
 def _create_circular_mask(i):

@@ -7,7 +7,7 @@ loading:
     - SSC
     - DAPI
     - PSBA
-  loader_kwargs:
+  kwargs:
     regex: \/.*_T(?P<group>[0-9]+)_R(?P<replicate>[0-9]+)_?(?P<suffix>[0-9]+)?\/(?P<id>[0-9]+)_Ch(?P<channel>(1|4|6|7|11))\.ome\.tif$
 masking:
   method: threshold

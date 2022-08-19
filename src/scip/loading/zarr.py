@@ -15,14 +15,13 @@
 # You should have received a copy of the GNU General Public License
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Mapping, List, Optional
+from typing import Mapping, List
 
 import dask
 import dask.bag
 import dask.dataframe
 import zarr
 import numpy
-from pathlib import Path
 import re
 import copy
 
@@ -44,16 +43,25 @@ def reload_image_partition(
     return newpartition
 
 
-def load_image_partition(partition, z, channels):
+def load_image_partition(partition, channels):
 
-    start, end = partition[0]["zarr_idx"], partition[-1]["zarr_idx"]
-    data = z[start:end + 1]
-    shapes = z.attrs["shape"][start:end + 1]
+    newpartition = copy.deepcopy(partition)
+    for i, part in enumerate(partition):
+        z = zarr.open(part["path"])
+        tmp = z[part["zarr_idx"]]
+        tmp = tmp.reshape(z.attrs["shape"][part["zarr_idx"]])[channels]
+        newpartition[i]["pixels"] = tmp
 
-    for i in range(len(partition)):
-        partition[i]["pixels"] = data[i].reshape(shapes[i])[channels].astype(numpy.float32)
+    return newpartition
 
-    return partition
+    # start, end = partition[0]["zarr_idx"], partition[-1]["zarr_idx"]
+    # data = z[start:end + 1]
+    # shapes = z.attrs["shape"][start:end + 1]
+
+    # for i in range(len(partition)):
+    #     partition[i]["pixels"] = data[i].reshape(shapes[i])[channels].astype(numpy.float32)
+
+    # return partition
 
 
 def get_loader_meta(
@@ -68,43 +76,34 @@ def get_loader_meta(
     return loader_meta
 
 
-def bag_from_directory(
-    *,
-    path: str,
-    output: Optional[Path] = None,
-    channels: List[int],
-    partition_size: int,
-    gpu_accelerated: bool,
-    regex: str
-) -> dask.bag.Bag:
-    """
+def get_group_keys():
+    return []
 
-    Args:
-        path (str): Directory to find tiffs
 
-    Returns:
-        dask.bag: bag containing dictionaries with image data
-    """
-
+@dask.delayed
+def meta_from_directory(path, regex):
     match = re.search(regex, str(path))
     groups = match.groupdict()
 
     z = zarr.open(path, mode="r")
 
-    if channels is None:
-        channels = numpy.s_[:]
-
-    path = Path(path)
     events = []
-
     for i, obj in enumerate(z.attrs["object_number"]):
         events.append({**groups, **{
-            "path": str(path),
+            "path": path,
             "zarr_idx": i,
             "object_number": obj
         }})
 
-    bag = dask.bag.from_sequence(events, partition_size=partition_size)
-    bag = bag.map_partitions(load_image_partition, z, channels)
+    return events
 
-    return bag
+
+def load_pixels(
+    images: dask.bag.Bag,
+    channels: List[int],
+    **kwargs
+) -> dask.bag.Bag:
+
+    if channels is None:
+        channels = numpy.s_[:]
+    return images.map_partitions(load_image_partition, channels)

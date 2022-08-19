@@ -16,7 +16,6 @@
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
 from typing import Optional, List, Any, Mapping
-import dask
 import numpy
 from cellpose import models
 from skimage.measure import regionprops
@@ -26,7 +25,6 @@ from skimage.morphology import white_tophat, disk
 from scip.utils.util import copy_without
 
 
-@dask.delayed
 def segment_block(
     events: List[Mapping[str, Any]],
     *,
@@ -86,7 +84,6 @@ def segment_block(
     return events
 
 
-@dask.delayed
 def to_events(
     events: List[Mapping[str, Any]],
     *,

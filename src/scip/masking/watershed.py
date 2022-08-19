@@ -20,7 +20,7 @@ from skimage.filters import sobel, threshold_otsu
 from skimage import morphology
 from skimage.restoration import denoise_nl_means
 import numpy
-from scip.masking import util
+from scip.masking import mask_post_process
 
 
 def get_mask(el, noisy_channels):
@@ -51,7 +51,7 @@ def get_mask(el, noisy_channels):
             mask[dim] = False
             regions.append(0)
         else:
-            mask[dim], cc = util.mask_post_process(segmentation == segmentation.max())
+            mask[dim], cc = mask_post_process(segmentation == segmentation.max())
             regions.append(cc)
 
     out = el.copy()

@@ -4,7 +4,7 @@ loading:
   channel_names:
     - DAPI
     - Actin
-  loader_kwargs:
+  kwargs:
     regex: ^.+\/test(?P<id>.+)_(?P<channel>[0-9]).+$
     segment_method: cellpose
     segment_kw:

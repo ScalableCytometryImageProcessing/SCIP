@@ -15,8 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
-# Contains methods for administrative tasks
-
+import socket
 from dask.distributed import Client
 from pathlib import Path
 import yaml
@@ -27,6 +26,7 @@ import shutil
 import click
 from datetime import datetime, timedelta
 import dask
+from scip._version import get_versions
 
 MODES = ["local", "jobqueue", "mpi", "external"]
 
@@ -203,3 +203,30 @@ def check(func):
         else:
             return sample
     return inner
+
+
+def prerun(context, paths, output, headless, debug, mode, gpu, n_partitions, n_threads):
+
+    output = Path(output)
+    make_output_dir(output, headless=headless)
+
+    configure_logging(output, debug)
+    logger = logging.getLogger("scip")
+
+    version = get_versions()["version"]
+    logger.info(f"SCIP version {version}")
+
+    t = datetime.utcnow().isoformat(timespec="seconds")
+    logger.info(f"Starting at {t}")
+    logger.info(f"Running pipeline for {','.join(paths)}")
+
+    n_workers = len(context.client.scheduler_info()["workers"])
+    logger.info(f"Running with {n_workers} workers and {n_threads} threads per worker")
+    logger.info(f"Mode: {mode}")
+    logger.info(f"GPUs: {gpu}")
+    logger.info(f"Number of partitions: {n_partitions}")
+    logger.info(f"Output is saved in {str(output)}")
+
+    host = context.client.run_on_scheduler(socket.gethostname)
+    port = context.client.scheduler_info()['services']['dashboard']
+    logger.info(f"Dashboard -> ssh -N -L {port}:{host}:{port}")

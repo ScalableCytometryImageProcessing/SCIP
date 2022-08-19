@@ -5,7 +5,7 @@ loading:
     - DAPI
     - eGFP
     - BF
-  loader_kwargs:
+  kwargs:
     segment_method: cellpose
     segment_kw:
       cell_diameter: 40
