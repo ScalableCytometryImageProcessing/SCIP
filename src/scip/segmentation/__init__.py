@@ -3,6 +3,7 @@ from pathlib import Path
 from importlib import import_module
 import numpy
 import dask
+import dask.bag
 
 
 def segment(
