@@ -126,7 +126,8 @@ def main(  # noqa: C901
                 "segment",
                 "project",
                 "feature_extraction",
-                "export"
+                "export",
+                "illumination_correction"
             ]]), "Config is incomplete."
         logger.info(f"Running with following config: {config}")
 
@@ -159,6 +160,16 @@ def main(  # noqa: C901
             images = images.map_partitions(
                 project_block_partition, proj=project_block, **project_kw)
 
+        if config["illumination_correction"] is not None:
+            method = config["illumination_correction"]["method"]
+            key = config["illumination_correction"]["key"]
+            correct = import_module('scip.illumination_correction.%s' % method).correct
+
+            ill_corr_output = None
+            if config["illumination_correction"]["export"]:
+                ill_corr_output = output
+            images = correct(images=images, key=key, output=ill_corr_output)
+
         if config["segment"] is not None:
             images = segment(
                 method=config["segment"]["method"],
@@ -187,8 +198,8 @@ def main(  # noqa: C901
 
         loader_meta = loader_module.get_loader_meta(
             **(config["load"]["kwargs"] or dict()))
-        futures = []
         dataframes = []
+        futures = []
         for prefix, images in images_dict.items():
             if config["filter"] is not None:
                 filter_module = import_module('scip.filter.%s' % config["filter"]["name"])
