@@ -11,6 +11,7 @@ import dask.graph_manipulation
 def correct(
     images: dask.bag.Bag,
     key: str,
+    median_filter_size: int = 50,
     output: Path = None
 ) -> dask.bag.Bag:
 
@@ -40,11 +41,18 @@ def correct(
         )
 
     def finish(total):
-        return (total[0], median_filter(total[1]["pixels"] / total[1]["count"], size=5))
+        return (
+            total[0],
+            median_filter(
+                total[1]["pixels"] / total[1]["count"],
+                size=median_filter_size,
+                mode="constant"
+            )
+        )
 
     def divide(x, mu):
         newevent = copy_without(x, without=["pixels"])
-        newevent["pixels"] = x["pixels"] / mu[x["group"]]
+        newevent["pixels"] = x["pixels"] / mu[x[key]]
 
         return newevent
 

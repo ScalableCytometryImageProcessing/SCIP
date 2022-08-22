@@ -102,6 +102,7 @@ def main(  # noqa: C901
         if not hasattr(context, "client"):
             return
 
+        output = Path(output)
         prerun(context, paths, output, headless, debug, mode, gpu, n_partitions, n_threads)
 
         logger = logging.getLogger("scip")
@@ -144,7 +145,7 @@ def main(  # noqa: C901
             kwargs=config["load"]["kwargs"] or dict(),
             loader_module=loader_module
         )
-        images.repartition(npartitions=n_partitions)
+        images = images.repartition(npartitions=n_partitions)
 
         images = load_pixels(
             bag=images,
@@ -168,7 +169,12 @@ def main(  # noqa: C901
             ill_corr_output = None
             if config["illumination_correction"]["export"]:
                 ill_corr_output = output
-            images = correct(images=images, key=key, output=ill_corr_output)
+            images = correct(
+                images=images,
+                key=key,
+                output=ill_corr_output,
+                median_filter_size=config["illumination_correction"]["median_filter_size"]
+            )
 
         if config["segment"] is not None:
             images = segment(
