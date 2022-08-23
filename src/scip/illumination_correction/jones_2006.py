@@ -2,7 +2,7 @@ import numpy
 from scip.utils.util import copy_without
 import dask.bag
 import dask.delayed
-from scipy.ndimage import median_filter
+from scipy.signal import medfilt2d
 from pathlib import Path
 import pickle
 import dask.graph_manipulation
@@ -34,11 +34,11 @@ def correct(
         )
 
     def finish(total):
+        avg = total[1]["pixels"] / total[1]["count"]
         tmp = numpy.asarray([
-            median_filter(
-                total[1]["pixels"][i] / total[1]["count"],
-                size=median_filter_size,
-                mode="constant"
+            medfilt2d(
+                avg[i],
+                kernel_size=median_filter_size
             ) for i in range(len(total[1]["pixels"]))
         ])
         return (

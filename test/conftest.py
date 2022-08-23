@@ -38,7 +38,7 @@ def fake_mask(image_nchannels, n=10, full=True):
 
 def to_records(images, masks):
 
-    groups = ["one"]*(len(images)//2) + ["two"]*(len(images) - len(images)//2)
+    groups = ["one"] * (len(images) // 2) + ["two"] * (len(images) - len(images) // 2)
 
     return [{
         "pixels": image.astype(numpy.float32),

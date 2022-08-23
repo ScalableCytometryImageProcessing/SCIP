@@ -10,12 +10,12 @@ def test_correct(fake_images_bag, tmp_path):
     images = jones_2006.correct(
         images=fake_images_bag,
         key="group",
-        median_filter_size=7,
+        median_filter_size=11,
         output=tmp_path
     )
 
     original_images = fake_images_bag.compute()
-    a = images.compute()
+    a = images.compute(optimize_graph=False)
 
     assert len(a) > 0
     assert all("pixels" in im for im in a)
