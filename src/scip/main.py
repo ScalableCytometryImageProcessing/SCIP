@@ -178,6 +178,7 @@ def main(  # noqa: C901
 
         if config["segment"] is not None:
             images = segment(
+                images=images,
                 method=config["segment"]["method"],
                 settings=config["segment"]["settings"],
                 export=config["segment"]["export"],
