@@ -28,32 +28,27 @@ def correct(
         if total1["pixels"] is None:
             total1["pixels"] = numpy.zeros_like(total2["pixels"])
 
-        avg1 = total1["pixels"]
-        if total1["count"] > 0:
-            avg1 /= total1["count"]
-        avg2 = total2["pixels"]
-        if total2["count"] > 0:
-            avg2 /= total2["count"]
-
         return dict(
-            pixels=avg1 + avg2,
+            pixels=total2["pixels"] + total1["pixels"],
             count=total1["count"] + total2["count"]
         )
 
     def finish(total):
+        tmp = numpy.apply_along_axis(
+            func1d=median_filter,
+            arr=total[1]["pixels"] / total[1]["count"],
+            axis=0,
+            size=median_filter_size,
+            mode="constant"
+        )
         return (
             total[0],
-            median_filter(
-                total[1]["pixels"] / total[1]["count"],
-                size=median_filter_size,
-                mode="constant"
-            )
+            numpy.where(tmp == 0, 1, tmp)  # swap out 0 for division no-op 1
         )
 
     def divide(x, mu):
         newevent = copy_without(x, without=["pixels"])
         newevent["pixels"] = x["pixels"] / mu[x[key]]
-
         return newevent
 
     mean_images = images.foldby(
