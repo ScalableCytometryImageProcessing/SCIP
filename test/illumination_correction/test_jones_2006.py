@@ -31,4 +31,4 @@ def test_correct(fake_images_bag, tmp_path):
 
     with open(tmp_path / "correction_images.pickle", "rb") as fh:
         corr = pickle.load(fh)
-    assert all(~(v==1).all() for _, v in corr.items())
+    assert all(~(v == 1).all() for _, v in corr.items())
