@@ -10,7 +10,7 @@ def test_correct(fake_images_bag, tmp_path):
     images = jones_2006.correct(
         images=fake_images_bag,
         key="group",
-        median_filter_size=5,
+        median_filter_size=7,
         output=tmp_path
     )
 

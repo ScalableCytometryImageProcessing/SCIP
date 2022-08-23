@@ -34,13 +34,13 @@ def correct(
         )
 
     def finish(total):
-        tmp = numpy.apply_along_axis(
-            func1d=median_filter,
-            arr=total[1]["pixels"] / total[1]["count"],
-            axis=0,
-            size=median_filter_size,
-            mode="constant"
-        )
+        tmp = numpy.asarray([
+            median_filter(
+                total[1]["pixels"][i] / total[1]["count"],
+                size=median_filter_size,
+                mode="constant"
+            ) for i in range(len(total[1]["pixels"]))
+        ])
         return (
             total[0],
             numpy.where(tmp == 0, 1, tmp)  # swap out 0 for division no-op 1
