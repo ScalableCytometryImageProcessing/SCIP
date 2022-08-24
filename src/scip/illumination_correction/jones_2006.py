@@ -48,8 +48,9 @@ def correct(
     def finish(total):
         avg = total[1]["pixels"] / total[1]["count"]
 
-        # downscale the image prior to median filtering to reduce memory consumption
-        avg = downscale_local_mean(avg, factors=(1, downscale, downscale))
+        if downscale > 1:
+            # downscale the image prior to median filtering to reduce memory consumption
+            avg = downscale_local_mean(avg, factors=(1, downscale, downscale))
 
         avg = numpy.asarray([
             filter_func(avg[i])
@@ -57,7 +58,9 @@ def correct(
         ])
         avg = numpy.where(avg == 0, 1, avg)  # swap out 0 for division no-op 1
 
-        avg = rescale(avg, scale=downscale, anti_aliasing=True, channel_axis=0)
+        if downscale > 1:
+            # reverse earlier downscaling
+            avg = rescale(avg, scale=downscale, anti_aliasing=True, channel_axis=0)
 
         return (total[0], avg)
 

@@ -11,7 +11,9 @@ illumination_correction:
   method: jones_2006
   key: plate
   export: true
-  median_filter_size: 11
+  settings:
+    median_filter_size: 11
+    downscale: 1
 segment:
   method: cellpose
   settings:
