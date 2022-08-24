@@ -207,7 +207,6 @@ def check(func):
 
 def prerun(context, paths, output, headless, debug, mode, gpu, n_partitions, n_threads):
 
-    output = Path(output)
     make_output_dir(output, headless=headless)
 
     configure_logging(output, debug)

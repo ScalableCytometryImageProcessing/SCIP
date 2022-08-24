@@ -102,6 +102,7 @@ def main(  # noqa: C901
         if not hasattr(context, "client"):
             return
 
+        output = Path(output)
         prerun(context, paths, output, headless, debug, mode, gpu, n_partitions, n_threads)
 
         logger = logging.getLogger("scip")
@@ -126,7 +127,8 @@ def main(  # noqa: C901
                 "segment",
                 "project",
                 "feature_extraction",
-                "export"
+                "export",
+                "illumination_correction"
             ]]), "Config is incomplete."
         logger.info(f"Running with following config: {config}")
 
@@ -138,12 +140,12 @@ def main(  # noqa: C901
         loader_module = import_module('scip.loading.%s' % config["load"]["format"])
         # with dask.config.set(**{'array.slicing.split_large_chunks': False}):
 
-        images = load_meta(
+        meta = load_meta(
             paths=paths,
             kwargs=config["load"]["kwargs"] or dict(),
             loader_module=loader_module
-        )
-        images.repartition(npartitions=n_partitions)
+        ).persist()
+        images = meta.repartition(npartitions=n_partitions)
 
         images = load_pixels(
             bag=images,
@@ -159,8 +161,25 @@ def main(  # noqa: C901
             images = images.map_partitions(
                 project_block_partition, proj=project_block, **project_kw)
 
+        if config["illumination_correction"] is not None:
+            method = config["illumination_correction"]["method"]
+            key = config["illumination_correction"]["key"]
+            correct = import_module('scip.illumination_correction.%s' % method).correct
+
+            ill_corr_output = None
+            if config["illumination_correction"]["export"]:
+                ill_corr_output = output
+            images = correct(
+                images=images,
+                key=key,
+                nbatches=len(meta.distinct(key).compute()),
+                output=ill_corr_output,
+                **config["illumination_correction"]["settings"],
+            )
+
         if config["segment"] is not None:
             images = segment(
+                images=images,
                 method=config["segment"]["method"],
                 settings=config["segment"]["settings"],
                 export=config["segment"]["export"],
@@ -187,8 +206,8 @@ def main(  # noqa: C901
 
         loader_meta = loader_module.get_loader_meta(
             **(config["load"]["kwargs"] or dict()))
-        futures = []
         dataframes = []
+        futures = []
         for prefix, images in images_dict.items():
             if config["filter"] is not None:
                 filter_module = import_module('scip.filter.%s' % config["filter"]["name"])

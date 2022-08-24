@@ -8,6 +8,7 @@ load:
     regex: ^.+\/(?P<group>.+).zarr$
 segment:
 project:
+illumination_correction:
 mask:
   combined_indices: [0, 1]
   methods:

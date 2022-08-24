@@ -30,7 +30,6 @@ import dask.array
 import numpy
 import tifffile
 from aicsimageio.readers.tiff_glob_reader import TiffGlobReader
-
 from scip.loading import util as l_util
 
 logging.getLogger("tifffile").setLevel(logging.ERROR)
@@ -98,7 +97,7 @@ def _load_block(
     ).get_image_data("CXY")
 
     newevent = event.copy()
-    newevent["pixels"] = im
+    newevent["pixels"] = im.astype(numpy.float32)
     return newevent
 
 

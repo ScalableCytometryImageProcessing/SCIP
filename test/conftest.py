@@ -21,7 +21,6 @@ import pytest
 import numpy
 import dask.bag
 from dask.distributed import LocalCluster, Client
-
 from scip.utils import util
 
 
@@ -38,17 +37,19 @@ def fake_mask(image_nchannels, n=10, full=True):
 
 
 def to_records(images, masks):
-    assert len(images) == len(masks)
+
+    groups = ["one"] * (len(images) // 2) + ["two"] * (len(images) - len(images) // 2)
+
     return [{
-        "pixels": image,
+        "pixels": image.astype(numpy.float32),
         "mask": mask,
         "combined_mask": mask[0],
         "background": [0] * len(images[0]),
         "combined_background": [0] * len(images[0]),
-        "group": "one",
+        "group": group,
         "bbox": (2, 2, 8, 8),
         "regions": [1] * len(images[0])
-    } for image, mask in zip(images, masks)]
+    } for image, mask, group in zip(images, masks, groups)]
 
 
 # FIXTURES
