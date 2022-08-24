@@ -11,7 +11,9 @@ def test_correct(fake_images_bag, tmp_path):
         images=fake_images_bag,
         key="group",
         median_filter_size=11,
-        output=tmp_path
+        downscale=1,
+        output=tmp_path,
+        nbatches=1
     )
 
     original_images = fake_images_bag.compute()

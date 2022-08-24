@@ -11,6 +11,26 @@ import dask.graph_manipulation
 from skimage.transform import downscale_local_mean, rescale
 
 
+def _binop(total, x):
+    if total["pixels"] is None:
+        total["pixels"] = numpy.zeros_like(x["pixels"])
+
+    return dict(
+        pixels=total["pixels"] + x["pixels"],
+        count=total["count"] + 1
+    )
+
+
+def _combine(total1, total2):
+    if total1["pixels"] is None:
+        total1["pixels"] = numpy.zeros_like(total2["pixels"])
+
+    return dict(
+        pixels=total2["pixels"] + total1["pixels"],
+        count=total1["count"] + total2["count"]
+    )
+
+
 def correct(
     *,
     images: dask.bag.Bag,
@@ -26,24 +46,6 @@ def correct(
         filter_func = partial(medfilt2d, kernel_size=median_filter_size)
     else:
         filter_func = partial(median_filter, size=median_filter_size)
-
-    def binop(total, x):
-        if total["pixels"] is None:
-            total["pixels"] = numpy.zeros_like(x["pixels"])
-
-        return dict(
-            pixels=total["pixels"] + x["pixels"],
-            count=total["count"] + 1
-        )
-
-    def combine(total1, total2):
-        if total1["pixels"] is None:
-            total1["pixels"] = numpy.zeros_like(total2["pixels"])
-
-        return dict(
-            pixels=total2["pixels"] + total1["pixels"],
-            count=total1["count"] + total2["count"]
-        )
 
     def finish(total):
         avg = total[1]["pixels"] / total[1]["count"]
@@ -71,8 +73,8 @@ def correct(
 
     mean_images = images.foldby(
         key=key,
-        binop=binop,
-        combine=combine,
+        binop=_binop,
+        combine=_combine,
         initial=dict(pixels=None, count=0),
         combine_initial=dict(pixels=None, count=0)
     )
