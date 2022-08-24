@@ -1,8 +1,10 @@
+from functools import partial
 import numpy
 from scip.utils.util import copy_without
 import dask.bag
 import dask.delayed
 from scipy.signal import medfilt2d
+from scipy.ndimage import median_filter
 from pathlib import Path
 import pickle
 import dask.graph_manipulation
@@ -16,6 +18,12 @@ def correct(
     median_filter_size: int = 50,
     output: Path = None,
 ) -> dask.bag.Bag:
+
+    # switch to medfilt2d for larger filter sizes as it consumes less memory
+    if median_filter_size > 150:
+        filter_func = partial(medfilt2d, kernel_size=median_filter_size)
+    else:
+        filter_func = partial(median_filter, size=median_filter_size, mode="constant")
 
     def binop(total, x):
         if total["pixels"] is None:
@@ -38,10 +46,8 @@ def correct(
     def finish(total):
         avg = total[1]["pixels"] / total[1]["count"]
         tmp = numpy.asarray([
-            medfilt2d(
-                avg[i],
-                kernel_size=median_filter_size
-            ) for i in range(len(total[1]["pixels"]))
+            filter_func(avg[i])
+            for i in range(len(total[1]["pixels"]))
         ])
         return (
             total[0],
