@@ -1,6 +1,5 @@
 from functools import partial
 import numpy
-from scip.utils.util import copy_without
 import dask.bag
 import dask.delayed
 from scipy.signal import medfilt2d
