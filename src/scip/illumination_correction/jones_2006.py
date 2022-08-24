@@ -9,6 +9,7 @@ from pathlib import Path
 import pickle
 import dask.graph_manipulation
 from skimage.transform import downscale_local_mean, rescale
+import copy
 
 
 def _binop(total, x):
@@ -66,10 +67,11 @@ def correct(
 
         return (total[0], avg)
 
-    def divide(x, mu):
-        newevent = copy_without(x, without=["pixels"])
-        newevent["pixels"] = x["pixels"] / mu[x[key]]
-        return newevent
+    def divide(part, mu):
+        newpart = copy.deepcopy(part)
+        for x in newpart:
+            x["pixels"] = x["pixels"] / mu[x[key]]
+        return newpart
 
     mean_images = images.foldby(
         key=key,
@@ -82,7 +84,7 @@ def correct(
     mean_images = mean_images.map(finish)
     mean_images = dask.delayed(dict, pure=True)(mean_images)
 
-    images = images.map(divide, mu=mean_images)
+    images = images.map_partitions(divide, mu=mean_images)
 
     if output is not None:
         @dask.delayed
