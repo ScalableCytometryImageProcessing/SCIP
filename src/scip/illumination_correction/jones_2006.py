@@ -8,6 +8,7 @@ from scipy.ndimage import median_filter
 from pathlib import Path
 import pickle
 import dask.graph_manipulation
+from skimage.transform import downscale_local_mean, rescale
 
 
 def correct(
@@ -16,6 +17,7 @@ def correct(
     key: str,
     nbatches: int,
     median_filter_size: int = 50,
+    downscale: int = 1,
     output: Path = None,
 ) -> dask.bag.Bag:
 
@@ -23,7 +25,7 @@ def correct(
     if median_filter_size > 150:
         filter_func = partial(medfilt2d, kernel_size=median_filter_size)
     else:
-        filter_func = partial(median_filter, size=median_filter_size, mode="constant")
+        filter_func = partial(median_filter, size=median_filter_size)
 
     def binop(total, x):
         if total["pixels"] is None:
@@ -45,14 +47,19 @@ def correct(
 
     def finish(total):
         avg = total[1]["pixels"] / total[1]["count"]
-        tmp = numpy.asarray([
+
+        # downscale the image prior to median filtering to reduce memory consumption
+        avg = downscale_local_mean(avg, factors=(1, downscale, downscale))
+
+        avg = numpy.asarray([
             filter_func(avg[i])
             for i in range(len(total[1]["pixels"]))
         ])
-        return (
-            total[0],
-            numpy.where(tmp == 0, 1, tmp)  # swap out 0 for division no-op 1
-        )
+        avg = numpy.where(avg == 0, 1, avg)  # swap out 0 for division no-op 1
+
+        avg = rescale(avg, scale=downscale, anti_aliasing=True, channel_axis=0)
+
+        return (total[0], avg)
 
     def divide(x, mu):
         newevent = copy_without(x, without=["pixels"])
