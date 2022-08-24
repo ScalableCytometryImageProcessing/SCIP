@@ -140,12 +140,12 @@ def main(  # noqa: C901
         loader_module = import_module('scip.loading.%s' % config["load"]["format"])
         # with dask.config.set(**{'array.slicing.split_large_chunks': False}):
 
-        images = load_meta(
+        meta = load_meta(
             paths=paths,
             kwargs=config["load"]["kwargs"] or dict(),
             loader_module=loader_module
-        )
-        images = images.repartition(npartitions=n_partitions)
+        ).persist()
+        images = meta.repartition(npartitions=n_partitions)
 
         images = load_pixels(
             bag=images,
@@ -173,7 +173,8 @@ def main(  # noqa: C901
                 images=images,
                 key=key,
                 output=ill_corr_output,
-                median_filter_size=config["illumination_correction"]["median_filter_size"]
+                median_filter_size=config["illumination_correction"]["median_filter_size"],
+                nbatches=len(meta.distinct(key).compute())
             )
 
         if config["segment"] is not None:

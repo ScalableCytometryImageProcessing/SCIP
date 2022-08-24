@@ -9,10 +9,12 @@ import dask.graph_manipulation
 
 
 def correct(
+    *,
     images: dask.bag.Bag,
     key: str,
+    nbatches: int,
     median_filter_size: int = 50,
-    output: Path = None
+    output: Path = None,
 ) -> dask.bag.Bag:
 
     def binop(total, x):
@@ -58,6 +60,7 @@ def correct(
         initial=dict(pixels=None, count=0),
         combine_initial=dict(pixels=None, count=0)
     )
+    mean_images = mean_images.repartition(npartitions=nbatches)
     mean_images = mean_images.map(finish)
     mean_images = dask.delayed(dict, pure=True)(mean_images)
 
