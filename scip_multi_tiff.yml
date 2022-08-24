@@ -6,7 +6,7 @@ loading:
     - PI
     - DF
     - BF2
-  loader_kwargs:
+  kwargs:
 masking:
   method: watershed
   bbox_channel_index: 0

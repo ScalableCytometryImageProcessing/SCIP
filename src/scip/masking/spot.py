@@ -16,16 +16,15 @@
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
 import numpy
-from skimage.morphology import (
-    remove_small_holes, remove_small_objects, label)
-from skimage.filters import threshold_li, sobel, gaussian
 from scipy.stats import normaltest
 from scip.utils.util import check, copy_without
 from scip.masking import mask_predicate
+from skimage.morphology import white_tophat, disk, label, binary_dilation
+from skimage.filters import threshold_minimum
 
 
 @check
-def get_mask(el, main_channel, smooth):
+def get_mask(el, main_channel, spotsize):
 
     regions = [0] * len(el["pixels"])
     mask = numpy.full(shape=el["pixels"].shape, dtype=bool, fill_value=False)
@@ -37,15 +36,19 @@ def get_mask(el, main_channel, smooth):
 
         x = el["pixels"][dim]
         if (normaltest(x.ravel()).pvalue < 0.05):
-            x = gaussian(x, sigma=smooth[dim])
-            x = sobel(x)
-            x = gaussian(x, sigma=smooth[dim] * 2)
-            x = threshold_li(x) < x
-            x = remove_small_holes(x, area_threshold=(x.shape[0] * x.shape[1]) / 4)
-            x = remove_small_objects(x, min_size=20)
-            x = label(x)
 
-            mask[dim], cc = x > 0, x.max()
+            x = el["pixels"][dim]
+            x = white_tophat(x, footprint=disk(spotsize))
+
+            for nbins in [256, 512, 1024]:
+                try:
+                    x = threshold_minimum(x, nbins=nbins) < x
+                    x = binary_dilation(x, footprint=disk(2))
+                    x = label(x)
+                    mask[dim], cc = x > 0, x.max()
+                    break
+                except RuntimeError:
+                    pass
         elif dim == main_channel:
             out = copy_without(el, without=["pixels"])
             out["regions"] = regions
@@ -61,13 +64,13 @@ def get_mask(el, main_channel, smooth):
     return out
 
 
-def create_masks_on_bag(bag, main_channel, smooth):
+def create_masks_on_bag(bag, main_channel, spotsize):
 
-    def threshold_masking(partition):
+    def spot_masking(partition):
         return [
-            mask_predicate(get_mask(p, main_channel, smooth), main_channel)
+            mask_predicate(get_mask(p, main_channel, spotsize), main_channel)
             for p in partition
         ]
 
-    bag = bag.map_partitions(threshold_masking)
+    bag = bag.map_partitions(spot_masking)
     return bag

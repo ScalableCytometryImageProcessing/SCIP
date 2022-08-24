@@ -17,13 +17,15 @@
 
 from scip.loading import zarr
 import pytest
+import dask.bag
 
 
 @pytest.mark.parametrize("channels, expected_length", [(None, 7), ([0, 1], 2)])
-def test_bag_from_directory(zarr_path, channels, expected_length):
-    bag = zarr.bag_from_directory(
-        path=zarr_path, channels=channels, partition_size=5,
-        gpu_accelerated=False, regex="(?P<name>.*)")
-    images = bag.compute()
+def test_load_pixels(zarr_path, channels, expected_length):
+    images = zarr.meta_from_directory(path=zarr_path, regex="(?P<name>.*)")
+    images = dask.bag.from_delayed(images)
+    images = zarr.load_pixels(images=images, channels=channels)
+    images = images.compute()
 
+    assert len(images) > 0
     assert all(len(im["pixels"]) == expected_length for im in images)

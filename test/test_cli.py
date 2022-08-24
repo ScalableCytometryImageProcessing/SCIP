@@ -1,7 +1,8 @@
 from click.testing import CliRunner
 from scip.main import cli
 import json
-import anndata
+import pandas
+import pyarrow.parquet
 
 
 def test_cli(zarr_path, tmp_path, data):
@@ -11,7 +12,7 @@ def test_cli(zarr_path, tmp_path, data):
         "--headless",
         "--n-workers", "4",
         "--n-threads", "1",
-        "--partition-size", "5",
+        "--n-partitions", "5",
         "--timing", str(tmp_path / "timing.json"),
         str(tmp_path),
         str(data / "scip_zarr.yml"),
@@ -25,6 +26,9 @@ def test_cli(zarr_path, tmp_path, data):
     assert type(timing["runtime"]) is float
     assert timing["runtime"] > 0
 
-    assert len([f for f in tmp_path.glob("*.h5ad")]) == 10
+    assert len([f for f in tmp_path.glob("*.parquet")]) == 10
     assert (tmp_path / "scip.log").exists()
-    assert sum(len(anndata.read(f)) for f in tmp_path.glob("*.h5ad")) == 10
+
+    df = pandas.concat(
+        [pyarrow.parquet.read_table(f).to_pandas() for f in tmp_path.glob("*.parquet")], axis=0)
+    assert len(df) == 10

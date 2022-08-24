@@ -14,3 +14,39 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
+
+from typing import List, Mapping, Any, Tuple
+
+import dask.bag
+from pathlib import Path
+
+
+def load_meta(
+    *,
+    paths: List[str],
+    kwargs: Mapping[str, Any] = {},
+    loader_module
+) -> Tuple[dask.bag.Bag, Mapping[str, type]]:
+
+    bags = []
+    for path in paths:
+        assert Path(path).exists(), f"{path} does not exist."
+
+        meta = loader_module.meta_from_directory(path=path, **kwargs)
+        bag = dask.bag.from_delayed(meta)
+        bags.append(bag)
+
+    return dask.bag.concat(bags)
+
+
+def load_pixels(
+    *,
+    bag: dask.bag.Bag,
+    channels: List[int],
+    kwargs: Mapping[str, Any] = {},
+    loader_module
+) -> dask.bag.Bag:
+
+    bag = loader_module.load_pixels(bag, channels=channels, **kwargs)
+
+    return bag

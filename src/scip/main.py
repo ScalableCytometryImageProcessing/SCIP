@@ -19,23 +19,24 @@ from typing import Any, Optional, List
 
 import time
 import os
-import socket
 import logging
 import logging.config
-from datetime import datetime
 from pathlib import Path
 from importlib import import_module
 
 import click
 import dask.bag
 import dask.dataframe
+import dask.dataframe.multi
 import pandas
 
-from scip.loading.util import get_images_bag
-from scip.utils.util import copy_without
+from scip.loading import load_meta, load_pixels
+from scip.utils.util import copy_without, prerun
 from scip.utils import util  # noqa: E402
-from scip.features import feature_extraction  # noqa: E402
-from scip.masking import util as masking_util
+from scip.features import compute_features  # noqa: E402
+from scip.masking import mask
+from scip.segmentation import segment
+from scip.projection import project_block_partition
 from scip._version import get_versions
 
 # dask issues a warning during normalization
@@ -45,50 +46,6 @@ import warnings
 warnings.simplefilter("ignore", category=FutureWarning)
 
 
-def compute_features(images, channel_names, types, loader_meta):
-
-    def rename(c):
-        if any(c.startswith(a) for a in ["bbox", "regions"] + list(loader_meta.keys())):
-            return f"meta_{c}"
-        else:
-            return f"feat_{c}"
-
-    features = feature_extraction.extract_features(
-        images=images,
-        channel_names=channel_names,
-        types=types,
-        loader_meta=loader_meta
-    )
-    features = features.rename(columns=rename)
-    return features
-
-
-def get_schema(event):
-    py_to_avro = {
-        "str": "string",
-        "int": "int",
-        "list": {
-            "type": "array",
-            "name": "mask",
-            "items": "int"
-        }
-    }
-    tmp = event[0]
-    tmp["mask"] = tmp["mask"].tolist()
-    tmp["bbox"] = list(tmp["bbox"])
-    return [
-        {"name": k, "type": py_to_avro[type(v).__name__]}
-        for k, v in tmp.items()
-    ]
-
-
-def remove_pixels(event):
-    newevent = copy_without(event, ["pixels", "mask"])
-    newevent["shape"] = list(event["mask"].shape)
-    newevent["mask"] = event["mask"].ravel()
-    return newevent
-
-
 @dask.delayed
 def channel_boundaries(quantiles, *, config, output):
     data = []
@@ -96,7 +53,7 @@ def channel_boundaries(quantiles, *, config, output):
     for k, v in quantiles:
         index.append(k)
         out = {}
-        for channel, r in zip(config["loading"]["channel_names"], v):
+        for channel, r in zip(config["load"]["channel_names"], v):
             out[f"{channel}_min"] = r[0]
             out[f"{channel}_max"] = r[1]
         data.append(out)
@@ -111,14 +68,13 @@ def main(  # noqa: C901
     mode: str,
     limit: Optional[int] = -1,
     with_replacement: Optional[bool] = False,
-    partition_size: Optional[int] = 1,
+    n_partitions: Optional[int] = 10,
     n_workers: Optional[int] = 1,
     n_nodes: Optional[int] = 1,
     n_cores: Optional[int] = None,
     n_threads: Optional[int] = 1,
     memory: Optional[int] = 1,
     walltime: Optional[str] = None,
-    project: Optional[str] = "",
     job_extra: Optional[str] = "",
     local_directory: Optional[str] = "tmp",
     headless: Optional[bool] = False,
@@ -139,7 +95,6 @@ def main(  # noqa: C901
             walltime=walltime,
             job_extra=job_extra,
             threads_per_process=n_threads,
-            project=project,
             gpu=gpu,
             scheduler_adress=scheduler_adress
     ) as context:
@@ -148,41 +103,9 @@ def main(  # noqa: C901
             return
 
         output = Path(output)
-        util.make_output_dir(output, headless=headless)
+        prerun(context, paths, output, headless, debug, mode, gpu, n_partitions, n_threads)
 
-        util.configure_logging(output, debug)
         logger = logging.getLogger("scip")
-
-        version = get_versions()["version"]
-        logger.info(f"SCIP version {version}")
-
-        t = datetime.utcnow().isoformat(timespec="seconds")
-        logger.info(f"Starting at {t}")
-        logger.info(f"Running pipeline for {','.join(paths)}")
-
-        n_workers = len(context.client.scheduler_info()["workers"])
-        logger.info(f"Running with {n_workers} workers and {n_threads} threads per worker")
-        logger.info(f"Mode: {mode}")
-        logger.info(f"GPUs: {gpu}")
-        logger.info(f"Partition size: {partition_size}")
-        logger.info(f"Output is saved in {str(output)}")
-
-        config = util.load_yaml_config(config)
-        assert all([
-            k in config
-            for k in [
-                "filter",
-                "normalization",
-                "loading",
-                "masking",
-                "feature_extraction",
-                "export"
-            ]]), "Config is incomplete."
-        logger.info(f"Running with following config: {config}")
-
-        host = context.client.run_on_scheduler(socket.gethostname)
-        port = context.client.scheduler_info()['services']['dashboard']
-        logger.info(f"Dashboard -> ssh -N -L {port}:{host}:{port}")
 
         # if timing is set, wait for the cluster to be fully ready
         # to isolate cluster startup time from pipeline execution
@@ -193,22 +116,75 @@ def main(  # noqa: C901
         logger.debug("timer started")
         start = time.time()
 
-        assert "channels" in config["loading"], "Please specify what channels to load"
-        channels = config["loading"]["channels"]
-        channel_names = config["loading"]["channel_names"]
+        config = util.load_yaml_config(config)
+        assert all([
+            k in config
+            for k in [
+                "filter",
+                "normalization",
+                "load",
+                "mask",
+                "segment",
+                "project",
+                "feature_extraction",
+                "export",
+                "illumination_correction"
+            ]]), "Config is incomplete."
+        logger.info(f"Running with following config: {config}")
+
+        assert "channels" in config["load"], "Please specify what channels to load"
+        channels = config["load"]["channels"]
+        channel_names = config["load"]["channel_names"]
         assert len(channels) == len(channel_names), "Please specify a name for each channel"
 
-        logger.debug("loading images in to bags")
+        loader_module = import_module('scip.loading.%s' % config["load"]["format"])
+        # with dask.config.set(**{'array.slicing.split_large_chunks': False}):
 
-        loader_module = import_module('scip.loading.%s' % config["loading"]["format"])
-        with dask.config.set(**{'array.slicing.split_large_chunks': False}):
-            images, loader_meta = get_images_bag(
-                paths=paths,
+        meta = load_meta(
+            paths=paths,
+            kwargs=config["load"]["kwargs"] or dict(),
+            loader_module=loader_module
+        ).persist()
+        images = meta.repartition(npartitions=n_partitions)
+
+        images = load_pixels(
+            bag=images,
+            channels=channels,
+            kwargs=config["load"]["kwargs"] or dict(),
+            loader_module=loader_module
+        )
+
+        if config["project"] is not None:
+            project_method = config["project"]["method"]
+            project_kw = config["project"]["settings"]
+            project_block = import_module('scip.projection.%s' % project_method).project_block
+            images = images.map_partitions(
+                project_block_partition, proj=project_block, **project_kw)
+
+        if config["illumination_correction"] is not None:
+            method = config["illumination_correction"]["method"]
+            key = config["illumination_correction"]["key"]
+            correct = import_module('scip.illumination_correction.%s' % method).correct
+
+            ill_corr_output = None
+            if config["illumination_correction"]["export"]:
+                ill_corr_output = output
+            images = correct(
+                images=images,
+                key=key,
+                nbatches=len(meta.distinct(key).compute()),
+                output=ill_corr_output,
+                **config["illumination_correction"]["settings"],
+            )
+
+        if config["segment"] is not None:
+            images = segment(
+                images=images,
+                method=config["segment"]["method"],
+                settings=config["segment"]["settings"],
+                export=config["segment"]["export"],
                 output=output,
-                channels=channels,
-                config=config,
-                partition_size=partition_size,
-                gpu_accelerated=gpu > 0,
+                gpu=gpu,
                 loader_module=loader_module
             )
 
@@ -219,79 +195,71 @@ def main(  # noqa: C901
             else:
                 images = sample(images, k=limit)
 
+        if config["mask"] is not None:
+            images_dict = mask(
+                images=images,
+                methods=config["mask"]["methods"],
+                combined_indices=config["mask"]["combined_indices"]
+            )
+        else:
+            images_dict = dict(no=images)
+
+        loader_meta = loader_module.get_loader_meta(
+            **(config["load"]["kwargs"] or dict()))
+        dataframes = []
         futures = []
+        for prefix, images in images_dict.items():
+            if config["filter"] is not None:
+                filter_module = import_module('scip.filter.%s' % config["filter"]["name"])
 
-        method = config["masking"]["method"]
-        if method is not None:
-            masking_module = import_module('scip.masking.%s' % config["masking"]["method"])
-            logger.debug("creating masks on bag")
+                images = images.map_partitions(filter_module.feature_partition)
+                images = images.map(copy_without, without=["pixels"]).persist()
+                filter_items = filter_module.item(images)
 
-            images = masking_module.create_masks_on_bag(
-                images,
-                main_channel=config["masking"]["bbox_channel_index"],
-                **(config["masking"]["kwargs"] or dict())
-            )
+                images = images.map(filter_module.predicate, **filter_items)
 
-            logger.debug("preparing bag for feature extraction")
-
-            images = images.map_partitions(
-                masking_util.remove_regions_touching_border_partition,
-                bbox_channel_index=config["masking"]["bbox_channel_index"]
-            )
-
-            images = images.map_partitions(masking_util.bounding_box_partition)
-
-            if config["masking"]["export"]:
-                no_pixels = images.map(remove_pixels)
-                no_pixels.to_avro(
-                    filename=str(output / "masks.*.avro"),
-                    schema={
-                        "name": "events",
-                        "type": "record",
-                        "fields": get_schema(no_pixels.take(1))
-                    }
+                images = images.map_partitions(
+                    loader_module.reload_image_partition,
+                    channels=channels,
+                    **(config["load"]["kwargs"] or dict())
                 )
 
-            # mask is applied and background values are computed
-            images = images.map_partitions(
-                masking_util.apply_mask_partition,
-                combined_indices=config["masking"]["combined_indices"]
+            quantiles = None
+            if config["normalization"] is not None:
+                logger.debug("performing normalization")
+                from scip.normalization import quantile_normalization  # noqa: E402
+                images, quantiles = quantile_normalization.quantile_normalization(
+                    images,
+                    config["normalization"]["lower"],
+                    config["normalization"]["upper"],
+                    len(channels)
+                )
+                futures.append(channel_boundaries(quantiles, config=config, output=output))
+
+            logger.debug("computing features")
+
+            pref = None if prefix == "no" else prefix
+            types = config["feature_extraction"]
+            if prefix != "no":
+                types = types[prefix]
+
+            bag_df = compute_features(
+                images=images,
+                channel_names=channel_names,
+                loader_meta=loader_meta,
+                prefix=pref,
+                types=types
             )
 
-        if config["filter"] is not None:
-            filter_module = import_module('scip.filter.%s' % config["filter"]["name"])
+            dataframes.append(bag_df)
 
-            images = images.map_partitions(filter_module.feature_partition)
-            images = images.map(copy_without, without=["pixels"]).persist()
-            filter_items = filter_module.item(images)
+            # change loader_meta dict so that meta keys are only added once
+            # in case multiple features sets are computed.
+            # Leave in the regions keys as they might change between masks
+            loader_meta = {k: v for k, v in loader_meta.items() if "regions" in k}
 
-            images = images.map(filter_module.predicate, **filter_items)
-
-            images = images.map_partitions(
-                loader_module.reload_image_partition,
-                channels=channels,
-                **(config["loading"]["loader_kwargs"] or dict())
-            )
-
-        quantiles = None
-        if config["normalization"] is not None:
-            logger.debug("performing normalization")
-            from scip.normalization import quantile_normalization  # noqa: E402
-            images, quantiles = quantile_normalization.quantile_normalization(
-                images,
-                config["normalization"]["lower"],
-                config["normalization"]["upper"],
-                len(channels)
-            )
-            futures.append(channel_boundaries(quantiles, config=config, output=output))
-
-        logger.debug("computing features")
-        bag_df = compute_features(
-            images=images,
-            channel_names=channel_names,
-            types=config["feature_extraction"]["types"],
-            loader_meta=loader_meta
-        )
+        # partitions never change between masks so we can ignore unknown divisions
+        bag_df = dask.dataframe.multi.concat(dataframes, axis=1, ignore_unknown_divisions=True)
         bag_df = bag_df.repartition(npartitions=10)
 
         filename = config["export"]["filename"]
@@ -349,17 +317,14 @@ def _print_version(ctx, param, value):
     "--walltime", "-w", type=str, default="01:00:00",
     help="Expected required walltime for the job to finish")
 @click.option(
-    "--project", "-p", type=str, default=None,
-    help="Project name for HPC cluster")
-@click.option(
     "--job-extra", "-e", type=str, multiple=True, default=[],
     help="Extra arguments for job submission")
 @click.option(
     "--headless", default=False, is_flag=True,
     help="If set, the program will never ask for user input")
 @click.option(
-    "--partition-size", "-s", default=50, type=click.IntRange(min=1),
-    help="Set partition size")
+    "--n-partitions", "-s", default=10, type=click.IntRange(min=1),
+    help="Set number of partitions")
 @click.option(
     "--scheduler-adress", default=None, type=str,
     help="Adress of scheduler to connect to."

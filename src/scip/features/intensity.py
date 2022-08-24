@@ -19,7 +19,7 @@ from typing import Mapping, List
 
 import numpy
 import scipy.stats
-from scipy.ndimage import convolve
+from skimage.morphology import disk, binary_erosion
 from numba import njit
 
 props = [
@@ -77,6 +77,10 @@ def _row2(pixels: numpy.ndarray) -> list:
     ]
 
 
+def _get_edge_mask(mask: numpy.ndarray) -> numpy.ndarray:
+    return numpy.bitwise_xor(binary_erosion(mask, footprint=disk(6)), mask)
+
+
 def intensity_features(
     pixels: numpy.ndarray,
     mask: numpy.ndarray,
@@ -125,19 +129,17 @@ def intensity_features(
             mask_pixels = pixels[i][mask[i]]
             mask_bgcorr_pixels = mask_pixels - background[i]
 
-            conv = convolve(
-                mask[i].astype(int),
-                weights=numpy.ones(shape=[4, 4], dtype=int),
-                mode="constant"
-            )
-            edge = ((conv > 0) & (conv < 15)) * mask[i]
-            mask_edge_pixels = pixels[i][edge]
-            mask_bgcorr_edge_pixels = mask_edge_pixels - background[i]
-
             out[i, 0] = _row(mask_pixels) + _row2(mask_pixels)
             out[i, 1] = _row(mask_bgcorr_pixels) + _row2(mask_bgcorr_pixels)
-            out[i, 2] = _row(mask_edge_pixels) + _row2(mask_edge_pixels)
-            out[i, 3] = _row(mask_bgcorr_edge_pixels) + _row2(mask_bgcorr_edge_pixels)
+
+            edge = _get_edge_mask(mask[i])
+            if edge.any():
+                mask_edge_pixels = pixels[i][edge]
+                mask_bgcorr_edge_pixels = mask_edge_pixels - background[i]
+                out[i, 2] = _row(mask_edge_pixels) + _row2(mask_edge_pixels)
+                out[i, 3] = _row(mask_bgcorr_edge_pixels) + _row2(mask_bgcorr_edge_pixels)
+            else:
+                out[i, 2:] = 0
         else:
             # write default values
             out[i, :4] = 0
@@ -146,19 +148,17 @@ def intensity_features(
         mask_pixels = pixels[i][combined_mask]
         mask_bgcorr_pixels = mask_pixels - combined_background[i]
 
-        conv = convolve(
-            combined_mask.astype(int),
-            weights=numpy.ones(shape=[4, 4], dtype=int),
-            mode="constant"
-        )
-        combined_edge = ((conv > 0) & (conv < 15)) * combined_mask
-
-        mask_edge_pixels = pixels[i][combined_edge]
-        mask_bgcorr_edge_pixels = mask_edge_pixels - combined_background[i]
-
         out[i, 4] = _row(mask_pixels) + _row2(mask_pixels)
         out[i, 5] = _row(mask_bgcorr_pixels) + _row2(mask_bgcorr_pixels)
-        out[i, 6] = _row(mask_edge_pixels) + _row2(mask_edge_pixels)
-        out[i, 7] = _row(mask_bgcorr_edge_pixels) + _row2(mask_bgcorr_edge_pixels)
+
+        combined_edge = _get_edge_mask(combined_mask)
+        if combined_edge.any():
+            mask_edge_pixels = pixels[i][combined_edge]
+            mask_bgcorr_edge_pixels = mask_edge_pixels - combined_background[i]
+
+            out[i, 6] = _row(mask_edge_pixels) + _row2(mask_edge_pixels)
+            out[i, 7] = _row(mask_bgcorr_edge_pixels) + _row2(mask_bgcorr_edge_pixels)
+        else:
+            out[i, 6:] = 0
 
     return out.flatten()

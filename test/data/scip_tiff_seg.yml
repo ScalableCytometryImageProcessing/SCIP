@@ -1,0 +1,31 @@
+load:
+  format: tiff
+  channels: [1, 2]
+  channel_names:
+    - DAPI
+    - actin
+  kwargs:
+    regex: ^.+\/(?P<plate>.+)\/test(?P<id>.+)_(?P<channel>[0-9]).+$
+project:
+illumination_correction:
+  method: jones_2006
+  key: plate
+  export: true
+  settings:
+    median_filter_size: 11
+    downscale: 1
+segment:
+  method: cellpose
+  settings:
+    cell_diameter:
+    dapi_channel_index: 0
+    segmentation_channel_index: 1
+  export: false
+mask:
+filter:
+normalization:
+feature_extraction:
+  types: ["shape", "intensity"]
+export:
+  format: parquet
+  filename: features

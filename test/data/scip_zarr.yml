@@ -1,22 +1,39 @@
-loading:
+load:
   format: zarr
   channels: [0, 1]
   channel_names:
     - BF1
     - PI
-  loader_kwargs:
-    regex: ^.+\/(?P<group>.+).zarr$
-masking:
-  method: watershed
-  bbox_channel_index: 0
-  combined_indices: [0, 1]
-  export: false
   kwargs:
-    noisy_channels: [0]
+    regex: ^.+\/(?P<group>.+).zarr$
+segment:
+project:
+illumination_correction:
+mask:
+  combined_indices: [0, 1]
+  methods:
+    - method: "circle"
+      name: "circle-1"
+      bbox_channel_index: 0
+      export: false
+      kwargs:
+    - method: "circle"
+      name: "circle-2"
+      bbox_channel_index: 0
+      export: false
+      kwargs:
+    - method: "spot"
+      name: "spot"
+      bbox_channel_index: 0
+      export: false
+      kwargs:
+        spotsize: 5
 filter:
 normalization:
 feature_extraction:
-  types: ["shape", "intensity", "bbox", "texture"]
+  circle-1: ["shape", "intensity"]
+  circle-2: ["shape", "intensity"]
+  spot: ["shape", "intensity"]
 export:
-  format: anndata
+  format: parquet
   filename: features

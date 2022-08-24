@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Callable, List, Mapping, Any, Optional
+from typing import Callable, List, Mapping, Any
 
 import re
 import logging
@@ -30,8 +30,6 @@ import dask.array
 import numpy
 import tifffile
 from aicsimageio.readers.tiff_glob_reader import TiffGlobReader
-
-from scip.segmentation import util
 from scip.loading import util as l_util
 
 logging.getLogger("tifffile").setLevel(logging.ERROR)
@@ -99,13 +97,17 @@ def _load_block(
     ).get_image_data("CXY")
 
     newevent = event.copy()
-    newevent["pixels"] = im
+    newevent["pixels"] = im.astype(numpy.float32)
     return newevent
 
 
 def get_loader_meta(**kwargs) -> Mapping[str, type]:
     """Returns key to type mapping of metadata."""
     return dict(path=str)
+
+
+def get_group_keys():
+    return []
 
 
 def _map_to_index(f, regex, channels):
@@ -115,7 +117,7 @@ def _map_to_index(f, regex, channels):
 
 
 @dask.delayed
-def _meta_from_directory(regex, path):
+def meta_from_directory(path, regex):
     logger = logging.getLogger(__name__)
 
     path = Path(path)
@@ -149,58 +151,17 @@ def _meta_from_directory(regex, path):
     return df.to_dict(orient="records")
 
 
-def bag_from_directory(
-    *,
-    path: str,
+def load_pixels(
+    images: dask.bag.Bag,
     channels: List[int],
-    partition_size: int,
-    gpu_accelerated: bool,
     regex: str,
-    output: Optional[Path] = None,
-    segment_method: str,
-    segment_kw: Mapping[str, Any],
+    **kwargs
 ) -> dask.bag.Bag:
-    """Creates a Dask Bag of events containing single cell pixel values and metadata.
+    _m2i = partial(_map_to_index, channels=channels, regex=regex)
+    func = partial(_load_block, map_to_index=_m2i)
 
-    Keyword args:
-        path (str): Points to TIFF-files to be loaded in the Bag.
-        channels (List[int]): Channels to be loaded.
-        partition_size (int): Not used currently.
-        gpu_accelerated (bool): Indicates if segmentation uses GPU acceleration.
-        regex (str): Regex string containing named patterns that will be added
-            to the event metadata.
-        output (Path): Points to output directory to export masks, if requested.
-        segment_method (str): Name of segmentation method (one of cellpose and watershed_dapi)
-        segment_kw (Mapping[str, Any]): Keyword arguments passed to segmentation function
+    return images.map_partitions(l_util._load_image_partition, channels=channels, load=func)
 
-    Returns:
-        bag (dask.bag.Bag): containing Mapping of events containing mask, pixels and metadata.
-    """
-
-    meta = _meta_from_directory(regex, path)
-
-    bag = dask.bag.from_delayed(meta)
-    bag = bag.repartition(npartitions=25)
-
-    if segment_method is not None:
-
-        _m2i = partial(_map_to_index, channels=channels, regex=regex)
-        func = partial(_load_block, map_to_index=_m2i)
-
-        bag = bag.map_partitions(l_util._load_image_partition, channels=channels, load=func)
-
-        bag = util.bag_from_blocks(
-            blocks=bag,
-            gpu_accelerated=gpu_accelerated,
-            output=output,
-            segment_kw=segment_kw,
-            segment_method=segment_method,
-            group_keys=[]
-        )
-    else:
-        # bag = dask.bag.from_sequence(records, partition_size=partition_size)
-        bag = dask.bag.from_delayed(meta)
-        bag = bag.map_partitions(
-            l_util._load_image_partition, channels=channels, load=_load_image_tiff)
-
-    return bag
+    # bag = dask.bag.from_delayed(meta)
+    # bag = bag.map_partitions(
+    #     l_util._load_image_partition, channels=channels, load=_load_image_tiff)

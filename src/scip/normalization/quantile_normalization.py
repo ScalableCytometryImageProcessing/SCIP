@@ -89,16 +89,12 @@ def sample_normalization(sample, quantiles):
     return newsample
 
 
-def quantile_normalization(images: dask.bag.Bag, lower, upper, nchannels):
+def quantile_normalization(images: dask.bag.Bag, nchannels):
     """
     Apply min-max normalization on all images, both on original pixel data and masked pixel data
 
     Args:
         images (dask.bag): bag of dictionaries containing image data
-        lower (float): lower quantile percentage that will be used as
-                        minimum in the min-max normalization
-        upper (float): upper quantile percentage that will be used as
-                        maximum in the min-max normalization
     Returns:
         dask.bag: bag of dictionaries including normalized data
     """
