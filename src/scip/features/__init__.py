@@ -34,7 +34,10 @@ def compute_features(images, channel_names, types, loader_meta, prefix):
         if any(c.startswith(a) for a in list(loader_meta.keys())):
             return f"meta_{c}"
         elif any(c.startswith(a) for a in ["bbox", "regions"]):
-            return f"meta_{prefix}_{c}"
+            if prefix is not None:
+                return f"meta_{prefix}_{c}"
+            else:
+                return f"meta_{c}"
         else:
             if prefix is not None:
                 return f"feat_{prefix}_{c}"
