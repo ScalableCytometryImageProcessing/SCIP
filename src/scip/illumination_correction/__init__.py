@@ -1,0 +1,3 @@
+"""
+Illumination correction methods
+"""

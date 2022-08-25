@@ -1,11 +1,6 @@
 scip package
 ============
 
-.. automodule:: scip
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Subpackages
 -----------
 
@@ -15,6 +10,7 @@ Subpackages
    scip.export
    scip.features
    scip.filter
+   scip.illumination_correction
    scip.loading
    scip.masking
    scip.normalization
@@ -29,6 +25,14 @@ scip.main module
 ----------------
 
 .. automodule:: scip.main
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: scip
    :members:
    :undoc-members:
    :show-inheritance:

@@ -15,6 +15,11 @@
 # You should have received a copy of the GNU General Public License
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
+"""
+Data loaders for various image formats. All data loaders take a path as input and produce a
+lazy collection containing all fields of view with meta data.
+"""
+
 from typing import List, Mapping, Any, Tuple
 
 import dask.bag

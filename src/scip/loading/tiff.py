@@ -15,6 +15,13 @@
 # You should have received a copy of the GNU General Public License
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
+"""
+Data loader for Tagged Image File format based on aicsimageio package. Expects one channel per file.
+
+Regex pattern for load_pixels and meta_from_directory functions has to contain
+channel and id named group.
+"""
+
 from typing import Callable, List, Mapping, Any
 
 import re

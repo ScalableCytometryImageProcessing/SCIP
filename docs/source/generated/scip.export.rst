@@ -1,11 +1,6 @@
 scip.export package
 ===================
 
-.. automodule:: scip.export
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Submodules
 ----------
 
@@ -21,6 +16,14 @@ scip.export.parquet module
 --------------------------
 
 .. automodule:: scip.export.parquet
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: scip.export
    :members:
    :undoc-members:
    :show-inheritance:

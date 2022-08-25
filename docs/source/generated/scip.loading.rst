@@ -1,11 +1,6 @@
 scip.loading package
 ====================
 
-.. automodule:: scip.loading
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Submodules
 ----------
 
@@ -45,6 +40,14 @@ scip.loading.zarr module
 ------------------------
 
 .. automodule:: scip.loading.zarr
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: scip.loading
    :members:
    :undoc-members:
    :show-inheritance:

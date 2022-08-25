@@ -1,3 +1,7 @@
+"""
+Illumination correction as proposed by Jones et al. (2006)
+"""
+
 from functools import partial
 import numpy
 import dask.bag
@@ -35,11 +39,28 @@ def correct(
     *,
     images: dask.bag.Bag,
     key: str,
-    nbatches: int,
+    ngroups: int,
     median_filter_size: int = 50,
     downscale: int = 1,
     output: Path = None,
 ) -> dask.bag.Bag:
+    """
+    Distributed implementation of Jones et al. (2006) illumination correction. All images
+    are averaged per batch, after which the image is filtered using a median filter. If requested,
+    the image is downscaled prior to median filtering to reduce memory consumption.
+
+    Args:
+        images: Collection containing images to be corrected. Each item in the collection a
+            pixels and 'key' key.
+        key: Item key used for grouping.
+        ngroups: Number of groups in the images collection.
+        median_filter_size: Size of the window used in the median filter.
+        downscale: factor by which to downscale the image prior to median filtering
+        output: Path pointing to directory to save correction images.
+
+    Returns:
+        Collection with corrected images.
+    """
 
     # switch to medfilt2d for larger filter sizes as it consumes less memory
     if median_filter_size > 150:
@@ -79,7 +100,7 @@ def correct(
         initial=dict(pixels=None, count=0),
         combine_initial=dict(pixels=None, count=0)
     )
-    mean_images = mean_images.repartition(npartitions=nbatches)
+    mean_images = mean_images.repartition(npartitions=ngroups)
     mean_images = mean_images.map(finish)
     mean_images = dask.delayed(dict, pure=True)(mean_images)
 

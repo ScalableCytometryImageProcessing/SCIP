@@ -15,6 +15,10 @@
 # You should have received a copy of the GNU General Public License
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
+"""
+Data loader for Carl Zeiss Image format. Based on the aicsimageio package. Expects scenes and CZXY dimensions to be present.
+"""
+
 import re
 from typing import List, Mapping, Any
 

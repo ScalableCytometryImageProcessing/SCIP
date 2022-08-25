@@ -1,18 +1,13 @@
 scip.features package
 =====================
 
-.. automodule:: scip.features
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Submodules
 ----------
 
-scip.features.feature\_extraction module
-----------------------------------------
+scip.features.bbox module
+-------------------------
 
-.. automodule:: scip.features.feature_extraction
+.. automodule:: scip.features.bbox
    :members:
    :undoc-members:
    :show-inheritance:
@@ -37,6 +32,14 @@ scip.features.texture module
 ----------------------------
 
 .. automodule:: scip.features.texture
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: scip.features
    :members:
    :undoc-members:
    :show-inheritance:
