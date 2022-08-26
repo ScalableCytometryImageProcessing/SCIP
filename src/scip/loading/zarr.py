@@ -16,7 +16,9 @@
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-Data loader for zarr format. Based on zarr package. Loader expects each element in the zarr collection to be a 1-D array, with a corresponding entry in the shape attribute of the zarr collection. See Input section of documentation for more info.
+Data loader for zarr format. Based on zarr package. Loader expects each element in the zarr
+collection to be a 1-D array, with a corresponding entry in the shape attribute of the zarr
+collection. See Input section of documentation for more info.
 """
 
 from typing import Mapping, List
