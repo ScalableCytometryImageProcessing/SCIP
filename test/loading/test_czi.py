@@ -57,7 +57,7 @@ def test_segment(czi_path, tmp_path):
     images = images.map_partitions(project_block_partition, proj=op.project_block, op="max")
 
     segment_kw = dict(
-        cell_diameter=30, segmentation_channel_index=1, dapi_channel_index=0)
+        cell_diameter=30, parent_channel_index=1)
     images = images.map_partitions(
         cellpose.segment_block,
         gpu_accelerated=False,
@@ -86,7 +86,7 @@ def test_segment_to_events(czi_path):
     images = images.map_partitions(project_block_partition, proj=op.project_block, op="max")
 
     segment_kw = dict(
-        cell_diameter=30, segmentation_channel_index=1, dapi_channel_index=0)
+        cell_diameter=30, parent_channel_index=1)
     images = images.map_partitions(
         cellpose.segment_block,
         gpu_accelerated=False,
