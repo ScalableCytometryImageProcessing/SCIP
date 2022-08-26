@@ -13,7 +13,7 @@ def test_correct(fake_images_bag, tmp_path):
         median_filter_size=11,
         downscale=1,
         output=tmp_path,
-        nbatches=1
+        ngroups=1
     )
 
     original_images = fake_images_bag.compute()

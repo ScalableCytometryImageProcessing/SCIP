@@ -172,7 +172,7 @@ def main(  # noqa: C901
             images = correct(
                 images=images,
                 key=key,
-                nbatches=len(meta.distinct(key).compute()),
+                ngroups=len(meta.distinct(key).compute()),
                 output=ill_corr_output,
                 **config["illumination_correction"]["settings"],
             )
