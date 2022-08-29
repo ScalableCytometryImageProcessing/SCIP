@@ -18,7 +18,7 @@
 from skimage.filters import sobel
 from skimage import morphology
 import numpy
-from scip.masking import mask_post_process
+from scip.masking import mask_post_process, mask_predicate
 
 
 def get_mask(el):
@@ -46,11 +46,12 @@ def get_mask(el):
     return out
 
 
-def create_masks_on_bag(bag, **kwargs):
+def create_masks_on_bag(bag, main_channel, **kwargs):
+    def masking(partition):
+        return [
+            mask_predicate(get_mask(p), main_channel)
+            for p in partition
+        ]
 
-    def watershed_masking(partition):
-        return [get_mask(p) for p in partition]
-
-    bag = bag.map_partitions(watershed_masking)
-
-    return dict(watershed=bag)
+    bag = bag.map_partitions(masking)
+    return bag

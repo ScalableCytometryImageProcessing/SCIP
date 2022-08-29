@@ -66,14 +66,20 @@ def fake_image_nchannels():
 
 
 @pytest.fixture
-def fake_images(fake_image_nchannels, n=10):
-    return numpy.tile(
-        numpy.arange(0, 100).reshape(10, 10)[numpy.newaxis], (n, fake_image_nchannels, 1, 1))
+def fake_images(request, fake_image_nchannels, n=10, constant=False):
+    if constant:
+        arr = numpy.full(shape=(10, 10), fill_value=50)
+    else:
+        arr = numpy.arange(0, 100).reshape(10, 10)
+    return numpy.tile(arr[numpy.newaxis], (n, fake_image_nchannels, 1, 1))
 
 
 @pytest.fixture
 def fake_images_bag(request, fake_images, fake_image_nchannels):
-    records = to_records(fake_images, fake_mask(fake_image_nchannels, full=request.param))
+    records = to_records(
+        fake_images,
+        fake_mask(fake_image_nchannels, full=request.param[0])
+    )
     bag = dask.bag.from_sequence(records, partition_size=5)
     return bag
 
