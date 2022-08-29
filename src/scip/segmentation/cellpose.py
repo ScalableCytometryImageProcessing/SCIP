@@ -27,9 +27,10 @@ from scip.utils.util import copy_without
 def segment_block(
     events: List[Mapping[str, Any]],
     *,
+    parent_channel_index: int,
+    dapi_channel_index: int,
     gpu_accelerated: Optional[bool] = False,
     cell_diameter: Optional[int] = None,
-    parent_channel_index: int,
     **kwargs
 ) -> List[dict]:
 
@@ -48,25 +49,24 @@ def segment_block(
 
         block = event["pixels"]
 
-        cp_input = block[parent_channel_index]
         cells, _, _, _ = model.eval(
-            x=cp_input,
-            channels=[0, 0],
+            x=block[[parent_channel_index, dapi_channel_index]],
+            channels=[1, 2],
             diameter=cell_diameter,
-            batch_size=16
+            batch_size=32
         )
 
         labeled_mask = numpy.repeat(cells[numpy.newaxis], block.shape[0], axis=0)
 
-        for channel_index, plane in enumerate(block):
+        for channel_index in range(len(block)):
             if channel_index == parent_channel_index:
                 continue
 
             objects, _, _, _ = model.eval(
-                x=plane,
-                channels=[0, 0],
+                x=block[[channel_index, dapi_channel_index]],
+                channels=[1, 2],
                 diameter=cell_diameter,
-                batch_size=16
+                batch_size=32
             )
 
             # assign over-segmented objects to parent cells
