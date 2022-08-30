@@ -34,6 +34,9 @@ def segment_block(
     **kwargs
 ) -> List[dict]:
 
+    if len(events) == 0:
+        return events
+
     w = get_worker()
     if hasattr(w, "cellpose"):
         model = w.cellpose
@@ -45,38 +48,43 @@ def segment_block(
             model = models.Cellpose(gpu=False, model_type='cyto2')
         w.cellpose = model
 
-    for event in events:
+    parents, _, _, _ = model.eval(
+        x=[e["pixels"][[parent_channel_index, dapi_channel_index]] for e in events],
+        channels=[1, 2],
+        diameter=cell_diameter,
+        batch_size=128
+    )
 
-        block = event["pixels"]
+    children = []
+    for channel_index in range(len(events[0]["pixels"])):
+        if channel_index == parent_channel_index:
+            continue
 
-        cells, _, _, _ = model.eval(
-            x=block[[parent_channel_index, dapi_channel_index]],
+        o, _, _, _ = model.eval(
+            x=[e["pixels"][[channel_index, dapi_channel_index]] for e in events],
             channels=[1, 2],
             diameter=cell_diameter,
-            batch_size=32
+            batch_size=128
         )
+        children.append(o)
 
-        labeled_mask = numpy.repeat(cells[numpy.newaxis], block.shape[0], axis=0)
+    for e_i, event in enumerate(events):
 
-        for channel_index in range(len(block)):
+        labeled_mask = numpy.repeat(parents[e_i][numpy.newaxis], event["pixels"].shape[0], axis=0)
+
+        for channel_index in range(len(event["pixels"])):
             if channel_index == parent_channel_index:
                 continue
 
-            objects, _, _, _ = model.eval(
-                x=block[[channel_index, dapi_channel_index]],
-                channels=[1, 2],
-                diameter=cell_diameter,
-                batch_size=32
-            )
-
-            # assign over-segmented objects to parent cells
-            mask = numpy.zeros_like(cells)
-            for i in numpy.unique(cells)[1:]:
-                idx, counts = numpy.unique(objects[cells == i], return_counts=True)
+            # assign over-segmented children to parent objects
+            mask = numpy.zeros_like(parents[e_i])
+            for i in numpy.unique(parents[e_i])[1:]:
+                idx, counts = numpy.unique(
+                    children[channel_index][e_i][parents[e_i] == i], return_counts=True)
                 idx, counts = idx[1:], counts[1:]  # skip zero (= background)
 
-                idx = idx[(counts / (cells == i).sum()) > 0.1]
-                mask[numpy.isin(objects, idx) & (cells == i)] = i
+                idx = idx[(counts / (parents[e_i] == i).sum()) > 0.1]
+                mask[numpy.isin(children[channel_index][e_i], idx) & (parents[e_i] == i)] = i
 
             labeled_mask[channel_index] = mask
 
