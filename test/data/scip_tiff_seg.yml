@@ -19,6 +19,7 @@ segment:
   settings:
     cell_diameter:
     parent_channel_index: 1
+    dapi_channel_index: 0
   export: false
 mask:
 filter:
