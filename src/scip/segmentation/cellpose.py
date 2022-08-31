@@ -31,6 +31,7 @@ def segment_block(
     dapi_channel_index: int,
     gpu_accelerated: Optional[bool] = False,
     cell_diameter: Optional[int] = None,
+    flow_threshold: Optional[float] = 0.4,
     **kwargs
 ) -> List[dict]:
 
@@ -52,7 +53,8 @@ def segment_block(
         x=[e["pixels"][[parent_channel_index, dapi_channel_index]] for e in events],
         channels=[1, 2],
         diameter=cell_diameter,
-        batch_size=128
+        batch_size=128,
+        flow_threshold=flow_threshold
     )
 
     children = []
@@ -64,27 +66,26 @@ def segment_block(
             x=[e["pixels"][[channel_index, dapi_channel_index]] for e in events],
             channels=[1, 2],
             diameter=cell_diameter,
-            batch_size=128
+            batch_size=128,
+            flow_threshold=flow_threshold
         )
-        children.append(o)
+        children.append((channel_index, o))
 
     for e_i, event in enumerate(events):
 
         labeled_mask = numpy.repeat(parents[e_i][numpy.newaxis], event["pixels"].shape[0], axis=0)
 
-        for channel_index in range(len(event["pixels"])):
-            if channel_index == parent_channel_index:
-                continue
+        for channel_index, child in children:
 
             # assign over-segmented children to parent objects
             mask = numpy.zeros_like(parents[e_i])
             for i in numpy.unique(parents[e_i])[1:]:
                 idx, counts = numpy.unique(
-                    children[channel_index][e_i][parents[e_i] == i], return_counts=True)
+                    child[e_i][parents[e_i] == i], return_counts=True)
                 idx, counts = idx[1:], counts[1:]  # skip zero (= background)
 
                 idx = idx[(counts / (parents[e_i] == i).sum()) > 0.1]
-                mask[numpy.isin(children[channel_index][e_i], idx) & (parents[e_i] == i)] = i
+                mask[numpy.isin(child[e_i], idx) & (parents[e_i] == i)] = i
 
             labeled_mask[channel_index] = mask
 
