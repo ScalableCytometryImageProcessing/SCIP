@@ -4,14 +4,10 @@ from importlib import import_module
 import numpy
 import dask
 import dask.bag
-import copy
 
 
 def _substract_mask(event, left_index, right_index, for_channel_index):
-    event["mask"][for_channel_index] = (
-        event["mask"][left_index] -
-        event["mask"][right_index]
-    )
+    event["mask"][for_channel_index] = event["mask"][left_index] - event["mask"][right_index]
     return event
 
 
