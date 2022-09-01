@@ -4,6 +4,15 @@ from importlib import import_module
 import numpy
 import dask
 import dask.bag
+import copy
+
+
+def _substract_mask(event, left_index, right_index, for_channel_index):
+    event["mask"][for_channel_index] = (
+        event["mask"][left_index] -
+        event["mask"][right_index]
+    )
+    return event
 
 
 def segment(
@@ -23,6 +32,14 @@ def segment(
     # know that it should only be executed on a worker that also has the cellpose resource.
     with dask.annotate(resources={"cellpose": 1}):
         images = images.map_partitions(mod.segment_block, gpu_accelerated=gpu > 0, **settings)
+
+    if settings["substract"] is not None:
+        images = images.map(
+            _substract_mask,
+            left_index=settings["left_index"],
+            right_index=settings["right_index"],
+            for_channel_index=settings["for_channel_index"]
+        )
 
     group_keys = loader_module.get_group_keys()
     if export:

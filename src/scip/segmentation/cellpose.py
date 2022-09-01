@@ -22,11 +22,13 @@ from skimage.measure import regionprops
 from dask.distributed import get_worker
 import torch
 from scip.utils.util import copy_without
+from distributed import get_client
 
 
 def segment_block(
     events: List[Mapping[str, Any]],
     *,
+    channel_indices: List[int] = None,
     parent_channel_index: int,
     dapi_channel_index: int,
     gpu_accelerated: Optional[bool] = False,
@@ -43,7 +45,8 @@ def segment_block(
         model = w.cellpose
     else:
         if gpu_accelerated:
-            device = torch.device(w.name - 2)
+            gpu_id = list(get_client().scheduler_info()["workers"].keys()).index(w.address)
+            device = torch.device(f'cuda:{gpu_id}')
             model = models.Cellpose(gpu=True, device=device, model_type='cyto2')
         else:
             model = models.Cellpose(gpu=False, model_type='cyto2')
@@ -57,8 +60,11 @@ def segment_block(
         flow_threshold=flow_threshold
     )
 
+    if channel_indices is None:
+        channel_indices = range(len(events[0]["pixels"]))
+
     children = []
-    for channel_index in range(len(events[0]["pixels"])):
+    for channel_index in channel_indices:
         if channel_index == parent_channel_index:
             continue
 
