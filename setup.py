@@ -15,7 +15,7 @@ setuptools.setup(
     install_requires=[
         'numpy',
         'Pillow',
-        'dask',
+        'dask>=2022.01.1',
         'dask-ml',
         'click',
         'scikit-image',
