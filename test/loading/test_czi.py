@@ -19,7 +19,7 @@ import os
 import pytest
 import dask.bag
 from scip.loading import czi
-from scip.segmentation import cellpose, export_labeled_mask
+from scip.segmentation import export_labeled_mask
 from scip.projection import op, project_block_partition
 
 
@@ -51,6 +51,8 @@ def test_project(czi_path, projection):
     reason="Bug in CellPose package related to CPNet on CPU"
 )
 def test_segment(czi_path, tmp_path):
+    cellpose = pytest.importorskip("scip.segmentation.cellpose")
+
     images = czi.meta_from_directory(path=czi_path, scenes=None)
     images = dask.bag.from_delayed(images)
     images = czi.load_pixels(images=images, channels=[0, 6])
@@ -80,6 +82,8 @@ def test_segment(czi_path, tmp_path):
     reason="Bug in CellPose package related to CPNet on CPU"
 )
 def test_segment_to_events(czi_path):
+    cellpose = pytest.importorskip("scip.segmentation.cellpose")
+
     images = czi.meta_from_directory(path=czi_path, scenes=None)
     images = dask.bag.from_delayed(images)
     images = czi.load_pixels(images=images, channels=[0, 6])
