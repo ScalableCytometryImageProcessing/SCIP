@@ -12,3 +12,8 @@ sphinx-apidoc -f -T -o source/generated/ ../src/scip
 make clean
 make html
 ```
+
+## Generate release changelog
+```
+git log v{previous version tag}..HEAD --oneline | xclip -sel clip
+```
