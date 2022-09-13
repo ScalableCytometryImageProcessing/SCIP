@@ -30,14 +30,17 @@ setuptools.setup(
     install_requires=[
         'numpy',
         'Pillow',
-        'dask>=2022.01.1',
+        'dask[distributed]>=2022.01.1',
         'click',
         'scikit-image',
         'pyyaml',
         'graphviz',
         'zarr',
         'pyarrow',
-        'anndata'
+        'anndata',
+        'pandas',
+        'numba',
+        'aicsimageio'
     ],
     entry_points={
         'console_scripts': [
@@ -46,8 +49,21 @@ setuptools.setup(
     },
     extras_require={
         "mpi": ['dask_mpi', 'mpi4py'],
-        "czi": ['cellpose', 'aicsimageio', 'aicspylibczi'],
-        "jobqueue": ["dask-jobqueue"]
+        "cellpose": ["cellpose"],
+        "czi": ['aicspylibczi'],
+        "jobqueue": ["dask-jobqueue"],
+        "dev": [
+            "flake8",
+            "wheel",
+            "pytest",
+            "pytest-cov",
+            "pytest-mpi",
+            "types-PyYAML",
+            "types-setuptools",
+            "sphinx",
+            "versioneer",
+            "furo"
+        ]
     },
     python_requires=">=3.8",
     package_data={
