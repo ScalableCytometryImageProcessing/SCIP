@@ -32,9 +32,9 @@ def segment(
     if settings["substract"] is not None:
         images = images.map(
             _substract_mask,
-            left_index=settings["left_index"],
-            right_index=settings["right_index"],
-            for_channel_index=settings["for_channel_index"]
+            left_index=settings["substract"]["left_index"],
+            right_index=settings["substract"]["right_index"],
+            for_channel_index=settings["substract"]["for_index"]
         )
 
     group_keys = loader_module.get_group_keys()
