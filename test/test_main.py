@@ -4,6 +4,7 @@ from pathlib import Path
 import pyarrow.parquet
 import pandas
 import numpy
+import os
 
 
 @pytest.mark.parametrize(
@@ -48,7 +49,13 @@ def test_main(mode, limit, expected_n, with_replacement, zarr_path, tmp_path, da
     assert numpy.all(df.filter(regex="circle-1").values == df.filter(regex="circle-2").values)
 
 
+@pytest.mark.skipif(
+    "GITHUB_ACTIONS" in os.environ,
+    reason="Bug in CellPose package related to CPNet on CPU"
+)
 def test_main_with_correction(tiffs_folder, tmp_path, data):
+    pytest.importorskip("scip.segmentation.cellpose")
+
     runtime = main.main(
         mode="local",
         n_workers=4,
