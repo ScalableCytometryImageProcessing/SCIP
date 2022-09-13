@@ -8,6 +8,21 @@ setuptools.setup(
         "Topic :: Scientific/Engineering :: Image Processing"
     ],
     name="scip",
+    license="GPL-2.0-or-later",
+    maintainer="Maxim Lippeveld",
+    author_email="maxim.lippeveld@ugent.be",
+    description="Scalable Cytometry Image Processing",
+    long_description="""
+    Scalable Cytometry Image Processing (SCIP) is an open-source tool that implements an image
+    processing pipeline on top of Dask, a distributed computing framework written in Python.
+    SCIP performs normalization, image segmentation and masking, and feature extraction.
+    """,
+    url="https://github.com/ScalableCytometryImageProcessing/SCIP",
+    project_urls={
+        'Documentation': "https://scalable-cytometry-image-processing.readthedocs.io/en/latest/",
+        'Source': "https://github.com/ScalableCytometryImageProcessing/SCIP",
+        'Tracker': "https://github.com/ScalableCytometryImageProcessing/SCIP/issues"
+    },
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
     package_dir={"": "src"},
@@ -16,16 +31,12 @@ setuptools.setup(
         'numpy',
         'Pillow',
         'dask>=2022.01.1',
-        'dask-ml',
         'click',
         'scikit-image',
         'pyyaml',
         'graphviz',
-        'pyarrow',
-        'umap-learn',
-        'bokeh',
         'zarr',
-        'fastparquet',
+        'pyarrow',
         'anndata'
     ],
     entry_points={
