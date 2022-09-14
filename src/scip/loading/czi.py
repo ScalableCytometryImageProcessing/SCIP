@@ -57,7 +57,8 @@ def get_group_keys():
 @dask.delayed
 def meta_from_directory(
     path: str,
-    scenes: List[str]
+    scenes: List[str],
+    regex: str = ""
 ) -> List[Mapping[str, Any]]:
 
     im = AICSImage(path, reconstruct_mosaic=False)
@@ -73,8 +74,13 @@ def meta_from_directory(
 
     scenes_meta = []
     for scene in im_scenes:
+
+        m = {}
+        if regex != "":
+            m = re.search(regex, scene).groupdict()
+
         # store the scene and tile name
-        scenes_meta.extend([dict(scene=scene, tile=i, path=path) for i in range(im.shape[0])])
+        scenes_meta.extend([dict(scene=scene, tile=i, path=path, **m) for i in range(im.shape[0])])
 
     return scenes_meta
 
