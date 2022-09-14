@@ -1,4 +1,4 @@
-![SCIP logo](logo.png)
+![SCIP logo](docs/source/logo.png)
 
 # SCIP: Scalable Cytometry Image Processing
 

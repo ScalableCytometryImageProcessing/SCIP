@@ -44,6 +44,12 @@ exclude_patterns = []
 
 # -- Options for HTML output -------------------------------------------------
 
+html_logo = "logo.png"
+
+html_theme_options = {
+    "sidebar_hide_name": True,
+}
+
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
