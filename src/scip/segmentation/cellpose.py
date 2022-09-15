@@ -45,7 +45,14 @@ def segment_block(
         model = w.cellpose
     else:
         if gpu_accelerated:
-            gpu_id = list(get_client().scheduler_info()["workers"].keys()).index(w.address)
+            # find all gpu enabled workers
+            gpu_workers = [
+                address
+                for address, w in get_client().scheduler_info()["workers"].items()
+                if "cellpose" in w["resources"]
+            ]
+
+            gpu_id = gpu_workers.index(w.address)
             device = torch.device(f'cuda:{gpu_id}')
             model = models.Cellpose(gpu=True, device=device, model_type='cyto2')
         else:

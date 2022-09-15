@@ -26,8 +26,11 @@ def segment(
 
     # this segment operation is annotated with the cellpose resource to let the scheduler
     # know that it should only be executed on a worker that also has the cellpose resource.
-    with dask.annotate(resources={"cellpose": 1}):
-        images = images.map_partitions(mod.segment_block, gpu_accelerated=gpu > 0, **settings)
+    if gpu > 0:
+        with dask.annotate(resources={"cellpose": 1}):
+            images = images.map_partitions(mod.segment_block, gpu_accelerated=True, **settings)
+    else:
+        images = images.map_partitions(mod.segment_block, gpu_accelerated=False, **settings)
 
     if settings["substract"] is not None:
         images = images.map(
