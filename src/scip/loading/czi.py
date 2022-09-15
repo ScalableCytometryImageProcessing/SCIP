@@ -46,8 +46,16 @@ def _load_block(event, channels):
     return newevent
 
 
-def get_loader_meta(**kwargs) -> Mapping[str, type]:
-    return dict(path=str, tile=int, scene=str, id=int)
+def get_loader_meta(
+    *,
+    regex: str,
+    **kwargs
+) -> Mapping[str, type]:
+    loader_meta = dict(path=str, tile=int, scene=str, id=int)
+    named_groups = re.findall(r"\(\?P\<([^>]+)\>[^)]+\)", regex)
+    for k in named_groups:
+        loader_meta[k] = str
+    return loader_meta
 
 
 def get_group_keys():
