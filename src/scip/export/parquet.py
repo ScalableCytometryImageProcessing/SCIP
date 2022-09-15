@@ -21,9 +21,11 @@ def export(
         Future that represents the export task.
     """
 
-    return df.to_parquet(
+    df = df.to_parquet(
         str(output),
         name_function=lambda x: f"{filename}.{x}.parquet",
         write_metadata_file=False,
-        engine="pyarrow"
+        engine="pyarrow",
+        compute=False
     )
+    return df
