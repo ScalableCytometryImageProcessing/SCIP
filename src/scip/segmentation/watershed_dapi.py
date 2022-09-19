@@ -21,52 +21,42 @@ from skimage.restoration import denoise_nl_means
 from skimage import feature, measure
 import skimage
 from scipy.ndimage import distance_transform_edt
-from skimage.measure import regionprops
 
-from typing import List
-import dask
+from typing import List, Any, Mapping
 import numpy
 
 
-@dask.delayed
 def segment_block(
-    block: numpy.ndarray,
+    events: List[Mapping[str, Any]],
     *,
-    group: str,
     cell_diameter: int,
-    dapi_channel: int
+    dapi_channel_index: int,
+    expansion_factor: float = 0.1
 ) -> List[dict]:
 
-    plane = block[0, dapi_channel]
-    plane = skimage.img_as_float32(plane)
+    if len(events) == 0:
+        return events
 
-    plane = denoise_nl_means(plane, patch_size=3, patch_distance=2, multichannel=False)
+    for event in events:
+        plane = event["pixels"][dapi_channel_index]
+        plane = skimage.img_as_float32(plane)
 
-    t = threshold_otsu(plane)
-    cells = plane > t
-    distance = distance_transform_edt(cells)
+        plane = denoise_nl_means(plane, patch_size=3, patch_distance=2)
 
-    local_max_coords = feature.peak_local_max(distance, min_distance=cell_diameter)
-    local_max_mask = numpy.zeros(distance.shape, dtype=bool)
-    local_max_mask[tuple(local_max_coords.T)] = True
-    markers = measure.label(local_max_mask)
+        t = threshold_otsu(plane)
+        cells = plane > t
+        distance = distance_transform_edt(cells)
 
-    segmented_cells = watershed(-distance, markers, mask=cells)
-    segmented_cells = expand_labels(segmented_cells, distance=cell_diameter * 0.25)
+        local_max_coords = feature.peak_local_max(distance, min_distance=cell_diameter)
+        local_max_mask = numpy.zeros(distance.shape, dtype=bool)
+        local_max_mask[tuple(local_max_coords.T)] = True
+        markers = measure.label(local_max_mask)
 
-    events = []
-    props = regionprops(segmented_cells)
-    for prop in props:
-        bbox = prop.bbox
-        events.append(dict(
-            pixels=block[0, :, bbox[0]: bbox[2], bbox[1]:bbox[3]],
-            mask=numpy.repeat(prop.image[numpy.newaxis] > 0, block.shape[1], axis=0),
-            combined_mask=prop.image > 0,
-            group=group,
-            bbox=tuple(bbox),
-            regions=[1] * block.shape[1],
-            background=numpy.zeros(shape=(block.shape[1],), dtype=float),
-            combined_background=numpy.zeros(shape=(block.shape[1],), dtype=float)
-        ))
+        segmented_cells = watershed(-distance, markers)
+        expanded = expand_labels(segmented_cells, distance=cell_diameter * expansion_factor)
+
+        event["mask"] = numpy.empty(shape=event["pixels"].shape, dtype=int)
+        event["mask"][dapi_channel_index] = segmented_cells
+        event["mask"][[i for i in range(len(event["mask"])) if i != dapi_channel_index]] = expanded
 
     return events

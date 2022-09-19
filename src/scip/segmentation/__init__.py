@@ -1,9 +1,11 @@
-from typing import List, Mapping, Any
+from typing import List, Mapping, Any, Optional
 from pathlib import Path
 from importlib import import_module
 import numpy
 import dask
 import dask.bag
+from skimage.measure import regionprops
+from scip.utils.util import copy_without
 
 
 def _substract_mask(event, left_index, right_index, for_channel_index):
@@ -63,3 +65,55 @@ def export_labeled_mask(
         numpy.save(out / "masks" / f, event["mask"])
 
     return events
+
+
+def to_events(
+    events: List[Mapping[str, Any]],
+    *,
+    group_keys: Optional[List[str]] = None,
+    parent_channel_index: int,
+    **kwargs
+):
+    """Converts the segmented objects into a list of dictionaries that can be converted
+    to a dask.bag.Bag. The dictionaries contain the pixel information for one detected cell,
+    or event, and the meta data of that event.
+    """
+
+    newevents = []
+    for event in events:
+
+        if group_keys is not None:
+            group = "_".join([str(event[k]) for k in group_keys])
+        else:
+            group = None
+
+        labeled_mask = event["mask"]
+        cell_regions = regionprops(labeled_mask[parent_channel_index])
+
+        for props in cell_regions:
+
+            bbox = props.bbox
+
+            mask = labeled_mask[:, bbox[0]:bbox[2], bbox[1]:bbox[3]] == props.label
+            combined_mask = numpy.sum(mask, axis=0) > 0
+
+            regions = []
+            for m in mask:
+                regions.append(int(m.any()))
+
+            newevent = copy_without(event=event, without=["mask", "pixels"])
+            newevent["pixels"] = event["pixels"][:, bbox[0]: bbox[2], bbox[1]:bbox[3]]
+            newevent["combined_mask"] = combined_mask
+            newevent["mask"] = mask
+            newevent["group"] = group
+            newevent["bbox"] = tuple(bbox)
+            newevent["regions"] = regions
+            newevent["background"] = numpy.zeros(
+                shape=(event["pixels"].shape[0],), dtype=float)
+            newevent["combined_background"] = numpy.zeros(
+                shape=(event["pixels"].shape[0],), dtype=float)
+            newevent["id"] = props.label
+
+            newevents.append(newevent)
+
+    return newevents

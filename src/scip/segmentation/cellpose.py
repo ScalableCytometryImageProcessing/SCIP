@@ -18,10 +18,8 @@
 from typing import Optional, List, Any, Mapping
 import numpy
 from cellpose import models
-from skimage.measure import regionprops
 from dask.distributed import get_worker
 import torch
-from scip.utils.util import copy_without
 from distributed import get_client
 
 
@@ -105,56 +103,3 @@ def segment_block(
         event["mask"] = labeled_mask
 
     return events
-
-
-def to_events(
-    events: List[Mapping[str, Any]],
-    *,
-    group_keys: Optional[List[str]] = None,
-    parent_channel_index: int,
-    **kwargs
-):
-    """Converts the segmented objects into a list of dictionaries that can be converted
-    to a dask.bag.Bag. The dictionaries contain the pixel information for one detected cell,
-    or event, and the meta data of that event.
-    """
-
-    newevents = []
-    for event in events:
-
-        labeled_mask = event["mask"]
-        cells = labeled_mask[parent_channel_index]
-        cell_regions = regionprops(cells)
-
-        if group_keys is not None:
-            group = "_".join([str(event[k]) for k in group_keys])
-        else:
-            group = None
-
-        for props in cell_regions:
-
-            bbox = props.bbox
-
-            mask = labeled_mask[:, bbox[0]:bbox[2], bbox[1]:bbox[3]] == props.label
-            combined_mask = cells[bbox[0]:bbox[2], bbox[1]:bbox[3]] == props.label
-
-            regions = []
-            for m in mask:
-                regions.append(int(m.any()))
-
-            newevent = copy_without(event=event, without=["mask", "pixels"])
-            newevent["pixels"] = event["pixels"][:, bbox[0]: bbox[2], bbox[1]:bbox[3]]
-            newevent["combined_mask"] = combined_mask
-            newevent["mask"] = mask
-            newevent["group"] = group
-            newevent["bbox"] = tuple(bbox)
-            newevent["regions"] = regions
-            newevent["background"] = numpy.zeros(
-                shape=(event["pixels"].shape[0],), dtype=float)
-            newevent["combined_background"] = numpy.zeros(
-                shape=(event["pixels"].shape[0],), dtype=float)
-            newevent["id"] = props.label
-
-            newevents.append(newevent)
-
-    return newevents
