@@ -16,6 +16,7 @@
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
 from typing import Mapping, Any, List
+import copy
 
 import numpy
 
@@ -34,22 +35,29 @@ def mask(
     *,
     images: dask.bag.Bag,
     methods: Mapping[str, Any],
-    combined_indices: List[int]
+    filters: Mapping[str, Any],
+    combined_indices: List[int],
+    main_channel_index
 ) -> Mapping[str, dask.bag.Bag]:
     images_dict = {}
+
+    images = images.map_partitions(
+        compute_filters,
+        config=filters,
+        main_channel_index=main_channel_index
+    )
 
     for method in methods:
         masking_module = import_module('scip.masking.%s' % method["method"])
 
         tmp_images = masking_module.create_masks_on_bag(
             images,
-            main_channel=method["bbox_channel_index"],
             **(method["kwargs"] or dict())
         )
 
         tmp_images = tmp_images.map_partitions(
             remove_regions_touching_border_partition,
-            bbox_channel_index=method["bbox_channel_index"]
+            bbox_channel_index=main_channel_index
         )
 
         tmp_images = tmp_images.map_partitions(bounding_box_partition)
@@ -63,6 +71,29 @@ def mask(
         images_dict[method["name"]] = tmp_images
 
     return images_dict
+
+
+def compute_filters(
+    partition: Mapping[str, Any],
+    config: Mapping[str, Any],
+    main_channel_index: int
+) -> List[Mapping[str, Any]]:
+
+    newpartition = copy.deepcopy(partition)
+    for p in newpartition:
+        p["mask_filter"] = [True] * len(p["pixels"])
+
+    for filter_ in config:
+        mod = import_module("scip.masking.filters.%s" % filter_["method"])
+        for e in newpartition:
+            for c in filter_["channel_indices"]:
+                e["mask_filter"][c] = mod.filter(e["pixels"][c], **filter_["settings"] or {})
+
+                if (c == main_channel_index) and (not e["mask_filter"][c]):
+                    e.pop("pixels", None)
+                    break
+
+    return newpartition
 
 
 @njit(cache=True)

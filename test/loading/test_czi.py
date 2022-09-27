@@ -19,7 +19,7 @@ import os
 import pytest
 import dask.bag
 from scip.loading import czi
-from scip.segmentation import export_labeled_mask
+from scip.segmentation import export_labeled_mask, to_events
 from scip.projection import op, project_block_partition
 
 
@@ -97,7 +97,7 @@ def test_segment_to_events(czi_path):
         **segment_kw
     )
     images = images.map_partitions(
-        cellpose.to_events,
+        to_events,
         group_keys=["scene", "tile"], **segment_kw
     )
     images = images.compute()

@@ -11,20 +11,26 @@ project:
 illumination_correction:
 mask:
   combined_indices: [0, 1]
+  main_channel_index: 0
+  filters:
+    - method: "normaltest"
+      channel_indices: [0]
+      settings:
+    - method: "std"
+      channel_indices: [1]
+      settings:
+        threshold: 2.0
   methods:
     - method: "circle"
       name: "circle-1"
-      bbox_channel_index: 0
       export: false
       kwargs:
     - method: "circle"
       name: "circle-2"
-      bbox_channel_index: 0
       export: false
       kwargs:
     - method: "spot"
       name: "spot"
-      bbox_channel_index: 0
       export: false
       kwargs:
         spotsize: 5

@@ -50,7 +50,7 @@ def segment(
             export_labeled_mask,
             out=output, group_keys=group_keys)
 
-    return images.map_partitions(mod.to_events, group_keys=group_keys, **settings)
+    return images.map_partitions(to_events, group_keys=group_keys, **settings)
 
 
 def export_labeled_mask(

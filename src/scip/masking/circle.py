@@ -1,5 +1,4 @@
 import numpy
-from scip.masking import mask_predicate
 
 
 def _create_circular_mask(i):
@@ -27,11 +26,11 @@ def get_mask(el):
     return newel
 
 
-def create_masks_on_bag(bag, main_channel):
+def create_masks_on_bag(bag):
 
     def circle_masking(partition):
         return [
-            mask_predicate(get_mask(p), main_channel)
+            get_mask(p)
             for p in partition
         ]
 

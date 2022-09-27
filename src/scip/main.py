@@ -199,7 +199,9 @@ def main(  # noqa: C901
             images_dict = mask(
                 images=images,
                 methods=config["mask"]["methods"],
-                combined_indices=config["mask"]["combined_indices"]
+                filters=config["mask"]["filters"],
+                combined_indices=config["mask"]["combined_indices"],
+                main_channel_index=config["mask"]["main_channel_index"]
             )
         else:
             images_dict = dict(no=images)

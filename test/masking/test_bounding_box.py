@@ -16,14 +16,25 @@
 # along with SCIP.  If not, see <http://www.gnu.org/licenses/>.
 
 from scip.loading import multiframe_tiff
-from scip.masking import threshold, bounding_box_partition
+from scip.masking import threshold, bounding_box_partition, compute_filters
 
 
 def test_bounding_box(images_folder):
 
     bag, _ = multiframe_tiff.bag_from_directory(
         images_folder, channels=[0, 1, 2], partition_size=2)
-    bag = threshold.create_masks_on_bag(bag, main_channel=0, smooth=[0.75, 0.75, 0.75])
+    bag = bag.map_partitions(
+        compute_filters,
+        config=[dict(
+            method="std",
+            channel_indices=[0],
+            settings={
+                "threshold": 0.01
+            }
+        )],
+        main_channel_index=0
+    )
+    bag = threshold.create_masks_on_bag(bag, smooth=[0.75, 0.75, 0.75])
     bag = bag.map_partitions(bounding_box_partition)
 
     bag = bag.compute()
@@ -37,5 +48,3 @@ def test_bounding_box(images_folder):
             assert (bbox[1] > 0) & (bbox[1] < el["pixels"].shape[2])
             assert bbox[0] < bbox[2]
             assert bbox[1] < bbox[3]
-        else:
-            assert el["regions"][0] > 1
