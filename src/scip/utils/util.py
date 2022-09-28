@@ -28,7 +28,7 @@ from datetime import datetime, timedelta
 import dask
 from scip._version import get_versions
 
-MODES = ["local", "jobqueue", "mpi", "external"]
+MODES = ["local", "jobqueue", "mpi", "external", "debug"]
 
 
 class ClientClusterContext:
@@ -65,7 +65,9 @@ class ClientClusterContext:
         self.scheduler_adress = scheduler_adress
 
     def __enter__(self):
-        if self.mode == "local":
+        if self.mode == "debug":
+            self.client = Client(n_workers=1, threads_per_worker=1)
+        elif self.mode == "local":
             from dask.distributed import LocalCluster
             with dask.config.set({"distributed.worker.resources.cellpose": 1}):
                 self.cluster = LocalCluster(

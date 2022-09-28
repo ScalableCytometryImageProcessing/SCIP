@@ -36,15 +36,10 @@ def get_mask(el, spotsize):
             x = el["pixels"][dim]
             x = white_tophat(x, footprint=disk(spotsize))
 
-            for nbins in [256, 512, 1024]:
-                try:
-                    x = threshold_minimum(x, nbins=nbins) < x
-                    x = binary_dilation(x, footprint=disk(2))
-                    x = label(x)
-                    mask[dim], cc = x > 0, x.max()
-                    break
-                except RuntimeError:
-                    pass
+            q = numpy.quantile(x, q=0.99)
+            x = x > q
+            x = label(x)
+            mask[dim], cc = x > 0, x.max()
 
         regions[dim] = cc
 
