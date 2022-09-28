@@ -83,7 +83,7 @@ def compute_filters(
     for p in newpartition:
         p["mask_filter"] = [True] * len(p["pixels"])
 
-    for filter_ in config:
+    for filter_ in (config or []):
         mod = import_module("scip.masking.filters.%s" % filter_["method"])
         for e in newpartition:
             for c in filter_["channel_indices"]:
