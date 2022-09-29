@@ -17,8 +17,7 @@
 
 import numpy
 from scip.utils.util import check
-from skimage.morphology import white_tophat, disk, label, binary_dilation
-from skimage.filters import threshold_minimum
+from skimage.morphology import white_tophat, disk, label
 
 
 @check

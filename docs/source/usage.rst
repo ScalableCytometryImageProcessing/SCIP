@@ -43,17 +43,25 @@ The YAML config file has the following specification:
                 right_index: index to channels list
                 for_index: index to channels list
     mask:
-        combined_indices: [0, 5, 8]
+        combined_indices: list of indices to channel list, masks of these channels will be combined
+            for the combined features
+        main_channel_index: index to channels list
+        filters:
+            - method: normaltest
+              channel_indices: list of channel indices on which to apply filter
+              settings:
+            - method: std
+              channel_indices: list of channel indices on which to apply filter
+              settings:
+                threshold: minimum required std
         methods:
             - method: "threshold"
               name: "threshold-name"
-              bbox_channel_index: index to channels list
               export: {true, false}
               kwargs:
                   smooth: [0, 0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0, 0.5, 0.5, 0.5]
             - method: "spot"
               name: "spot-name"
-              bbox_channel_index: index to channels list
               export: {true, false}
               kwargs:
                   spotsize: 5
