@@ -159,9 +159,12 @@ def _regions_touching(arr):
 def remove_regions_touching_border(p, main_channel_index):
 
     regions = p["regions"].copy()
-    mask = numpy.empty_like(p["mask"])
+    mask = numpy.full_like(p["mask"], dtype=bool, fill_value=False)
     for i in range(len(mask)):
-        mask[i], regions[i] = _regions_touching(p["mask"][i])
+        if numpy.any(p["mask"][i]):
+            mask[i], regions[i] = _regions_touching(p["mask"][i])
+        else:
+            regions[i] = 0
 
     if regions[main_channel_index] == 0:
         newevent = copy_without(p, without=["mask", "pixels"])

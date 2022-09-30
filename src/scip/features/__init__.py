@@ -68,6 +68,8 @@ def features_partition(
             out[i, j] = p[k]
         c = len(loader_meta_keys)
 
+        out[i, c:c + lengths["regions"]] = p["regions"]
+
         if "pixels" in p:
             if "bbox" in types:
                 out[i, c:c + lengths["bbox"]] = bbox_features(p)
@@ -120,7 +122,9 @@ def extract_features(  # noqa: C901
           images (rows) in the input bag.
     """
 
-    metas = {}
+    metas = {
+        "regions": {f"regions_{i}": int for i in channel_names}
+    }
     if "bbox" in types:
         metas["bbox"] = _bbox_features_meta(channel_names)
     if "shape" in types:

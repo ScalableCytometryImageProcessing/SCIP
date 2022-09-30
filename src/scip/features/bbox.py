@@ -8,7 +8,6 @@ def _bbox_features_meta(channel_names: List[str]) -> Mapping[str, type]:
         "bbox_maxr": float,
         "bbox_maxc": float
     }
-    d.update({f"regions_{i}": float for i in channel_names})
     return d
 
 
@@ -24,4 +23,4 @@ def bbox_features(p: Mapping) -> Mapping[str, Any]:
         Extracted features.
     """
 
-    return list(p["bbox"]) + p["regions"]
+    return list(p["bbox"])
