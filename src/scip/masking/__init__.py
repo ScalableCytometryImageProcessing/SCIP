@@ -148,10 +148,11 @@ def _regions_touching(arr):
     else:
         indices = idx[counts > limit]
 
+    unique = numpy.unique(arr_labeled)
+    regions = max(0, len(set(unique) - set(indices)) - 1)
     return (
         arr * ~numpy.isin(arr_labeled, indices),  # udpate mask
-        # update number of regions (minus 1 for background)
-        len(set(numpy.unique(arr_labeled)) - set(indices)) - 1
+        regions
     )
 
 
