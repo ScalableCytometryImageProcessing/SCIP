@@ -69,6 +69,7 @@ def features_partition(
         c = len(loader_meta_keys)
 
         out[i, c:c + lengths["regions"]] = p["regions"]
+        c += lengths["regions"]
 
         if "pixels" in p:
             if "bbox" in types:
