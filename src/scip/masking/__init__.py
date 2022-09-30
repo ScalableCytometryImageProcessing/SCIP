@@ -57,7 +57,7 @@ def mask(
 
         tmp_images = tmp_images.map_partitions(
             remove_regions_touching_border_partition,
-            bbox_channel_index=main_channel_index
+            main_channel_index=main_channel_index
         )
 
         tmp_images = tmp_images.map_partitions(bounding_box_partition)
@@ -96,79 +96,85 @@ def compute_filters(
     return newpartition
 
 
-@njit(cache=True)
-def _touching_border(mask):
+# @njit(cache=True)
+# def _touching_border(mask):
 
-    limit = 10
+#     limit = 10
 
-    if mask[0, :].sum() > limit:
-        return True
-    if mask[-1, :].sum() > limit:
-        return True
-    if mask[:, 0].sum() > limit:
-        return True
-    if mask[:, -1].sum() > limit:
-        return True
+#     if mask[0, :].sum() > limit:
+#         return True
+#     if mask[-1, :].sum() > limit:
+#         return True
+#     if mask[:, 0].sum() > limit:
+#         return True
+#     if mask[:, -1].sum() > limit:
+#         return True
 
-    return False
+#     return False
 
 
-def mask_predicate(s, bbox_channel_index):
+# def mask_predicate(s, bbox_channel_index):
 
-    # a mask should be present in the bbox_channel_index
-    if not numpy.any(s["mask"][bbox_channel_index]):
-        return copy_without(s, without=["mask", "pixels"])
+#     # a mask should be present in the bbox_channel_index
+#     if not numpy.any(s["mask"][bbox_channel_index]):
+#         return copy_without(s, without=["mask", "pixels"])
 
-    # only one connected component should be found in the bbox channel
-    if s["regions"][bbox_channel_index] != 1:
-        return copy_without(s, without=["mask", "pixels"])
+#     # only one connected component should be found in the bbox channel
+#     if s["regions"][bbox_channel_index] != 1:
+#         return copy_without(s, without=["mask", "pixels"])
 
-    # mask should not touch the border of the image
-    if _touching_border(s["mask"][bbox_channel_index]):
-        return copy_without(s, without=["mask", "pixels"])
+#     # mask should not touch the border of the image
+#     if _touching_border(s["mask"][bbox_channel_index]):
+#         return copy_without(s, without=["mask", "pixels"])
 
-    return s
+#     return s
 
 
 def _regions_touching(arr):
 
-    limit = 10
+    limit = int(min(arr.shape) * 0.25)
+    arr_labeled = label(arr)
 
     # get all unique indices in the arr edges
-
-    top = arr[0, :]
-    bottom = arr[-1, :]
-    left = arr[:, 0]
-    right = arr[:, -1]
+    top = arr_labeled[0, :]
+    bottom = arr_labeled[-1, :]
+    left = arr_labeled[:, 0]
+    right = arr_labeled[:, -1]
     a = numpy.concatenate((top, bottom, left, right))
     idx, counts = numpy.unique(a, return_counts=True)
 
     if idx[0] == 0:
-        return idx[1:][counts[1:] > limit]
+        indices = idx[1:][counts[1:] > limit]
     else:
-        return idx[counts > limit]
+        indices = idx[counts > limit]
+
+    return (
+        arr * ~numpy.isin(arr_labeled, indices),  # udpate mask
+        # update number of regions (minus 1 for background)
+        len(set(numpy.unique(arr_labeled)) - set(indices)) - 1
+    )
 
 
 @check
-def remove_regions_touching_border(p, bbox_channel_index):
+def remove_regions_touching_border(p, main_channel_index):
+
+    regions = p["regions"].copy()
     mask = numpy.empty_like(p["mask"])
     for i in range(len(mask)):
-        if i == bbox_channel_index:
-            mask[i] = p["mask"][i]
-            continue
+        mask[i], regions[i] = _regions_touching(p["mask"][i])
 
-        x = label(p["mask"][i])
-        indices = _regions_touching(x)
-        mask[i] = p["mask"][i] * ~numpy.isin(x, indices)
+    if regions[main_channel_index] == 0:
+        newevent = copy_without(p, without=["mask", "pixels"])
+    else:
+        newevent = copy_without(p, without=["mask"])
+        newevent["mask"] = mask
 
-    newevent = copy_without(p, without=["mask"])
-    newevent["mask"] = mask
-
+    newevent["regions"] = regions
     return newevent
 
 
-def remove_regions_touching_border_partition(part, bbox_channel_index):
-    return [remove_regions_touching_border(p, bbox_channel_index) for p in part]
+def remove_regions_touching_border_partition(part, main_channel_index):
+    return [remove_regions_touching_border(p, main_channel_index) for p in part]
 
 
 def apply_mask_partition(part, combined_indices=None):
