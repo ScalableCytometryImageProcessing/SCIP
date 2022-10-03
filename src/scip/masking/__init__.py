@@ -27,7 +27,6 @@ from skimage.morphology import remove_small_objects, label, remove_small_holes
 from skimage.segmentation import expand_labels
 
 from scip.utils.util import copy_without, check
-from numba import njit
 from importlib import import_module
 
 

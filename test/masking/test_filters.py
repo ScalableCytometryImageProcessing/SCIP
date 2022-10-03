@@ -4,7 +4,11 @@ from scip.masking import compute_filters
 
 @pytest.mark.parametrize(
     "fake_images_bag, method, settings",
-    [(False, "normaltest", {}), (False, "std", dict(threshold=2))],
+    [
+        (False, "normaltest", {}),
+        (False, "std", dict(threshold=2)),
+        (False, "value_range", dict(threshold=2))
+    ],
     indirect=["fake_images_bag"]
 )
 def test_filters(fake_images_bag, method, settings):
