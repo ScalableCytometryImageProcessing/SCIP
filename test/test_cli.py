@@ -26,7 +26,7 @@ def test_cli(zarr_path, tmp_path, data):
     assert type(timing["runtime"]) is float
     assert timing["runtime"] > 0
 
-    assert len([f for f in tmp_path.glob("*.parquet")]) == 10
+    assert len([f for f in tmp_path.glob("*.parquet")]) == 1
     assert (tmp_path / "scip.log").exists()
 
     df = pandas.concat(

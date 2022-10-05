@@ -32,7 +32,7 @@ def test_main(mode, limit, expected_n, with_replacement, zarr_path, tmp_path, da
     )
 
     assert runtime is not None
-    assert len([f for f in tmp_path.glob("*.parquet")]) == 10
+    assert len([f for f in tmp_path.glob("*.parquet")]) == 1
     assert (tmp_path / "scip.log").exists()
 
     df = pandas.concat(
@@ -68,7 +68,7 @@ def test_main_with_correction(tiffs_folder, tmp_path, data):
     )
 
     assert runtime is not None
-    assert len([f for f in tmp_path.glob("*.parquet")]) == 10
+    assert len([f for f in tmp_path.glob("*.parquet")]) == 1
     assert (tmp_path / "scip.log").exists()
 
     df = pandas.concat(
