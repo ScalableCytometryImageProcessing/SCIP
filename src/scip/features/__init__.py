@@ -24,6 +24,7 @@ import dask.dataframe
 
 from .shape import shape_features, _shape_features_meta
 from .intensity import intensity_features, _intensity_features_meta
+from .raw_intensity import raw_intensity_features, _raw_intensity_features_meta
 from .texture import texture_features, _texture_features_meta
 from .bbox import bbox_features, _bbox_features_meta
 
@@ -68,8 +69,9 @@ def features_partition(
             out[i, j] = p[k]
         c = len(loader_meta_keys)
 
-        out[i, c:c + lengths["regions"]] = p["regions"]
-        c += lengths["regions"]
+        if "regions" in types:
+            out[i, c:c + lengths["regions"]] = p["regions"]
+            c += lengths["regions"]
 
         if "pixels" in p:
             if "bbox" in types:
@@ -81,6 +83,8 @@ def features_partition(
                     combined_mask=p["combined_mask"]
                 )
                 c += lengths["shape"]
+            if "raw" in types:
+                out[i, c:c + lengths["raw"]] = raw_intensity_features(pixels=p["pixels"])
             if "intensity" in types:
                 out[i, c:c + lengths["intensity"]] = intensity_features(
                     pixels=p["pixels"],
@@ -123,13 +127,15 @@ def extract_features(  # noqa: C901
           images (rows) in the input bag.
     """
 
-    metas = {
-        "regions": {f"regions_{i}": int for i in channel_names}
-    }
+    metas = {}
+    if "regions" in types:
+        metas["regions"] = {f"regions_{i}": int for i in channel_names}
     if "bbox" in types:
         metas["bbox"] = _bbox_features_meta(channel_names)
     if "shape" in types:
         metas["shape"] = _shape_features_meta(channel_names)
+    if "raw" in types:
+        metas["raw"] = _raw_intensity_features_meta(channel_names)
     if "intensity" in types:
         metas["intensity"] = _intensity_features_meta(channel_names)
     if "texture" in types:

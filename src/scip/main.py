@@ -203,6 +203,7 @@ def main(  # noqa: C901
                 combined_indices=config["mask"]["combined_indices"],
                 main_channel_index=config["mask"]["main_channel_index"]
             )
+            images_dict["raw"] = images
         else:
             images_dict = dict(no=images)
 
@@ -241,9 +242,12 @@ def main(  # noqa: C901
             logger.debug("computing features")
 
             pref = None if prefix == "no" else prefix
-            types = config["feature_extraction"]
-            if prefix != "no":
-                types = types[prefix]
+            if prefix == "raw":
+                types = ["raw"]
+            else:
+                types = config["feature_extraction"]
+                if prefix != "no":
+                    types = types[prefix]
 
             bag_df = compute_features(
                 images=images,
@@ -262,7 +266,7 @@ def main(  # noqa: C901
 
         # partitions never change between masks so we can ignore unknown divisions
         bag_df = dask.dataframe.multi.concat(dataframes, axis=1, ignore_unknown_divisions=True)
-        bag_df = bag_df.repartition(npartitions=max(int(bag_df.npartitions*0.01), 1))
+        bag_df = bag_df.repartition(npartitions=max(int(bag_df.npartitions * 0.01), 1))
 
         filename = config["export"]["filename"]
         export_module = import_module('scip.export.%s' % config["export"]["format"])
