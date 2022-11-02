@@ -9,13 +9,7 @@ Table of contents
    :maxdepth: 1
 
    installation
-   usage
    input
+   usage
    generated/scip
-
-Indices and tables
-------------------
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   Github <https://github.com/ScalableCytometryImageProcessing/SCIP>

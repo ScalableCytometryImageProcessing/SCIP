@@ -1,6 +1,11 @@
 scip.segmentation package
 =========================
 
+.. automodule:: scip.segmentation
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Submodules
 ----------
 
@@ -16,14 +21,6 @@ scip.segmentation.watershed\_dapi module
 ----------------------------------------
 
 .. automodule:: scip.segmentation.watershed_dapi
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: scip.segmentation
    :members:
    :undoc-members:
    :show-inheritance:

@@ -1,6 +1,11 @@
 scip package
 ============
 
+.. automodule:: scip
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Subpackages
 -----------
 
@@ -25,14 +30,6 @@ scip.main module
 ----------------
 
 .. automodule:: scip.main
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: scip
    :members:
    :undoc-members:
    :show-inheritance:

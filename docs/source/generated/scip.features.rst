@@ -1,6 +1,11 @@
 scip.features package
 =====================
 
+.. automodule:: scip.features
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Submodules
 ----------
 
@@ -20,6 +25,14 @@ scip.features.intensity module
    :undoc-members:
    :show-inheritance:
 
+scip.features.raw\_intensity module
+-----------------------------------
+
+.. automodule:: scip.features.raw_intensity
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 scip.features.shape module
 --------------------------
 
@@ -32,14 +45,6 @@ scip.features.texture module
 ----------------------------
 
 .. automodule:: scip.features.texture
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: scip.features
    :members:
    :undoc-members:
    :show-inheritance:

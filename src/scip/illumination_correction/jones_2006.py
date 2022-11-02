@@ -66,9 +66,12 @@ def correct(
     precomputed: Path = None
 ) -> dask.bag.Bag:
     """
-    Distributed implementation of Jones et al. (2006) illumination correction. All images
+    Distributed implementation of retrospective illumination correction [1]. All images
     are averaged per batch, after which the image is filtered using a median filter. If requested,
     the image is downscaled prior to median filtering to reduce memory consumption.
+
+    [1] Singh, S., Bray, M. A., Jones, T. R., & Carpenter, A. E. (2014). Pipeline for illumination
+    correction of images for high‐throughput microscopy. Journal of microscopy, 256(3), 231-236.
 
     Args:
         images: Collection containing images to be corrected. Each item in the collection a

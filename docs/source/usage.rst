@@ -4,6 +4,9 @@ Usage
 
 SCIP can be used as a command line interface (CLI) or its modules can be imported in a custom script. See the package API documentation for the latter option.
 
+Configuration
+=============
+
 The CLI runs a workflow that loads images and performs projection, illumination correction, segmentation, masking, and feature extraction. The CLI can be configured via options passed on the command line (for runtime configuration) and via a YAML config file (for pipeline configuration). For an overview of the command line options, run ``scip --help``.
 
 The YAML config file has the following specification:
@@ -82,3 +85,25 @@ Note that all top-level keys have to be present. You can disable a step by only 
 .. code-block:: yaml
 
     mask:
+
+Command-line
+============
+
+This package exposes one command-line client (CLI): :code:`scip`
+
+Call
+
+.. code-block:: bash
+
+    scip --help
+
+to get an overview of all available options.
+
+The structure of the CLI is as follows:
+
+.. code-block:: bash
+
+    scip [OPTIONS] OUTPUT CONFIG [PATHS]...
+
+All runtime options, such as the number of workers are passed in the :code:`OPTIONS` section. All
+pipeline settings are passed using the configuration file passed through :code:`CONFIG`.

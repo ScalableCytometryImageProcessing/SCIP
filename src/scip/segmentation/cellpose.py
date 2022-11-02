@@ -33,7 +33,23 @@ def segment_block(
     cell_diameter: Optional[int] = None,
     flow_threshold: Optional[float] = 0.4,
     **kwargs
-) -> List[dict]:
+) -> List[Mapping[str, Any]]:
+    """Performs CellPose[1] segmentation.
+
+    [1] Stringer, C., Wang, T., Michaelos, M., & Pachitariu, M. (2021). Cellpose: a generalist
+    algorithm for cellular segmentation. Nature methods, 18(1), 100-106.
+
+    Args:
+        channel_indices: Indices of channels to be segmented.
+        parent_channel_index: Index of parent channel. Objects detected in other
+            channels which overlap with an object detected in this channel will be assigned to it.
+        dapi_channel_index: Index of DAPI channel.
+        gpu_accelerated: Whether segmentation should be run on GPU.
+        cell_diameter: See CellPose documentation.
+        flow_threshold: See CellPose documentation.
+    Returns:
+        Events with mask obtained using CellPose.
+    """
 
     if len(events) == 0:
         return events
@@ -88,7 +104,7 @@ def segment_block(
 
         for channel_index, child in children:
 
-            # assign over-segmented children to parent objects
+            # assign children to parent objects
             mask = numpy.zeros_like(parents[e_i])
             for i in numpy.unique(parents[e_i])[1:]:
                 idx, counts = numpy.unique(

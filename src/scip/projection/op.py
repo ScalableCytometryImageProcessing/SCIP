@@ -32,6 +32,13 @@ def project_block(
     event: Mapping[str, Any],
     op: str
 ) -> Mapping[str, Any]:
+    """Performs Z-stack projection of multi focal pixel data.
+
+    Args:
+        op: Projection operation to be performed (one of max, mean).
+    Returns:
+        Events with projected pixels.
+    """
     newevent = copy_without(event, without=["pixels"])
     newevent["pixels"] = _OPS[op](event["pixels"])
 

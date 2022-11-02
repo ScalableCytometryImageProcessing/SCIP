@@ -2,7 +2,7 @@
 Installation
 ============
 
-SCIP can be installed from the PyPi and conda-forge repositories,
+SCIP can be installed from the PyPi repository,
 or from source.
 
 We recommend installing SCIP in a conda environment
@@ -22,27 +22,10 @@ an MPI implementation must be available. We recommend installing mpich.
 
     mamba install -c conda-forge mpich-mpicc
 
-conda-forge
------------
-
-You can install SCIP in a new environment,
-
-.. code-block::
-
-    mamba env create -n scip -c conda-forge scip
-
-or in an existing environment:
-.. code-block::
-
-    mamba activate env
-    mamba install -c conda-forge scip
-
-This will install the full SCIP package.
-
 PyPi
 ----
 
-SCIP can also be installed from the PyPi repository. The base
+SCIP can be installed from the PyPi repository. The base
 installation can be installed as follows:
 
 .. code-block::
@@ -72,5 +55,5 @@ To install SCIP from source:
 2. Optionally extract the release.
 3. Enter the repository directory.
 4. Run ``pip install .`` if you only need default functionality.
-5. (Optional) Run ``pip install .[extra]`` for extra functionality (refer to the list above 
+5. (Optional) Run ``pip install .[extra]`` for extra functionality (refer to the list above
    for available extras)

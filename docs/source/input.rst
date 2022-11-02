@@ -16,7 +16,7 @@ images can be grouped into a couple of zarr files, which are much easier to hand
 The images are stored in the zarr file using the VLenArray object codec, which supports arrays of
 varying length. This is described in `the zarr documentation <https://zarr.readthedocs.io/en/stable/tutorial.html?highlight=ragged#ragged-arrays>`_.
 This way the images don't have to be cropped or padded to account
-for their varying X and Y dimensions. The images do have to be flattened as the coded only
+for their varying X and Y dimensions. The images do have to be flattened as the codec only
 supports 1D arrays. SCIP reshapes the images upon loading using the shape attribute described below.
 
 The zarr file should have two attributes:
