@@ -8,7 +8,7 @@ def test_extract_features(fake_images_bag, fake_image_nchannels):
     features = extract_features(
         images=fake_images_bag,
         channel_names=[f"c_{i}" for i in range(fake_image_nchannels)],
-        types=["bbox", "intensity", "shape", "texture"]
+        types=["bbox", "intensity", "shape", "texture", "regions"]
     )
 
     assert type(features) is DataFrame

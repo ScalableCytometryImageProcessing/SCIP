@@ -25,6 +25,7 @@ from scip.projection import op, project_block_partition
 
 @pytest.mark.parametrize("channels, expected_length", [(None, 7), ([0, 6], 2)])
 def test_load_pixels(czi_path, channels, expected_length):
+    pytest.importorskip("aicspylibczi")
     images = czi.meta_from_directory(path=czi_path, scenes=None)
     images = dask.bag.from_delayed(images)
     images = czi.load_pixels(images=images, channels=channels)
@@ -36,6 +37,7 @@ def test_load_pixels(czi_path, channels, expected_length):
 
 @pytest.mark.parametrize("projection", ["mean", "max"])
 def test_project(czi_path, projection):
+    pytest.importorskip("aicspylibczi")
     images = czi.meta_from_directory(path=czi_path, scenes=None)
     images = dask.bag.from_delayed(images)
     images = czi.load_pixels(images=images, channels=[0, 6])
@@ -51,6 +53,7 @@ def test_project(czi_path, projection):
     reason="Bug in CellPose package related to CPNet on CPU"
 )
 def test_segment(czi_path, tmp_path):
+    pytest.importorskip("aicspylibczi")
     cellpose = pytest.importorskip("scip.segmentation.cellpose")
 
     images = czi.meta_from_directory(path=czi_path, scenes=None)
@@ -82,6 +85,7 @@ def test_segment(czi_path, tmp_path):
     reason="Bug in CellPose package related to CPNet on CPU"
 )
 def test_segment_to_events(czi_path):
+    pytest.importorskip("aicspylibczi")
     cellpose = pytest.importorskip("scip.segmentation.cellpose")
 
     images = czi.meta_from_directory(path=czi_path, scenes=None)

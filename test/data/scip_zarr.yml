@@ -34,12 +34,18 @@ mask:
       export: false
       kwargs:
         spotsize: 5
+    - method: "li"
+      name: "li"
+      export: false
+      kwargs:
+        smooth: [1, 1]
 filter:
 normalization:
 feature_extraction:
-  circle-1: ["shape", "intensity"]
-  circle-2: ["shape", "intensity"]
-  spot: ["shape", "intensity"]
+  circle-1: ["shape", "intensity", "bbox", "regions"]
+  circle-2: ["shape", "intensity", "bbox", "regions"]
+  spot: ["shape", "intensity", "bbox", "regions"]
+  li: ["shape", "intensity", "regions"]
 export:
   format: parquet
   filename: features
