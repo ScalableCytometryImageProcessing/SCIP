@@ -80,7 +80,8 @@ def features_partition(
             if "shape" in types:
                 out[i, c:c + lengths["shape"]] = shape_features(
                     mask=p["mask"],
-                    combined_mask=p["combined_mask"]
+                    combined_mask=p["combined_mask"],
+                    image=p["pixels"]
                 )
                 c += lengths["shape"]
             if "raw" in types:

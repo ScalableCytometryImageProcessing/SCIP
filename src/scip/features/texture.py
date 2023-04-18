@@ -64,7 +64,8 @@ def _row(pixels, num_features):
         distances=distances,
         angles=angles,
         levels=bins + 2,
-        symmetric=True
+        symmetric=True,
+        normed=True
     )[:-1, :-1]
 
     out = numpy.full(shape=(num_features,), fill_value=None, dtype=float)

@@ -112,15 +112,21 @@ def _shape_features_meta(channel_names: List[str]) -> Mapping[str, type]:
     return out
 
 
-def _row(mask: numpy.ndarray) -> numpy.ndarray:
+def _row(mask: numpy.ndarray, image: numpy.ndarray = None) -> numpy.ndarray:
     label_img = label(mask)
-    props = regionprops_table(label_image=label_img, properties=prop_ids, cache=False)
+    props = regionprops_table(
+        label_image=label_img,
+        properties=prop_ids,
+        intensity_image=image,
+        cache=False
+    )
     return [numpy.mean(props[k]) for k in prop_names]
 
 
 def shape_features(
     mask: numpy.ndarray,
-    combined_mask: numpy.ndarray
+    combined_mask: numpy.ndarray,
+    image: numpy.ndarray
 ) -> numpy.ndarray:
     """Extracts shape features from image.
 
@@ -139,7 +145,7 @@ def shape_features(
 
     for i in range(len(mask)):
         if numpy.any(mask[i]):
-            out[(i + 1) * len(prop_names):(i + 2) * len(prop_names)] = _row(mask[i])
+            out[(i + 1) * len(prop_names):(i + 2) * len(prop_names)] = _row(mask[i], image[i])
         else:
             # setting proper default values if possible when the mask is empty
             out[(i + 1) * len(prop_names):(i + 2) * len(prop_names)] = [
