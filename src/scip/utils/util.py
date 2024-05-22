@@ -70,6 +70,7 @@ class ClientClusterContext:
         elif self.mode == "local":
             from dask.distributed import LocalCluster
             with dask.config.set({"distributed.worker.resources.cellpose": 1}):
+                self.port = self.port or "8787"
                 self.cluster = LocalCluster(
                     n_workers=self.n_workers, threads_per_worker=self.threads_per_process,
                     processes=True, dashboard_address=f":{self.port}"
