@@ -69,18 +69,12 @@ class ClientClusterContext:
             self.client = Client(n_workers=1, threads_per_worker=1)
         elif self.mode == "local":
             from dask.distributed import LocalCluster
-            
-            self.port = self.port or "8787"
-            self.cluster = LocalCluster(
-                n_workers=self.n_workers, threads_per_worker=self.threads_per_process,
-                processes=True, dashboard_address=f":{self.port}"
-            )
-            
-            if resources:= self.cluster.workers[0].resources:
-                resources["cellpose"] = 1
-            else:
-                self.cluster.workers[0].resources = dict(cellpose=1)
-
+            with dask.config.set({"distributed.worker.resources.cellpose": 1}):
+                self.port = self.port or "8787"
+                self.cluster = LocalCluster(
+                    n_workers=self.n_workers, threads_per_worker=self.threads_per_process,
+                    processes=True, dashboard_address=f":{self.port}"
+                )
             self.client = Client(self.cluster)
         elif self.mode == "jobqueue":
             from dask_jobqueue import PBSCluster
