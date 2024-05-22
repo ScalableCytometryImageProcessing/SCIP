@@ -18,9 +18,8 @@
 from typing import Optional, List, Any, Mapping
 import numpy
 from cellpose import models
-from dask.distributed import get_worker
+from dask.distributed import get_worker, get_client, LocalCluster
 import torch
-from distributed import get_client
 
 
 def segment_block(
@@ -59,14 +58,17 @@ def segment_block(
         model = w.cellpose
     else:
         if gpu_accelerated:
-            # find all gpu enabled workers
-            gpu_workers = [
-                address
-                for address, w in get_client().scheduler_info()["workers"].items()
-                if "cellpose" in w["resources"]
-            ]
-
-            gpu_id = gpu_workers.index(w.address)
+            
+            if isinstance(get_client().cluster, LocalCluster):
+                gpu_id = '0'
+            else:
+                gpu_workers = [
+                    address
+                    for address, w in get_client().scheduler_info()["workers"].items()
+                    if "cellpose" in w["resources"]
+                ]
+                gpu_id = gpu_workers.index(w.address)
+            
             device = torch.device(f'cuda:{gpu_id}')
             model = models.Cellpose(gpu=True, device=device, model_type='cyto2')
         else:
